@@ -1,7 +1,22 @@
 from datetime import datetime
-from webapp import db, review_photos
+from webapp import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
+
+shop_products_table = db.Table('shop_products',
+                               db.Column('shop_id', db.Integer, db.ForeignKey('shop.id')),
+                               db.Column('product_id', db.Integer, db.ForeignKey('product.id'))
+                               )
+
+product_tags_table = db.Table('product_tags',
+                              db.Column('product_id', db.Integer, db.ForeignKey('product.id')),
+                              db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
+                              )
+
+review_tags_table = db.Table('review_tags',
+                             db.Column('review_id', db.Integer, db.ForeignKey('review.id')),
+                             db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
+                             )
 
 
 class User(db.Model):
@@ -35,6 +50,8 @@ class Review(db.Model):
     created_ts = db.Column(db.DateTime)
     photo_url = db.Column(db.String)
 
+    tags = db.relationship("Tag", secondary=review_tags_table, backref=db.backref("reviews", lazy="dynamic"))
+
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref=db.backref('reviews'))
 
@@ -59,14 +76,9 @@ class Review(db.Model):
         return {
             'id': self.id,
             'body': self.body,
-            'photo_url': self.photo_url
+            'photo_url': self.photo_url,
+            'tags': [t.serialize() for t in self.tags]
         }
-
-
-shop_products_table = db.Table('shop_products',
-                               db.Column('shop_id', db.Integer, db.ForeignKey('shop.id')),
-                               db.Column('product_id', db.Integer, db.ForeignKey('product.id'))
-                               )
 
 
 class Shop(db.Model):
@@ -86,6 +98,7 @@ class Shop(db.Model):
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String)
+    tags = db.relationship("Tag", secondary=product_tags_table, backref=db.backref("products", lazy="dynamic"))
 
     def __init__(self, label=None, **kwargs):
         self.label = label
@@ -93,8 +106,35 @@ class Product(db.Model):
     def __repr__(self):
         return '<Product %r>' % self.label
 
+    def serialize_basic(self):
+        return {
+            'id': self.id,
+            'label': self.label
+        }
+
     def serialize(self):
         return {
             'id': self.id,
+            'label': self.label,
+            'tags': [t.serialize() for t in self.tags]
+        }
+
+
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    label = db.Column(db.String)
+    connotation = db.Column(db.Integer)
+
+    def __init__(self, label=None, connotation=None, **kwargs):
+        self.label = label
+        self.connotation = connotation
+
+    def __repr__(self):
+        return '<Tag %r (%r)>' % (self.label, self.connotation)
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'connotation': self.connotation,
             'label': self.label
         }
