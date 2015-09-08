@@ -1,0 +1,47 @@
+{% extends "shop_admin/layout.html" %}
+{% block content %}
+    <h1>{{ shop.label }} admin panel</h1>
+    <h2>Orders</h2>
+  {% if not shop.orders %}
+      <p>No orders yet</p>
+  {% else %}
+      <table border="1">
+          <tr>
+              <th>User name</th>
+              <th>Product name</th>
+              <th>Status</th>
+              <th>Purchase TS</th>
+              <th>Shipment TS</th>
+              <th>Delivery TS</th>
+              <th>Delivery estimate</th>
+              <th>Delivery estimate accuracy</th>
+          </tr>
+        {% for order in shop.orders %}
+            <td>{{ order.user.name }}</td>
+            <td>{{ order.product.label }}</td>
+            <td>{{ order.status }}</td>
+            <td>{{ order.purchase_timestamp }}</td>
+            <td>{{ order.shipment_timestamp }}</td>
+            <td>{{ order.delivery_timestamp }}</td>
+            <td>{{ order.delivery_estimation_timestamp }}</td>
+            <td>{{ order.delivery_estimation_accuracy }}</td>
+        {% endfor %}
+      </table>
+  {% endif %}
+    <h2>Plugin code</h2>
+    <textarea style="margin: 0px;
+    width: 600px;
+    height: 200px;">
+&lt;iframe style="border:0; width:500px; height:400px;"
+        id="opinew-review-plugin"
+        src="about:blank"&gt;&lt;/iframe&gt;
+&lt;script&gt;
+    (function () {
+        var productId = document.getElementById('product-id').value;
+        document.getElementById('opinew-review-plugin').src =
+          "http://localhost:5000/plugin/shop/{{ shop.id }}/product/" +
+          productId +
+          "/reviews";
+    })();
+&lt;/script&gt;</textarea>
+{% endblock %}

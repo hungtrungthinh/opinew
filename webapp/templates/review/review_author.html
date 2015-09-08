@@ -1,6 +1,6 @@
 <header style="color: #777; font-size:1em; margin: 10px 10px 30px 10px;">
     <img style="height: 1em; margin-right: 5px;"
-         src="{{ url_for('media_user', filename=review.user.profile_picture_url) }}"
+         src="{{ url_for('client.media_user', filename=review.user.profile_picture_url) }}"
          alt="{{ review.user.name }} profile picture"/>
   {{ review.user.name }} | {{ review.created_ts }}
 </header>

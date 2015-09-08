@@ -1,0 +1,7 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Opinew Notifications</h1>
+  {% for notification in notifications %}
+    {% include "client/notification.html" %}
+  {% endfor %}
+{% endblock %}

@@ -1,0 +1,5 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Review {{ order.product.label }} from {{ order.shop.label }}</h1>
+  {% include "web_review/review_form.html" %}
+{% endblock %}
