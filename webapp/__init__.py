@@ -5,7 +5,7 @@ from flask.ext.login import LoginManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads
 from werkzeug.exceptions import default_exceptions
 
-from config import Config
+from config import config_factory
 
 auth = HTTPBasicAuth()
 login_manager = LoginManager()
@@ -16,8 +16,9 @@ review_photos = UploadSet('reviewphotos', IMAGES)
 
 def create_app(option):
     app = Flask(__name__)
-    app.config.from_object(Config)
-    if option == 'run':
+    config = config_factory.get(option)
+    app.config.from_object(config)
+    if not option == 'db':
         from webapp.api import api
         from webapp.client import client
         app.register_blueprint(client)

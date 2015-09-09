@@ -208,9 +208,6 @@ class Review(db.Model):
 
     tags = db.relationship("Tag", secondary=review_tags_table, backref=db.backref("reviews", lazy="dynamic"))
 
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
-    order = db.relationship('Order', backref=db.backref('reviews'))
-
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref=db.backref('reviews'))
 

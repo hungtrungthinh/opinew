@@ -2,12 +2,13 @@ import os
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+
 class Constants(object):
-    NOTIFICATION_AFTER_DELIVERY_SECONDS = 2*24*60*60  # 2 days
+    NOTIFICATION_AFTER_DELIVERY_SECONDS = 2 * 24 * 60 * 60  # 2 days
     TEMP_PWD_LEN = 5
 
+
 class Config(object):
-    DEBUG = True
     SECRET_KEY = 'fheiy3rihiewui4439845ty89o'
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api.db'
 
@@ -18,3 +19,18 @@ class Config(object):
     UPLOADED_REVIEWPHOTOS_URL = '/media/review/'
 
     DEFAULT_PROFILE_PICTURE = 'default_user.png'
+
+
+class ConfigTest(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api_test.db'
+
+
+class ConfigDev(Config):
+    DEBUG = True
+
+
+config_factory = {
+    'test': ConfigTest,
+    'dev': ConfigDev
+}
