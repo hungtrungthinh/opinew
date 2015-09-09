@@ -65,7 +65,9 @@ class TestNonShopTiedAPI(TestAPI):
                     'id': 1,
                     'body': 'hello world',
                     'photo_url': None,
-                    'tags': []
+                    'tags': [],
+                    'approved_by_shop': False,
+                    'approval_pending': True
                 }
             ]
         }
@@ -100,7 +102,9 @@ class TestNonShopTiedAPI(TestAPI):
             'id': 1,
             'body': 'hello world',
             'photo_url': None,
-            'tags': []
+            'tags': [],
+            'approved_by_shop': False,
+            'approval_pending': True
         }
         self.assertEquals(json.loads(response_actual.data), response_expected)
         self.assertEquals(response_actual.status_code, 200)
@@ -165,10 +169,72 @@ class TestShopTiedAPI(TestAPI):
                 {
                     'id': 1,
                     'body': 'hello world',
+                    'approved_by_shop': False,
+                    'approval_pending': True,
                     'photo_url': None,
                     'tags': []
                 }
             ]
         }
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 200)
+
+    def test_shop_reviews_existing_product_approved(self):
+        with self.app.app_context():
+            review = Review.query.filter_by(id=1).first()
+            review.approve()
+            db.session.add(review)
+            db.session.commit()
+        response_actual = self.client.get("/api/shops/1/products/1/reviews")
+        response_expected = {
+            'id': 1,
+            'label': 'skirt',
+            'tags': [],
+            'reviews': [
+                {
+                    'id': 1,
+                    'body': 'hello world',
+                    'approved_by_shop': True,
+                    'approval_pending': False,
+                    'photo_url': None,
+                    'tags': []
+                }
+            ]
+        }
+        review.approved_by_shop = False
+        review.approval_pending = True
+        with self.app.app_context():
+            db.session.add(review)
+            db.session.commit()
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 200)
+
+    def test_shop_reviews_existing_product_disapproved(self):
+        with self.app.app_context():
+            review = Review.query.filter_by(id=1).first()
+            review.dispprove()
+            db.session.add(review)
+            db.session.commit()
+        response_actual = self.client.get("/api/shops/1/products/1/reviews")
+        response_expected = {
+            'id': 1,
+            'label': 'skirt',
+            'tags': [],
+            'reviews': [
+                {
+                    'id': 1,
+                    'body': 'hello world',
+                    'approved_by_shop': False,
+                    'approval_pending': False,
+                    'photo_url': None,
+                    'tags': []
+                }
+            ]
+        }
+        review.approved_by_shop = False
+        review.approval_pending = True
+        with self.app.app_context():
+            db.session.add(review)
+            db.session.commit()
         self.assertEquals(json.loads(response_actual.data), response_expected)
         self.assertEquals(response_actual.status_code, 200)

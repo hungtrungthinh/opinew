@@ -205,6 +205,8 @@ class Review(db.Model):
     body = db.Column(db.String)
     created_ts = db.Column(db.DateTime)
     photo_url = db.Column(db.String)
+    approved_by_shop = db.Column(db.Boolean)
+    approval_pending = db.Column(db.Boolean)
 
     tags = db.relationship("Tag", secondary=review_tags_table, backref=db.backref("reviews", lazy="dynamic"))
 
@@ -225,6 +227,8 @@ class Review(db.Model):
         self.body = body
         self.photo_url = photo_url
         self.created_ts = datetime.utcnow()
+        self.approved_by_shop = False
+        self.approval_pending = True
 
     def __repr__(self):
         return '<Review %r>' % self.body
@@ -234,9 +238,22 @@ class Review(db.Model):
             'id': self.id,
             'body': self.body,
             'photo_url': self.photo_url,
+            'approved_by_shop': self.approved_by_shop,
+            'approval_pending': self.approval_pending,
             'tags': [t.serialize() for t in self.tags]
         }
 
+    def approve(self):
+        self.approved_by_shop = True
+        self.approval_pending = False
+        db.session.add(self)
+        db.session.commit()
+
+    def dispprove(self):
+        self.approved_by_shop = False
+        self.approval_pending = False
+        db.session.add(self)
+        db.session.commit()
 
 class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)

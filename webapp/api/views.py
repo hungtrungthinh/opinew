@@ -5,7 +5,7 @@ from webapp import db, auth
 from webapp.api import api
 from webapp.models import User, Product, Review, Shop, Order, ShopProduct
 from webapp.common import get_post_payload
-from webapp.db_methods import get_reviews, add_product_review
+from webapp.db_methods import add_product_review
 from webapp.exceptions import ParamException
 
 
@@ -23,7 +23,7 @@ def get_product_reviews(product_id):
     product = Product.query.filter(Product.id == product_id).first()
     if not product:
         return jsonify({"error": 'Product doesn\'t exist'}), 404
-    reviews = get_reviews(product_id)
+    reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
     product_serialized = product.serialize()
     product_serialized['reviews'] = [r.serialize() for r in reviews]
     return jsonify(product_serialized)
@@ -71,7 +71,22 @@ def get_shop_product_reviews(shop_id, product_id):
     sp = ShopProduct.query.filter(and_(ShopProduct.shop == shop, ShopProduct.product_id == product_id)).first()
     if not sp or not sp.product:
         return jsonify({"error": 'Product doesn\'t exist'}), 404
-    reviews = get_reviews(product_id)
+    reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
+    product_serialized = sp.product.serialize()
+    product_serialized['reviews'] = [r.serialize() for r in reviews]
+    return jsonify(product_serialized)
+
+@api.route('/shops/<int:shop_id>/products/<int:product_id>/reviews/approved')
+def get_shop_product_reviews_approved(shop_id, product_id):
+    shop = Shop.query.filter_by(id=shop_id).first()
+    if not shop:
+        error = 'Shop %s not registered with Opinew.' % shop_id
+        return jsonify({"error": error}), 400
+    sp = ShopProduct.query.filter(and_(ShopProduct.shop == shop, ShopProduct.product_id == product_id)).first()
+    if not sp or not sp.product:
+        return jsonify({"error": 'Product doesn\'t exist'}), 404
+    reviews = Review.query.filter(and_(Review.product_id == product_id, Review.approved_by_shop)).order_by(
+        Review.created_ts.desc()).all()
     product_serialized = sp.product.serialize()
     product_serialized['reviews'] = [r.serialize() for r in reviews]
     return jsonify(product_serialized)
@@ -126,13 +141,41 @@ def add_shop_product_review(shop_id, product_id):
     response.autocorrect_location_header = False
     return response
 
-
-@api.route('/orders/<int:order_id>')
+@api.route('/shops/<int:shop_id>/reviews/<int:review_id>', methods=['PATCH'])
 @auth.login_required
-def get_order(order_id):
+def approve_shop_product_review(shop_id, review_id):
     shop_user = User.query.filter_by(email=auth.username()).first()
     if not shop_user or not shop_user.shop:
         return jsonify({"error": "User is not an owner of shop"}), 400
+    if not shop_user.shop.id == shop_id:
+        return jsonify({"error": "User is not an owner of this shop"}), 403
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        return jsonify({"error": 'Review doesn\'t exist'}), 404
+    if not review.shop == shop_user.shop:
+        return jsonify({"error": 'This review is not for this shop'}), 400
+    try:
+        payload = get_post_payload()
+    except ParamException as e:
+        return jsonify({"error": e.message}), 400
+    action = payload.get('action', '')
+    if not action:
+        return jsonify({"error": 'action param is required'}), 400
+    if action == 'approve':
+        review.approve()
+    elif action == 'disapprove':
+        review.disapprove()
+    return jsonify(review.serialize())
+
+
+@api.route('/shop/<int:shop_id>/orders/<int:order_id>')
+@auth.login_required
+def get_order(shop_id, order_id):
+    shop_user = User.query.filter_by(email=auth.username()).first()
+    if not shop_user or not shop_user.shop:
+        return jsonify({"error": "User is not an owner of shop"}), 400
+    if not shop_user.shop.id == shop_id:
+        return jsonify({"error": "User is not an owner of this shop"}), 403
     order = Order.query.filter_by(id=order_id).first()
     if not order:
         return jsonify({"error": 'Order doesn\'t exist'}), 404
@@ -141,9 +184,9 @@ def get_order(order_id):
     return jsonify(order.serialize())
 
 
-@api.route('/orders', methods=['POST'])
+@api.route('/shop/<int:shop_id>/orders', methods=['POST'])
 @auth.login_required
-def create_order():
+def create_order(shop_id):
     try:
         payload = get_post_payload()
     except ParamException as e:
@@ -151,6 +194,8 @@ def create_order():
     shop_user = User.query.filter_by(email=auth.username()).first()
     if not shop_user or not shop_user.shop:
         return jsonify({"error": "User is not an owner of shop"}), 400
+    if not shop_user.shop.id == shop_id:
+        return jsonify({"error": "User is not an owner of this shop"}), 403
 
     user_email = payload.get('user_email')
     product_id = payload.get('product_id')
@@ -177,12 +222,14 @@ def create_order():
     return response
 
 
-@api.route('/orders/<int:order_id>', methods=['PATCH'])
+@api.route('/shop/<int:shop_id>/orders/<int:order_id>', methods=['PATCH'])
 @auth.login_required
-def update_order(order_id):
+def update_order(shop_id, order_id):
     shop_user = User.query.filter_by(email=auth.username()).first()
     if not shop_user or not shop_user.shop:
         return jsonify({"error": "User is not an owner of shop"}), 400
+    if not shop_user.shop.id == shop_id:
+        return jsonify({"error": "User is not an owner of this shop"}), 403
     order = Order.query.filter_by(id=order_id).first()
     if not order:
         return jsonify({"error": 'Order doesn\'t exist'}), 404

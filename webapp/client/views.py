@@ -6,7 +6,7 @@ from webapp.forms import LoginForm, ReviewForm
 from webapp.client import client
 from webapp.models import Shop, User, Role, Order, Review, ShopProduct, Notification
 from webapp.common import validate_user_role, get_post_payload, next_is_valid
-from webapp.db_methods import get_reviews, add_product_review
+from webapp.db_methods import add_product_review
 from webapp.exceptions import ParamException
 from config import Config
 
@@ -94,7 +94,9 @@ def plugin_product_reviews(shop_id, product_id):
     if not shop_product or not shop_product.product:
         return '', 404
     product = shop_product.product
-    return render_template('plugin/plugin.html', product=product, reviews=get_reviews(product_id))
+    reviews = Review.query.filter(and_(Review.product_id == product_id, Review.approved_by_shop)).order_by(
+        Review.created_ts.desc()).all()
+    return render_template('plugin/plugin.html', product=product, reviews=reviews)
 
 
 @client.route('/notifications')

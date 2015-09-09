@@ -2,10 +2,6 @@ from flask import request
 from webapp import review_photos, db
 from webapp.models import User, Review, Tag
 
-def get_reviews(product_id):
-    reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
-    return reviews
-
 def add_product_review(order_id, user_email, product_id, payload, shop_id=None):
     body = payload.get('body', None)
     photo_url = ''
