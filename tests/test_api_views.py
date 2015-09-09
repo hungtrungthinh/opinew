@@ -142,3 +142,33 @@ class TestShopTiedAPI(TestAPI):
         response_expected = {'products': [{'id': 1, 'label': 'skirt'}]}
         self.assertEquals(json.loads(response_actual.data), response_expected)
         self.assertEquals(response_actual.status_code, 200)
+
+    def test_shop_prodcut_incorrect_shop_not_registered(self):
+        response_actual = self.client.get("/api/shops/42/products/0/reviews")
+        response_expected = {'error': 'Shop 42 not registered with Opinew.'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 400)
+
+    def test_shop_product_search_shop_product_not_exist(self):
+        response_actual = self.client.get("/api/shops/1/products/42/reviews")
+        response_expected = {'error': 'Product doesn\'t exist'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 404)
+
+    def test_shop_reviews_existing_product(self):
+        response_actual = self.client.get("/api/shops/1/products/1/reviews")
+        response_expected = {
+            'id': 1,
+            'label': 'skirt',
+            'tags': [],
+            'reviews': [
+                {
+                    'id': 1,
+                    'body': 'hello world',
+                    'photo_url': None,
+                    'tags': []
+                }
+            ]
+        }
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 200)

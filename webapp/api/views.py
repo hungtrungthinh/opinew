@@ -68,11 +68,11 @@ def get_shop_product_reviews(shop_id, product_id):
     if not shop:
         error = 'Shop %s not registered with Opinew.' % shop_id
         return jsonify({"error": error}), 400
-    product = Product.query.filter(and_(Product.shop == shop, Product.id == product_id)).first()
-    if not product:
+    sp = ShopProduct.query.filter(and_(ShopProduct.shop == shop, ShopProduct.product_id == product_id)).first()
+    if not sp or not sp.product:
         return jsonify({"error": 'Product doesn\'t exist'}), 404
     reviews = get_reviews(product_id)
-    product_serialized = product.serialize()
+    product_serialized = sp.product.serialize()
     product_serialized['reviews'] = [r.serialize() for r in reviews]
     return jsonify(product_serialized)
 
