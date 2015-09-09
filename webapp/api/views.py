@@ -3,7 +3,7 @@ from flask import jsonify, request, url_for
 from sqlalchemy import and_
 from webapp import db, auth
 from webapp.api import api
-from webapp.models import User, Product, Review, Shop, Order
+from webapp.models import User, Product, Review, Shop, Order, ShopProduct
 from webapp.common import get_post_payload
 from webapp.db_methods import get_reviews, add_product_review
 from webapp.exceptions import ParamException
@@ -58,8 +58,8 @@ def shop_product_search(shop_id):
     query = request.args.get('q', None)
     if query is None:
         return jsonify({"error": 'q parameter is required'}), 400
-    products = Product.query.filter(and_(Product.shop == shop, Product.label.like("%s%%" % query))).all()
-    return jsonify({'products': [p.serialize_basic() for p in products]})
+    shop_products = ShopProduct.query.filter(and_(ShopProduct.shop == shop, Product.label.like("%s%%" % query))).all()
+    return jsonify({'products': [sp.product.serialize_basic() for sp in shop_products]})
 
 
 @api.route('/shops/<int:shop_id>/products/<int:product_id>/reviews')

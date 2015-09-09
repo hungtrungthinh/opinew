@@ -1,7 +1,7 @@
 import json
 from unittest import TestCase
 from webapp import create_app, db
-from webapp.models import Product, Review
+from webapp.models import Product, Review, Shop, ShopProduct
 
 
 class TestAPI(TestCase):
@@ -20,11 +20,13 @@ class TestAPI(TestCase):
 
 
 class TestNonShopTiedAPI(TestAPI):
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
+        super(TestNonShopTiedAPI, cls).setUpClass()
         product = Product(label='skirt')
         review = Review(body='hello world')
         product.reviews.append(review)
-        with self.app.app_context():
+        with cls.app.app_context():
             db.session.add(product)
             db.session.commit()
 
@@ -103,8 +105,40 @@ class TestNonShopTiedAPI(TestAPI):
         self.assertEquals(json.loads(response_actual.data), response_expected)
         self.assertEquals(response_actual.status_code, 200)
 
-    def tearDown(self):
-        with self.app.app_context():
-            Product.query.delete()
-            Review.query.delete()
+
+class TestShopTiedAPI(TestAPI):
+    @classmethod
+    def setUpClass(cls):
+        super(TestShopTiedAPI, cls).setUpClass()
+        shop = Shop(label='My shop')
+        product = Product(label='skirt')
+        review = Review(body='hello world')
+        product.reviews.append(review)
+        shop_product = ShopProduct(shop=shop, product=product)
+        with cls.app.app_context():
+            db.session.add(shop_product)
             db.session.commit()
+
+    def test_search_incorrect_params(self):
+        response_actual = self.client.get("/api/shops/1/products/search")
+        response_expected = {'error': 'q parameter is required'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 400)
+
+    def test_shop_product_search_shop_not_registered(self):
+        response_actual = self.client.get("/api/shops/26/products/search", query_string={'q': 'skirt'})
+        response_expected = {'error': 'Shop 26 not registered with Opinew.'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 400)
+
+    def test_shop_product_search_zero_results(self):
+        response_actual = self.client.get("/api/shops/1/products/search", query_string={'q': 'nope'})
+        response_expected = {'products': []}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 200)
+
+    def test_shop_product_search_success(self):
+        response_actual = self.client.get("/api/shops/1/products/search", query_string={'q': 'skirt'})
+        response_expected = {'products': [{'id': 1, 'label': 'skirt'}]}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 200)
