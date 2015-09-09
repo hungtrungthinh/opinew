@@ -4,44 +4,46 @@ from sqlalchemy import and_
 from webapp import db, auth
 from webapp.api import api
 from webapp.models import User, Product, Review, Shop, Order, ShopProduct
-from webapp.common import get_post_payload
+from webapp.common import get_post_payload, param_required
 from webapp.db_methods import add_product_review
-from webapp.exceptions import ParamException
+from webapp.exceptions import DbException, ParamException
 
 
 @api.route('/products/search')
 def product_search():
-    query = request.args.get('q', None)
-    if query is None:
-        return jsonify({"error": 'q parameter is required'}), 400
-    products = Product.query.filter(Product.label.like("%s%%" % query)).all()
+    try:
+        query = param_required('q', request.args)
+        products = Product.search_by_label(query)
+    except (ParamException, DbException) as e:
+        return jsonify({"error": e.message}), e.status_code
     return jsonify({'products': [p.serialize_basic() for p in products]})
 
 
 @api.route('/products/<int:product_id>/reviews')
 def get_product_reviews(product_id):
-    product = Product.query.filter(Product.id == product_id).first()
-    if not product:
-        return jsonify({"error": 'Product doesn\'t exist'}), 404
-    reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
-    product_serialized = product.serialize()
-    product_serialized['reviews'] = [r.serialize() for r in reviews]
-    return jsonify(product_serialized)
+    try:
+        product = Product.get_by_id(product_id)
+        reviews = Review.get_for_product(product_id)
+    except DbException as e:
+        return jsonify({"error": e.message}), e.status_code
+    return jsonify(product.serialize_with_reviews(reviews))
 
 
 @api.route('/products/<int:product_id>')
 def get_product(product_id):
-    product = Product.query.filter_by(id=product_id).first()
-    if not product:
-        return jsonify({"error": 'Product doesn\'t exist'}), 404
+    try:
+        product = Product.get_by_id(product_id)
+    except DbException as e:
+        return jsonify({"error": e.message}), e.status_code
     return jsonify(product.serialize())
 
 
 @api.route('/reviews/<int:review_id>')
 def get_review(review_id):
-    review = Review.query.filter_by(id=review_id).first()
-    if not review:
-        return jsonify({"error": 'Review doesn\'t exist'}), 404
+    try:
+        review = Review.get_by_id(review_id)
+    except DbException as e:
+        return jsonify({"error": e.message}), e.status_code
     return jsonify(review.serialize())
 
 
@@ -51,45 +53,32 @@ def get_review(review_id):
 
 @api.route('/shops/<int:shop_id>/products/search')
 def shop_product_search(shop_id):
-    shop = Shop.query.filter_by(id=shop_id).first()
-    if not shop:
-        error = 'Shop %s not registered with Opinew.' % shop_id
-        return jsonify({"error": error}), 400
-    query = request.args.get('q', None)
-    if query is None:
-        return jsonify({"error": 'q parameter is required'}), 400
-    shop_products = ShopProduct.query.filter(and_(ShopProduct.shop == shop, Product.label.like("%s%%" % query))).all()
+    try:
+        query = param_required('q', request.args)
+        shop_products = ShopProduct.search_for_products_in_shop(shop_id, query)
+    except (ParamException, DbException) as e:
+        return jsonify({"error": e.message}), e.status_code
     return jsonify({'products': [sp.product.serialize_basic() for sp in shop_products]})
 
 
 @api.route('/shops/<int:shop_id>/products/<int:product_id>/reviews')
 def get_shop_product_reviews(shop_id, product_id):
-    shop = Shop.query.filter_by(id=shop_id).first()
-    if not shop:
-        error = 'Shop %s not registered with Opinew.' % shop_id
-        return jsonify({"error": error}), 400
-    sp = ShopProduct.query.filter(and_(ShopProduct.shop == shop, ShopProduct.product_id == product_id)).first()
-    if not sp or not sp.product:
-        return jsonify({"error": 'Product doesn\'t exist'}), 404
-    reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
-    product_serialized = sp.product.serialize()
-    product_serialized['reviews'] = [r.serialize() for r in reviews]
-    return jsonify(product_serialized)
+    try:
+        product = ShopProduct.get_product_in_shop(shop_id, product_id)
+        reviews = Review.get_for_product(product_id)
+    except DbException as e:
+        return jsonify({"error": e.message}), e.status_code
+    return jsonify(product.serialize_with_reviews(reviews))
+
 
 @api.route('/shops/<int:shop_id>/products/<int:product_id>/reviews/approved')
 def get_shop_product_reviews_approved(shop_id, product_id):
-    shop = Shop.query.filter_by(id=shop_id).first()
-    if not shop:
-        error = 'Shop %s not registered with Opinew.' % shop_id
-        return jsonify({"error": error}), 400
-    sp = ShopProduct.query.filter(and_(ShopProduct.shop == shop, ShopProduct.product_id == product_id)).first()
-    if not sp or not sp.product:
-        return jsonify({"error": 'Product doesn\'t exist'}), 404
-    reviews = Review.query.filter(and_(Review.product_id == product_id, Review.approved_by_shop)).order_by(
-        Review.created_ts.desc()).all()
-    product_serialized = sp.product.serialize()
-    product_serialized['reviews'] = [r.serialize() for r in reviews]
-    return jsonify(product_serialized)
+    try:
+        product = ShopProduct.get_product_in_shop(shop_id, product_id)
+        reviews = Review.get_approved_for_product(product_id)
+    except DbException as e:
+        return jsonify({"error": e.message}), e.status_code
+    return jsonify(product.serialize_with_reviews(reviews))
 
 
 ##########################
@@ -135,11 +124,13 @@ def add_shop_product_review(shop_id, product_id):
             order_id = order.id
     review = add_product_review(order_id=order_id, user_email=auth.username(), product_id=product_id, payload=payload,
                                 shop_id=shop_id)
+
     response = jsonify()
     response.status_code = 201
     response.headers['Location'] = url_for('.get_review', review_id=review.id)
     response.autocorrect_location_header = False
     return response
+
 
 @api.route('/shops/<int:shop_id>/reviews/<int:review_id>', methods=['PATCH'])
 @auth.login_required

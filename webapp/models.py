@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
+from sqlalchemy import and_
 from webapp import db, login_manager
 from webapp.common import generate_temp_password
+from webapp.exceptions import ResponseException, DbException
 from flask.ext.login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config, Constants
@@ -230,6 +232,11 @@ class Review(db.Model):
         self.approved_by_shop = False
         self.approval_pending = True
 
+        if self.shop:
+            notification = Notification(user=self.shop.owner, order=self.order)
+            db.session.add(notification)
+            db.session.commit()
+
     def __repr__(self):
         return '<Review %r>' % self.body
 
@@ -255,6 +262,23 @@ class Review(db.Model):
         db.session.add(self)
         db.session.commit()
 
+    @classmethod
+    def get_by_id(cls, review_id):
+        review = Review.query.filter_by(id=review_id).first()
+        if not review:
+            raise DbException(message='Review doesn\'t exist', status_code=404)
+        return review
+
+    @classmethod
+    def get_for_product(cls, product_id):
+        return Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
+
+    @classmethod
+    def get_approved_for_product(cls, product_id):
+        return Review.query.filter(and_(Review.product_id == product_id, Review.approved_by_shop)).order_by(
+            Review.created_ts.desc()).all()
+
+
 class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String)
@@ -278,6 +302,13 @@ class Shop(db.Model):
             'id': self.id,
             'label': self.label
         }
+
+    @classmethod
+    def get_by_id(cls, shop_id):
+        shop = Shop.query.filter_by(id=shop_id).first()
+        if not shop:
+            raise DbException(message='Shop %s not registered with Opinew.' % shop_id, status_code=400)
+        return shop
 
 
 class ShopProduct(db.Model):
@@ -303,6 +334,26 @@ class ShopProduct(db.Model):
             'url': self.url
         }
 
+    @classmethod
+    def search_for_products_in_shop(cls, shop_id, query):
+        try:
+            Shop.get_by_id(shop_id)
+        except:
+            raise
+        return cls.query.filter(and_(ShopProduct.shop_id == shop_id, Product.label.like("%s%%" % query))).all()
+
+    @classmethod
+    def get_product_in_shop(cls, shop_id, product_id):
+        try:
+            Shop.get_by_id(shop_id)
+        except:
+            raise
+        sp = ShopProduct.query.filter(
+            and_(ShopProduct.shop_id == shop_id, ShopProduct.product_id == product_id)).first()
+        if not sp or not sp.product:
+            raise DbException(message='Product doesn\'t exist', status_code=404)
+        return sp.product
+
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -327,6 +378,22 @@ class Product(db.Model):
             'label': self.label,
             'tags': [t.serialize() for t in self.tags]
         }
+
+    def serialize_with_reviews(self, reviews):
+        product_serialized = self.serialize()
+        product_serialized['reviews'] = [r.serialize() for r in reviews]
+        return product_serialized
+
+    @classmethod
+    def get_by_id(cls, product_id):
+        product = cls.query.filter(Product.id == product_id).first()
+        if not product:
+            raise DbException(message='Product doesn\'t exist', status_code=404)
+        return product
+
+    @classmethod
+    def search_by_label(cls, query):
+        return Product.query.filter(Product.label.like("%s%%" % query)).all()
 
 
 class Tag(db.Model):

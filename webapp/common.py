@@ -9,10 +9,10 @@ from webapp.exceptions import ParamException
 from config import Constants
 
 
-
 @auth.get_password
 def get_pw(username):
     from webapp.models import User
+
     user = User.query.filter_by(email=username).first()
     if user:
         return user.email
@@ -22,6 +22,7 @@ def get_pw(username):
 @auth.verify_password
 def verify_pw(username, password):
     from webapp.models import User
+
     user = User.query.filter_by(email=username).first()
     if user:
         return user.validate_password(password)
@@ -60,13 +61,22 @@ def next_is_valid(next_url):
                 return True
     return False
 
+
 def generate_temp_password():
     from webapp.models import User
 
     users = User.query.all()
     while True:
-        temp_password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(Constants.TEMP_PWD_LEN))
+        temp_password = ''.join(
+            random.choice(string.ascii_uppercase + string.digits) for _ in range(Constants.TEMP_PWD_LEN))
         for user in users:
             if user.temp_password == temp_password:
                 break
         return temp_password
+
+
+def param_required(name=None, parameters=None):
+    param = parameters.get(name, None)
+    if param is None:
+        raise ParamException(message='%s parameter is required' % name, status_code=400)
+    return param
