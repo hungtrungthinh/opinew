@@ -1,7 +1,8 @@
 import json
+import base64
 import random
 import string
-from flask import jsonify, abort, request
+from flask import jsonify, abort, request, url_for
 from flask.ext.login import current_user
 from werkzeug.exceptions import HTTPException
 from webapp import auth
@@ -46,12 +47,13 @@ def make_json_error(ex):
 def get_post_payload():
     if not request.form and not request.files:
         try:
-            payload = json.loads(request.data)
+            if request.data:
+                return json.loads(request.data)
         except ValueError:
             raise ParamException("Invalid json in body of request.")
     else:
-        payload = request.form
-    return payload
+        return request.form
+    return {}
 
 
 def next_is_valid(next_url):
@@ -80,3 +82,30 @@ def param_required(name=None, parameters=None):
     if param is None:
         raise ParamException(message='%s parameter is required' % name, status_code=400)
     return param
+
+
+def build_created_response(url_for_name, **kwargs):
+    response = jsonify()
+    response.status_code = 201
+    response.headers['Location'] = url_for(url_for_name, **kwargs)
+    response.autocorrect_location_header = False
+    return response
+
+
+def open_with_auth(client, url, method, username, password, **kwargs):
+    return client.open(url,
+                       method=method,
+                       headers={
+                           'Authorization': 'Basic ' + base64.b64encode("%s:%s" % (username, password))
+                       }, **kwargs)
+
+
+def get_with_auth(client, url, username, password, **kwargs):
+    return open_with_auth(client, url, 'get', username, password, **kwargs)
+
+
+def post_with_auth(client, url, username, password, **kwargs):
+    return open_with_auth(client, url, 'post', username, password, **kwargs)
+
+def patch_with_auth(client, url, username, password, **kwargs):
+    return open_with_auth(client, url, 'patch', username, password, **kwargs)

@@ -1,7 +1,12 @@
+import os
 import json
 from unittest import TestCase
+from flask import url_for
+from flask.ext.uploads import TestingFileStorage
 from webapp import create_app, db
-from webapp.models import Product, Review, Shop, ShopProduct
+from webapp.common import post_with_auth, patch_with_auth
+from webapp.models import User, Product, Review, Shop, ShopProduct, Order
+from config import Config
 
 
 class TestAPI(TestCase):
@@ -9,14 +14,13 @@ class TestAPI(TestCase):
     def setUpClass(cls):
         cls.app = create_app('test')
         cls.client = cls.app.test_client()
-        with cls.app.app_context():
-            db.create_all()
+        cls.app.app_context().push()
+        db.create_all()
 
     @classmethod
     def tearDownClass(cls):
-        with cls.app.app_context():
-            db.session.remove()
-            db.drop_all()
+        db.session.remove()
+        db.drop_all()
 
 
 class TestNonShopTiedAPI(TestAPI):
@@ -26,9 +30,8 @@ class TestNonShopTiedAPI(TestAPI):
         product = Product(label='skirt')
         review = Review(body='hello world')
         product.reviews.append(review)
-        with cls.app.app_context():
-            db.session.add(product)
-            db.session.commit()
+        db.session.add(product)
+        db.session.commit()
 
     def test_search_incorrect_params(self):
         response_actual = self.client.get("/api/products/search")
@@ -119,9 +122,8 @@ class TestShopTiedAPI(TestAPI):
         review = Review(body='hello world')
         product.reviews.append(review)
         shop_product = ShopProduct(shop=shop, product=product)
-        with cls.app.app_context():
-            db.session.add(shop_product)
-            db.session.commit()
+        db.session.add(shop_product)
+        db.session.commit()
 
     def test_search_incorrect_params(self):
         response_actual = self.client.get("/api/shops/1/products/search")
@@ -180,11 +182,10 @@ class TestShopTiedAPI(TestAPI):
         self.assertEquals(response_actual.status_code, 200)
 
     def test_shop_reviews_existing_product_approved(self):
-        with self.app.app_context():
-            review = Review.query.filter_by(id=1).first()
-            review.approve()
-            db.session.add(review)
-            db.session.commit()
+        review = Review.query.filter_by(id=1).first()
+        review.approve()
+        db.session.add(review)
+        db.session.commit()
         response_actual = self.client.get("/api/shops/1/products/1/reviews")
         response_expected = {
             'id': 1,
@@ -203,18 +204,16 @@ class TestShopTiedAPI(TestAPI):
         }
         review.approved_by_shop = False
         review.approval_pending = True
-        with self.app.app_context():
-            db.session.add(review)
-            db.session.commit()
+        db.session.add(review)
+        db.session.commit()
         self.assertEquals(json.loads(response_actual.data), response_expected)
         self.assertEquals(response_actual.status_code, 200)
 
     def test_shop_reviews_existing_product_disapproved(self):
-        with self.app.app_context():
-            review = Review.query.filter_by(id=1).first()
-            review.dispprove()
-            db.session.add(review)
-            db.session.commit()
+        review = Review.query.filter_by(id=1).first()
+        review.dispprove()
+        db.session.add(review)
+        db.session.commit()
         response_actual = self.client.get("/api/shops/1/products/1/reviews")
         response_expected = {
             'id': 1,
@@ -233,8 +232,132 @@ class TestShopTiedAPI(TestAPI):
         }
         review.approved_by_shop = False
         review.approval_pending = True
-        with self.app.app_context():
-            db.session.add(review)
-            db.session.commit()
+        db.session.add(review)
+        db.session.commit()
         self.assertEquals(json.loads(response_actual.data), response_expected)
         self.assertEquals(response_actual.status_code, 200)
+
+
+class TestAuthenticateAPI(TestAPI):
+    @classmethod
+    def setUpClass(cls):
+        cls.USER_EMAIL = 'test@example.com'
+        cls.USER_PWD = 'testing'
+
+        super(TestAuthenticateAPI, cls).setUpClass()
+        user = User(email=cls.USER_EMAIL, password=cls.USER_PWD)
+        db.session.add(user)
+        db.session.commit()
+
+    def test_authentication_no_email(self):
+        response_actual = self.client.post("/api/authenticate", data={'password': self.USER_PWD})
+        response_expected = {'error': 'email parameter is required'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 400)
+
+    def test_authentication_no_password(self):
+        response_actual = self.client.post("/api/authenticate", data={'email': self.USER_EMAIL})
+        response_expected = {'error': 'password parameter is required'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 400)
+
+    def test_non_existing_user_authentication(self):
+        response_actual = self.client.post("/api/authenticate", data={'email': 'nope',
+                                                                      'password': self.USER_PWD})
+        response_expected = {'error': 'User with email nope does not exist.'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 400)
+
+    def test_user_authentication_wrong_password(self):
+        response_actual = self.client.post("/api/authenticate", data={'email': self.USER_EMAIL,
+                                                                      'password': 'incorrect'})
+        response_expected = {'error': 'Wrong password.'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 400)
+
+    def test_correct_authentication(self):
+        response_actual = self.client.post("/api/authenticate", data={'email': self.USER_EMAIL,
+                                                                      'password': self.USER_PWD})
+        response_expected = {}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 200)
+
+
+class TestAuthenticationRequiredAPI(TestAPI):
+    @classmethod
+    def setUpClass(cls):
+        super(TestAuthenticationRequiredAPI, cls).setUpClass()
+
+        cls.USER_SHOP_OWNER_EMAIL = 'shop_owner@example.com'
+        cls.USER_SHOP_OWNER_PWD = 'shop_testing'
+        cls.USER_EMAIL = 'test@example.com'
+        cls.USER_PWD = 'testing'
+        cls.SHOP_LABEL = 'My shop'
+        cls.PRODUCT_LABEL = 'skirt'
+
+        shop_owner = User(email=cls.USER_SHOP_OWNER_EMAIL, password=cls.USER_SHOP_OWNER_PWD)
+        user = User(email=cls.USER_EMAIL, password=cls.USER_PWD)
+        shop = Shop(label=cls.SHOP_LABEL)
+        shop.owner = shop_owner
+        product = Product(label=cls.PRODUCT_LABEL)
+        shop_product = ShopProduct(shop=shop, product=product)
+        order = Order(user=user, shop=shop, product=product)
+        review = Review(body='first')
+        order.review = review
+
+        db.session.add(shop_product)
+        db.session.add(order)
+        db.session.add(user)
+        db.session.commit()
+
+    def test_add_shop_product_review_no_content(self):
+        response_actual = post_with_auth(self.client,
+                                         url_for('api.add_shop_product_review', shop_id=1, product_id=1),
+                                         username=self.USER_EMAIL,
+                                         password=self.USER_PWD)
+        response_expected = {'error': 'At least one of body, photo or tags need to be provided.'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 400)
+
+    def test_add_shop_product_review_body(self):
+        review_body = 'Hello world'
+
+        response_actual = post_with_auth(self.client,
+                                         url_for('api.add_shop_product_review', shop_id=1, product_id=1),
+                                         username=self.USER_EMAIL,
+                                         password=self.USER_PWD,
+                                         data={'body': review_body})
+        response_expected = {}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 201)
+        review = Review.get_last()
+        self.assertEquals(review.body, review_body)
+
+    def test_add_shop_product_review_photo(self):
+        review_photo_name = 'hello_world.png'
+
+        response_actual = post_with_auth(self.client,
+                                         url_for('api.add_shop_product_review', shop_id=1, product_id=1),
+                                         username=self.USER_EMAIL,
+                                         password=self.USER_PWD,
+                                         data={'photo': TestingFileStorage(filename=review_photo_name)})
+        response_expected = {}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 201)
+        review = Review.get_last()
+        self.assertEquals(review.photo_url, review_photo_name)
+        fpath = os.path.join(Config.UPLOADED_REVIEWPHOTOS_DEST, review_photo_name)
+        try:
+            os.remove(fpath)
+        except OSError:
+            pass
+
+    def test_approve_shop_product_review(self):
+        response_actual = patch_with_auth(self.client,
+                                         url_for('api.approve_shop_product_review', shop_id=1, review_id=1),
+                                         username=self.USER_SHOP_OWNER_EMAIL,
+                                         password=self.USER_SHOP_OWNER_PWD,
+                                         data={'action': 'approve'})
+        response_expected = ''
+        self.assertEquals(response_actual.data, response_expected)
+        self.assertEquals(response_actual.status_code, 204)

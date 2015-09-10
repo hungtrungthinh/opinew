@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import and_
 from webapp import db, login_manager
 from webapp.common import generate_temp_password
-from webapp.exceptions import ResponseException, DbException
+from webapp.exceptions import DbException
 from flask.ext.login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config, Constants
@@ -43,7 +43,7 @@ class Role(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.get(user_id)
+    return User.get_by_id(user_id)
 
 
 class User(db.Model, UserMixin):
@@ -68,12 +68,21 @@ class User(db.Model, UserMixin):
         self.name = name
         self.profile_picture_url = profile_picture_url
 
-    @staticmethod
-    def get(user_id):
-        return User.query.filter_by(id=user_id).first()
+    @classmethod
+    def get_by_id(cls, user_id):
+        return cls.query.filter_by(id=user_id).first()
+
+    @classmethod
+    def get_by_email(cls, email):
+        user = cls.query.filter_by(email=email).first()
+        if not user:
+            raise DbException(message="User with email %s does not exist." % email, status_code=400)
+        return user
 
     def validate_password(self, password):
-        return check_password_hash(self.pw_hash, password)
+        if not check_password_hash(self.pw_hash, password):
+            raise DbException(message="Wrong password.", status_code=400)
+        return True
 
     def __repr__(self):
         return '<User %r>' % self.id
@@ -152,17 +161,41 @@ class Order(db.Model):
         self.purchase_timestamp = datetime.utcnow()
 
         self.delivery_estimation_accuracy = 0
-        self.delivery_estimation_timestamp = self.purchase_timestamp + \
-                                             timedelta(shop.shipment_time_in_days)
+        if shop.shipment_time_in_days:
+            self.delivery_estimation_timestamp = self.purchase_timestamp + \
+                                                 timedelta(shop.shipment_time_in_days)
 
-        if delivery_service:
-            self.delivery_service = delivery_service
-            self.delivery_estimation_accuracy += 1
-            self.delivery_estimation_timestamp = self.delivery_estimation_timestamp + \
-                                                 delivery_service.delivery_time_in_days
+            if delivery_service:
+                self.delivery_service = delivery_service
+                self.delivery_estimation_accuracy += 1
+                self.delivery_estimation_timestamp = self.delivery_estimation_timestamp + \
+                                                     delivery_service.delivery_time_in_days
 
-        self.notification_timestamp = self.delivery_estimation_timestamp + \
-                                      timedelta(0, Constants.NOTIFICATION_AFTER_DELIVERY_SECONDS)
+            self.notification_timestamp = self.delivery_estimation_timestamp + \
+                                          timedelta(0, Constants.NOTIFICATION_AFTER_DELIVERY_SECONDS)
+        db.session.add(self)
+        db.session.commit()
+
+    def is_for_shop(self, shop):
+        if not self.shop == shop:
+            raise DbException(message="This order is not for this shop", status_code=404)
+        return True
+
+    @classmethod
+    def get_by_id(cls, order_id):
+        order = cls.query.filter_by(id=order_id).first()
+        if not order:
+            raise DbException(message='Order doesn\'t exist', status_code=404)
+        return order
+
+    @classmethod
+    def get_by_shop_product_user(cls, shop_id, product_id, user_id):
+        order = Order.query.filter(and_(Order.shop_id == shop_id,
+                                        Order.product_id == product_id,
+                                        Order.user_id == user_id)).first()
+        if not order:
+            raise DbException(message='Order doesn\'t exist', status_code=404)
+        return order
 
     def ship(self, delivery_service=None, delivery_tracking_number=None):
         self.status = 'SHIPPED'
@@ -262,9 +295,21 @@ class Review(db.Model):
         db.session.add(self)
         db.session.commit()
 
+    def is_for_shop(self, shop):
+        if not self.order.shop == shop:
+            raise DbException(message="This review is not for this shop", status_code=404)
+        return True
+
     @classmethod
     def get_by_id(cls, review_id):
         review = Review.query.filter_by(id=review_id).first()
+        if not review:
+            raise DbException(message='Review doesn\'t exist', status_code=404)
+        return review
+
+    @classmethod
+    def get_last(cls):
+        review = Review.query.order_by(Review.id.desc()).first()
         if not review:
             raise DbException(message='Review doesn\'t exist', status_code=404)
         return review
@@ -310,6 +355,18 @@ class Shop(db.Model):
             raise DbException(message='Shop %s not registered with Opinew.' % shop_id, status_code=400)
         return shop
 
+    @classmethod
+    def exists(cls, shop_id):
+        shop = Shop.query.filter_by(id=shop_id).first()
+        if not shop:
+            raise DbException(message='Shop %s not registered with Opinew.' % shop_id, status_code=400)
+        return True
+
+    def is_owner(self, shop_user):
+        if not shop_user.shop.id == self.id:
+            raise DbException(message="User is not an owner of this shop", status_code=403)
+        return True
+
 
 class ShopProduct(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -337,15 +394,16 @@ class ShopProduct(db.Model):
     @classmethod
     def search_for_products_in_shop(cls, shop_id, query):
         try:
-            Shop.get_by_id(shop_id)
+            Shop.exists(shop_id)
         except:
             raise
-        return cls.query.filter(and_(ShopProduct.shop_id == shop_id, Product.label.like("%s%%" % query))).all()
+        shop_products = cls.query.filter(and_(ShopProduct.shop_id == shop_id, Product.label.like("%s%%" % query))).all()
+        return [sp.product for sp in shop_products]
 
     @classmethod
     def get_product_in_shop(cls, shop_id, product_id):
         try:
-            Shop.get_by_id(shop_id)
+            Shop.exists(shop_id)
         except:
             raise
         sp = ShopProduct.query.filter(
@@ -384,6 +442,18 @@ class Product(db.Model):
         product_serialized['reviews'] = [r.serialize() for r in reviews]
         return product_serialized
 
+    def add_review(self, order, body, photo_url, tag_ids):
+        user = User.get_by_email(order.user.email)
+        review = Review(order_id=order.id, user_id=user.id, product_id=self.id, shop_id=order.shop.id,
+                        photo_url=photo_url, body=body)
+        for tag_id in tag_ids:
+            tag = Tag.query.filter_by(id=tag_id).first()
+            if tag:
+                review.tags.append(tag)
+        db.session.add(review)
+        db.session.commit()
+        return review
+
     @classmethod
     def get_by_id(cls, product_id):
         product = cls.query.filter(Product.id == product_id).first()
@@ -394,6 +464,10 @@ class Product(db.Model):
     @classmethod
     def search_by_label(cls, query):
         return Product.query.filter(Product.label.like("%s%%" % query)).all()
+
+    @classmethod
+    def serialize_list(cls, products):
+        return {'products': [p.serialize_basic() for p in products]}
 
 
 class Tag(db.Model):

@@ -4,9 +4,8 @@ from sqlalchemy import and_
 from webapp import login_manager
 from webapp.forms import LoginForm, ReviewForm
 from webapp.client import client
-from webapp.models import Shop, User, Role, Order, Review, ShopProduct, Notification
+from webapp.models import Shop, Product, User, Role, Order, Review, ShopProduct, Notification
 from webapp.common import validate_user_role, get_post_payload, next_is_valid
-from webapp.db_methods import add_product_review
 from webapp.exceptions import ParamException
 from config import Config
 
@@ -48,7 +47,8 @@ def web_review(order_id):
             payload = get_post_payload()
         except ParamException as e:
             return jsonify({"error": e.message}), 400
-        add_product_review(order_id, current_user.email, order.product_id, payload, order.shop_id)
+        product = Product.get_by_id(order.product_id)
+        product.add_review(order=order, payload=payload)
         flash('Review submitted')
         return redirect(url_for('.home'))
     return render_template('web_review/home.html', order=order, review_form=review_form)

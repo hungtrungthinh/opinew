@@ -1,4 +1,5 @@
 import os
+from flask.ext.uploads import IMAGES, UploadSet
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -23,6 +24,7 @@ class Config(object):
 
 class ConfigTest(Config):
     TESTING = True
+    SERVER_NAME = 'localhost:5000'
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api_test.db'
 
 
