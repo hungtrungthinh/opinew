@@ -1,5 +1,4 @@
 import os
-from flask.ext.uploads import IMAGES, UploadSet
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -11,7 +10,6 @@ class Constants(object):
 
 class Config(object):
     SECRET_KEY = 'fheiy3rihiewui4439845ty89o'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api.db'
 
     UPLOADED_USERPHOTOS_DEST = os.path.join(basedir, 'media', 'user')
     UPLOADED_USERPHOTOS_URL = '/media/user/'
@@ -30,10 +28,15 @@ class ConfigTest(Config):
 
 class ConfigDev(Config):
     DEBUG = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api.db'
+
+class ConfigProd(Config):
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////home/opinew_server/db/ecommerce_api_test.db'
 
 
 config_factory = {
     'db': Config,
     'test': ConfigTest,
-    'dev': ConfigDev
+    'dev': ConfigDev,
+    'production': ConfigProd
 }
