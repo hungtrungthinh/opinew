@@ -1,10 +1,11 @@
 import os
 import json
+from freezegun import freeze_time
 from unittest import TestCase
 from flask import url_for
 from flask.ext.uploads import TestingFileStorage
 from webapp import create_app, db
-from webapp.common import post_with_auth, patch_with_auth
+from webapp.common import get_with_auth, post_with_auth, patch_with_auth
 from webapp.models import User, Product, Review, Shop, ShopProduct, Order
 from config import Config
 
@@ -285,6 +286,7 @@ class TestAuthenticateAPI(TestAPI):
 
 class TestAuthenticationRequiredAPI(TestAPI):
     @classmethod
+    @freeze_time("2012-04-26")
     def setUpClass(cls):
         super(TestAuthenticationRequiredAPI, cls).setUpClass()
 
@@ -395,3 +397,43 @@ class TestAuthenticationRequiredAPI(TestAPI):
         review.approved_by_shop = False
         db.session.add(review)
         db.session.commit()
+
+    def test_get_shop_order(self):
+        response_actual = get_with_auth(self.client,
+                                        url_for('api.get_shop_order', shop_id=1, order_id=1),
+                                        username=self.USER_SHOP_OWNER_EMAIL,
+                                        password=self.USER_SHOP_OWNER_PWD)
+        self.maxDiff = None
+        response_expected = {
+            u"delivery_estimation_accuracy": 0,
+            u"delivery_estimation_timestamp": None,
+            u"delivery_timestamp": None,
+            u"id": 1,
+            u"notification_timestamp": None,
+            u"product": {
+                u"id": 1,
+                u"label": u"skirt",
+                u"tags": []
+            },
+            u"purchase_timestamp": u"Thu, 26 Apr 2012 00:00:00 GMT",
+            u"review": {
+                u"approval_pending": True,
+                u"approved_by_shop": False,
+                u"body": u"first",
+                u"id": 1,
+                u"photo_url": None,
+                u"tags": []
+            },
+            u"shipment_timestamp": None,
+            u"shop": {
+                u"id": 1,
+                u"label": u"My shop"
+            },
+            u"status": u"PURCHASED",
+            u"user": {
+                u"id": 1,
+                u"name": None
+            }
+        }
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 200)

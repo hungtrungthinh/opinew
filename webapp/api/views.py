@@ -146,7 +146,7 @@ def approve_shop_product_review(shop_id, review_id):
 
 @api.route('/shop/<int:shop_id>/orders/<int:order_id>')
 @auth.login_required
-def get_order(shop_id, order_id):
+def get_shop_order(shop_id, order_id):
     try:
         shop_user = User.get_by_email(auth.username())
         shop = Shop.get_by_id(shop_id)
@@ -160,7 +160,7 @@ def get_order(shop_id, order_id):
 
 @api.route('/shop/<int:shop_id>/orders', methods=['POST'])
 @auth.login_required
-def create_order(shop_id):
+def create_shop_order(shop_id):
     try:
         shop_user = User.get_by_email(auth.username())
         shop = Shop.get_by_id(shop_id)
@@ -182,7 +182,7 @@ def create_order(shop_id):
 
 @api.route('/shop/<int:shop_id>/orders/<int:order_id>', methods=['PATCH'])
 @auth.login_required
-def update_order(shop_id, order_id):
+def update_shop_order(shop_id, order_id):
     try:
         shop_user = User.get_by_email(auth.username())
         shop = Shop.get_by_id(shop_id)
