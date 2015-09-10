@@ -211,7 +211,7 @@ class TestShopTiedAPI(TestAPI):
 
     def test_shop_reviews_existing_product_disapproved(self):
         review = Review.query.filter_by(id=1).first()
-        review.dispprove()
+        review.disapprove()
         db.session.add(review)
         db.session.commit()
         response_actual = self.client.get("/api/shops/1/products/1/reviews")
@@ -352,12 +352,46 @@ class TestAuthenticationRequiredAPI(TestAPI):
         except OSError:
             pass
 
+    def test_bad_action_shop_product_review(self):
+        response_actual = patch_with_auth(self.client,
+                                          url_for('api.approve_shop_product_review', shop_id=1, review_id=1),
+                                          username=self.USER_SHOP_OWNER_EMAIL,
+                                          password=self.USER_SHOP_OWNER_PWD,
+                                          data={'action': 'disfda'})
+        response_expected = {'error': 'action can be one of approve|disapprove'}
+        self.assertEquals(json.loads(response_actual.data), response_expected)
+        self.assertEquals(response_actual.status_code, 400)
+
     def test_approve_shop_product_review(self):
         response_actual = patch_with_auth(self.client,
-                                         url_for('api.approve_shop_product_review', shop_id=1, review_id=1),
-                                         username=self.USER_SHOP_OWNER_EMAIL,
-                                         password=self.USER_SHOP_OWNER_PWD,
-                                         data={'action': 'approve'})
+                                          url_for('api.approve_shop_product_review', shop_id=1, review_id=1),
+                                          username=self.USER_SHOP_OWNER_EMAIL,
+                                          password=self.USER_SHOP_OWNER_PWD,
+                                          data={'action': 'approve'})
         response_expected = ''
         self.assertEquals(response_actual.data, response_expected)
         self.assertEquals(response_actual.status_code, 204)
+        review = Review.get_by_id(1)
+        self.assertFalse(review.approval_pending)
+        self.assertTrue(review.approved_by_shop)
+        review.approval_pending = True
+        review.approved_by_shop = False
+        db.session.add(review)
+        db.session.commit()
+
+    def test_disapprove_shop_product_review(self):
+        response_actual = patch_with_auth(self.client,
+                                          url_for('api.approve_shop_product_review', shop_id=1, review_id=1),
+                                          username=self.USER_SHOP_OWNER_EMAIL,
+                                          password=self.USER_SHOP_OWNER_PWD,
+                                          data={'action': 'disapprove'})
+        response_expected = ''
+        self.assertEquals(response_actual.data, response_expected)
+        self.assertEquals(response_actual.status_code, 204)
+        review = Review.get_by_id(1)
+        self.assertFalse(review.approval_pending)
+        self.assertFalse(review.approved_by_shop)
+        review.approval_pending = True
+        review.approved_by_shop = False
+        db.session.add(review)
+        db.session.commit()

@@ -289,7 +289,7 @@ class Review(db.Model):
         db.session.add(self)
         db.session.commit()
 
-    def dispprove(self):
+    def disapprove(self):
         self.approved_by_shop = False
         self.approval_pending = False
         db.session.add(self)
