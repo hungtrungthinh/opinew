@@ -24,6 +24,8 @@ useradd -G sudo -s /bin/bash ${USER_NAME}
 passwd ${USER_NAME}
 mkdir -p ${HOME_DIR} && cp -r ./ ${HOME_DIR}
 chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}
+sudo su opinew_server
+cd
 
 # Intall ubuntu packages
 sudo apt-get update
@@ -33,6 +35,8 @@ sudo apt-get install -y ${PACKAGES}
 cd ${HOME_DIR}/.ssh
 curl -L ${ID_RSA_DW} > id_rsa
 curl -L ${ID_RSA_PUB_DW} > id_rsa.pub
+eval `ssh-agent`
+ssh-add ~/.ssh/id_rsa
 
 # Set up required directories
 mkdir ${SOCKETS_DIR}
@@ -93,6 +97,10 @@ sudo ln -s /etc/uwsgi/apps-available/opinew.ini /etc/uwsgi/apps-enabled/opinew.i
 
 # Open ports
 sudo iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
+
+# Create db
+cd ${PROJECT_DIR}
+./repopulate.py db_prod
 
 # Restart services
 sudo service nginx restart
