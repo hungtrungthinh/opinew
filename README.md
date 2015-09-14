@@ -20,4 +20,8 @@ database with some initial data for dev purposes.
 ## Test
 
     ./run_tests.py
-    
+
+## Production
+To set up production, create a server instance and run
+
+    ./prod_setup

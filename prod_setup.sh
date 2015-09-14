@@ -19,7 +19,7 @@ ID_RSA_PUB_DW="https://drive.google.com/uc?export=download&id=0B_mzL8Vwx1yObDdSd
 ID_RSA_DW="https://drive.google.com/uc?export=download&id=0B_mzL8Vwx1yOaDdIVS11dWRSc3M"
 
 
-# Create user
+echo "Creating user ${USER_NAME}..."
 useradd -G sudo -s /bin/bash ${USER_NAME}
 passwd ${USER_NAME}
 mkdir -p ${HOME_DIR} && cp -r ./ ${HOME_DIR}
@@ -27,35 +27,35 @@ chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}
 sudo su opinew_server
 cd
 
-# Intall ubuntu packages
+echo "Installing ubuntu packages"
 sudo apt-get update
 sudo apt-get install -y ${PACKAGES}
 
-# Copy ssh keys
+echo "Copy ssh keys"
 cd ${HOME_DIR}/.ssh
 curl -L ${ID_RSA_DW} > id_rsa
 curl -L ${ID_RSA_PUB_DW} > id_rsa.pub
 eval `ssh-agent`
 ssh-add ~/.ssh/id_rsa
 
-# Set up required directories
+echo "Set up required directories"
 mkdir ${SOCKETS_DIR}
 touch ${SOCKETS_DIR}/opinew.sock
 sudo chown www-data:www-data ${SOCKET_FILE}
 sudo chown www-data:www-data ${SOCKETS_DIR}
 mkdir ${DB_DIR}
 
-# Clone repisitory
+echo "Clone project repisitory"
 git clone ${GIT_REPO}
 
-# Set up virtual environment
+echo "Set up virtual environment"
 virtualenv ${VENV_DIR}
 ln -s ${VENV_DIR} ${VENV_SHORTCUT}
 cd ${PROJECT_DIR}
 source venv/bin/activate
 pip install -r requirements.txt
 
-# Configure nginx
+echo "Configure nginx"
 sudo bash -c "cat << 'EOF' > /etc/nginx/sites-available/opinew
 server {
         listen 80;
@@ -83,6 +83,7 @@ EOF"
 sudo rm /etc/nginx/sites-enabled/default
 sudo ln -s /etc/nginx/sites-available/opinew /etc/nginx/sites-enabled/opinew
 
+echo "Set up uwsgi"
 sudo bash -c "cat << 'EOF' > /etc/uwsgi/apps-available/opinew.ini
 [uwsgi]
 vhost = true
@@ -95,13 +96,13 @@ plugins = python
 EOF"
 sudo ln -s /etc/uwsgi/apps-available/opinew.ini /etc/uwsgi/apps-enabled/opinew.ini
 
-# Open ports
+echo "Open ports"
 sudo iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
 
-# Create db
+echo "Create db"
 cd ${PROJECT_DIR}
 ./repopulate.py db_prod
 
-# Restart services
+echo "Restart services"
 sudo service nginx restart
 sudo service uwsgi restart
