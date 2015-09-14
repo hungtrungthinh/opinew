@@ -35,7 +35,8 @@ class ConfigProd(Config):
 
 
 config_factory = {
-    'db': Config,
+    'db_prod': ConfigProd,
+    'db_dev': ConfigDev,
     'test': ConfigTest,
     'dev': ConfigDev,
     'production': ConfigProd

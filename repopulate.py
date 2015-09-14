@@ -1,9 +1,15 @@
 #!venv/bin/python
 import os
+import sys
 from webapp import models, db, create_app
 
 # populate tables
-app = create_app('db')
+arguments = sys.argv
+if not len(sys.argv) == 2 or arguments[1] not in ['db_dev', 'db_prod']:
+    print "USAGE: ./repopulate.py db_dev|db_prod"
+    exit(1)
+option = arguments[1]
+app = create_app(option)
 
 db.init_app(app)
 
