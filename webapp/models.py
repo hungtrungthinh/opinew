@@ -3,6 +3,7 @@ from sqlalchemy import and_
 from webapp import db, login_manager
 from webapp.common import generate_temp_password
 from webapp.exceptions import DbException
+from flask import url_for
 from flask.ext.login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config, Constants
@@ -49,6 +50,7 @@ def load_user(user_id):
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String)
+    password = db.Column(db.String)
     temp_password = db.Column(db.String)
     pw_hash = db.Column(db.String)
     name = db.Column(db.String)
@@ -62,9 +64,11 @@ class User(db.Model, UserMixin):
         self.email = email
         if not password:
             self.temp_password = generate_temp_password()
+            self.password = self.temp_password
             self.pw_hash = generate_password_hash(self.temp_password)
         else:
             self.pw_hash = generate_password_hash(password)
+            self.password = password
         self.name = name
         self.profile_picture_url = profile_picture_url
 
@@ -84,20 +88,28 @@ class User(db.Model, UserMixin):
             raise DbException(message="Wrong password.", status_code=400)
         return True
 
+    def unread_notifications(self):
+        notifications = Notification.query.filter(and_(Notification.user_id == self.id,
+                                                        Notification.read_status == False)).all()
+        return len(notifications)
+
     def __repr__(self):
         return '<User %r>' % self.id
 
     def serialize(self):
         return {
             'id': self.id,
-            'name': self.name
+            'name': self.name,
+            'profile_picture_url': self.profile_picture_url
         }
 
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
+    url = db.Column(db.String)
     read_status = db.Column(db.Boolean)
+    ntype = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("notifications"))
@@ -105,11 +117,47 @@ class Notification(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
     order = db.relationship("Order", backref=db.backref("notifications"))
 
-    def __init__(self, user=None, order=None):
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship("Review", backref=db.backref("notifications"))
+
+    def __init__(self, user=None, order=None, review=None, ntype=None):
         self.user = user
         self.order = order
+        self.review = review
         self.read_status = False
+        self.ntype = ntype
+        if review:
+            self.url = url_for('client.view_review', review_id=review.id)
+        elif order:
+            self.url = url_for('client.web_review', order_id=order.id)
+        else:
+            raise DbException("Error while creating notification", 500)
 
+    @classmethod
+    def get_by_id(cls, notification_id):
+        notification = cls.query.filter(Notification.id == notification_id).first()
+        if not notification:
+            raise DbException(message='Notification doesn\'t exist', status_code=404)
+        return notification
+
+    def read(self):
+        self.read_status = True
+        db.session.add(self)
+        db.session.commit()
+
+    def is_for_user(self, user):
+        if not self.user == user:
+            raise DbException(message="Notification is not for logged in user", status_code=400)
+        return True
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'url': self.url,
+            'read_status': self.read_status,
+            'ntype': self.ntype,
+            'meta': self.order.serialize() if self.order else self.review.serialize_with_product(),
+        }
 
 class DeliveryService(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -150,6 +198,7 @@ class Order(db.Model):
     delivery_estimation_timestamp = db.Column(db.DateTime)
     delivery_estimation_accuracy = db.Column(db.Integer)  # points
 
+    to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
 
     def __init__(self, user=None, product=None, shop=None, delivery_service=None):
@@ -171,8 +220,8 @@ class Order(db.Model):
                 self.delivery_estimation_timestamp = self.delivery_estimation_timestamp + \
                                                      delivery_service.delivery_time_in_days
 
-            self.notification_timestamp = self.delivery_estimation_timestamp + \
-                                          timedelta(0, Constants.NOTIFICATION_AFTER_DELIVERY_SECONDS)
+            self.to_notify_timestamp = self.delivery_estimation_timestamp + \
+                                       timedelta(0, Constants.NOTIFICATION_AFTER_DELIVERY_SECONDS)
         db.session.add(self)
         db.session.commit()
 
@@ -197,6 +246,11 @@ class Order(db.Model):
             raise DbException(message='Order doesn\'t exist', status_code=404)
         return order
 
+    def review_not_exists(self):
+        if self.review:
+            raise DbException(message='Review for order exists', status_code=400)
+        return True
+
     def ship(self, delivery_service=None, delivery_tracking_number=None):
         self.status = 'SHIPPED'
         self.shipment_timestamp = datetime.utcnow()
@@ -213,7 +267,7 @@ class Order(db.Model):
     def notify(self):
         self.status = 'NOTIFIED'
         self.notification_timestamp = datetime.utcnow()
-        notification = Notification(user=self.user, order=self)
+        notification = Notification(user=self.user, order=self, ntype='customer')
         db.session.add(notification)
         db.session.add(self)
         db.session.commit()
@@ -240,8 +294,6 @@ class Review(db.Model):
     body = db.Column(db.String)
     created_ts = db.Column(db.DateTime)
     photo_url = db.Column(db.String)
-    approved_by_shop = db.Column(db.Boolean)
-    approval_pending = db.Column(db.Boolean)
 
     tags = db.relationship("Tag", secondary=review_tags_table, backref=db.backref("reviews", lazy="dynamic"))
 
@@ -254,19 +306,17 @@ class Review(db.Model):
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship('Shop', backref=db.backref('reviews'))
 
-    def __init__(self, user_id=None, product_id=None, shop_id=None, order_id=None, body=None, photo_url=None, **kwargs):
-        self.user_id = user_id
-        self.product_id = product_id
-        self.shop_id = shop_id
-        self.order_id = order_id
+    def __init__(self, user=None, product=None, shop=None, order=None, body=None, photo_url=None, **kwargs):
+        self.user = user
+        self.product = product
+        self.shop = shop
+        self.order = order
         self.body = body
         self.photo_url = photo_url
         self.created_ts = datetime.utcnow()
-        self.approved_by_shop = False
-        self.approval_pending = True
 
         if self.shop:
-            notification = Notification(user=self.shop.owner, order=self.order)
+            notification = Notification(user=self.shop.owner, order=self.order, ntype='customer')
             db.session.add(notification)
             db.session.commit()
 
@@ -278,22 +328,19 @@ class Review(db.Model):
             'id': self.id,
             'body': self.body,
             'photo_url': self.photo_url,
-            'approved_by_shop': self.approved_by_shop,
-            'approval_pending': self.approval_pending,
-            'tags': [t.serialize() for t in self.tags]
+            'tags': [t.serialize() for t in self.tags],
+            'user': self.user.serialize() if self.user else None
         }
 
-    def approve(self):
-        self.approved_by_shop = True
-        self.approval_pending = False
-        db.session.add(self)
-        db.session.commit()
-
-    def disapprove(self):
-        self.approved_by_shop = False
-        self.approval_pending = False
-        db.session.add(self)
-        db.session.commit()
+    def serialize_with_product(self):
+        return {
+            'id': self.id,
+            'body': self.body,
+            'photo_url': self.photo_url,
+            'tags': [t.serialize() for t in self.tags],
+            'user': self.user.serialize() if self.user else None,
+            'product': self.product.serialize() if self.product else None
+        }
 
     def is_for_shop(self, shop):
         if not self.order.shop == shop:
@@ -319,9 +366,11 @@ class Review(db.Model):
         return Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
 
     @classmethod
-    def get_approved_for_product(cls, product_id):
-        return Review.query.filter(and_(Review.product_id == product_id, Review.approved_by_shop)).order_by(
+    def get_for_product_approved_by_shop(cls, shop_id, product_id):
+        shop_reviews = ShopReview.query.filter(
+            and_(ShopReview.shop_id == shop_id, ShopReview.approved_by_shop, Review.product_id == product_id)).order_by(
             Review.created_ts.desc()).all()
+        return [r.review for r in shop_reviews]
 
 
 class Shop(db.Model):
@@ -366,6 +415,53 @@ class Shop(db.Model):
         if not shop_user.shop.id == self.id:
             raise DbException(message="User is not an owner of this shop", status_code=403)
         return True
+
+
+class ShopReview(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    shop = db.relationship("Shop", backref=db.backref("shop_review", uselist=False))
+
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship("Review", backref=db.backref("shop_review", uselist=False))
+
+    approved_by_shop = db.Column(db.Boolean)
+    approval_pending = db.Column(db.Boolean)
+
+    def __init__(self, shop=None, review=None):
+        self.shop = shop
+        self.review = review
+        self.approved_by_shop = False
+        self.approval_pending = True
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'shop': self.shop.serialize(),
+            'review': self.review.serialize(),
+            'approved_by_shop': self.approved_by_shop,
+            'approval_pending': self.approval_pending,
+        }
+
+    @classmethod
+    def get_by_shop_and_review_id(cls, shop_id, review_id):
+        shop_review = cls.query.filter(and_(cls.shop_id == shop_id, cls.review_id == review_id)).first()
+        if not shop_review:
+            raise DbException(message='Shop %s does not have review %s' % (shop_id, review_id), status_code=400)
+        return shop_review
+
+    def approve(self):
+        self.approved_by_shop = True
+        self.approval_pending = False
+        db.session.add(self)
+        db.session.commit()
+
+    def disapprove(self):
+        self.approved_by_shop = False
+        self.approval_pending = False
+        db.session.add(self)
+        db.session.commit()
 
 
 class ShopProduct(db.Model):
@@ -446,11 +542,15 @@ class Product(db.Model):
         user = User.get_by_email(order.user.email)
         review = Review(order_id=order.id, user_id=user.id, product_id=self.id, shop_id=order.shop.id,
                         photo_url=photo_url, body=body)
+        shop_review = ShopReview(review=review, shop=order.shop)
         for tag_id in tag_ids:
             tag = Tag.query.filter_by(id=tag_id).first()
             if tag:
                 review.tags.append(tag)
         db.session.add(review)
+        db.session.add(shop_review)
+        notification = Notification(user=order.shop.owner, review=review, ntype='shop')
+        db.session.add(notification)
         db.session.commit()
         return review
 

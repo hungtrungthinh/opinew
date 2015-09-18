@@ -25,3 +25,8 @@ database with some initial data for dev purposes.
 To set up production, create a server instance and run
 
     ./prod_setup
+
+
+## Connect to Jenkins
+
+    ssh opinew_server@opinew_api.com -L 8080:localhost:8080 -N

@@ -107,5 +107,6 @@ def get_with_auth(client, url, username, password, **kwargs):
 def post_with_auth(client, url, username, password, **kwargs):
     return open_with_auth(client, url, 'post', username, password, **kwargs)
 
+
 def patch_with_auth(client, url, username, password, **kwargs):
     return open_with_auth(client, url, 'patch', username, password, **kwargs)

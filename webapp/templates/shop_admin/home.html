@@ -1,4 +1,4 @@
-{% extends "shop_admin/layout.html" %}
+{% extends "layout.html" %}
 {% block content %}
     <h1>{{ shop.label }} admin panel</h1>
     <h2>Orders</h2>
@@ -15,16 +15,30 @@
               <th>Delivery TS</th>
               <th>Delivery estimate</th>
               <th>Delivery estimate accuracy</th>
+              <th>Notify for review</th>
           </tr>
         {% for order in shop.orders %}
-            <td>{{ order.user.name }}</td>
-            <td>{{ order.product.label }}</td>
-            <td>{{ order.status }}</td>
-            <td>{{ order.purchase_timestamp }}</td>
-            <td>{{ order.shipment_timestamp }}</td>
-            <td>{{ order.delivery_timestamp }}</td>
-            <td>{{ order.delivery_estimation_timestamp }}</td>
-            <td>{{ order.delivery_estimation_accuracy }}</td>
+            <tr>
+                <td>{{ order.user.name }}</td>
+                <td>{{ order.product.label }}</td>
+                <td>{{ order.status }}</td>
+                <td>{{ order.purchase_timestamp }}</td>
+                <td>{{ order.shipment_timestamp }}</td>
+                <td>{{ order.delivery_timestamp }}</td>
+                <td>{{ order.delivery_estimation_timestamp }}</td>
+                <td>{{ order.delivery_estimation_accuracy }}</td>
+                <td>
+                  {% if order.notification_timestamp %}
+                    {{ order.notification_timestamp }}
+                  {% elif order.delivery_timestamp %}
+                      <form action="{{ url_for('.notify_for_review', order_id=order.id) }}">
+                        <input type="submit" value="Notify review"/>
+                      </form>
+                  {% else %}
+
+                  {% endif %}
+                </td>
+            </tr>
         {% endfor %}
       </table>
   {% endif %}

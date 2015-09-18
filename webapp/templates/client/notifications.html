@@ -1,7 +1,11 @@
 {% extends "layout.html" %}
 {% block content %}
     <h1>Opinew Notifications</h1>
-  {% for notification in notifications %}
-    {% include "client/notification.html" %}
+  {% for notification in notifications.notifications %}
+    {% if notification.ntype == 'shop' %}
+      {% include "client/shop_notification.html" %}
+    {% elif notification.ntype == 'customer' %}
+      {% include "client/customer_notification.html" %}
+    {% endif %}
   {% endfor %}
 {% endblock %}

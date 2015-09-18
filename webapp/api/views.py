@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from webapp import auth, review_photos
 from webapp.api import api
-from webapp.models import User, Product, Review, Shop, Order, ShopProduct
+from webapp.models import User, Product, Review, Shop, Order, ShopProduct, ShopReview, Notification
 from webapp.common import get_post_payload, param_required, build_created_response
 from webapp.exceptions import DbException, ParamException
 
@@ -41,7 +41,7 @@ def get_review(review_id):
         review = Review.get_by_id(review_id)
     except DbException as e:
         return jsonify({"error": e.message}), e.status_code
-    return jsonify(review.serialize())
+    return jsonify(review.serialize_with_product())
 
 
 ##########################
@@ -72,7 +72,7 @@ def get_shop_product_reviews(shop_id, product_id):
 def get_shop_product_reviews_approved(shop_id, product_id):
     try:
         product = ShopProduct.get_product_in_shop(shop_id, product_id)
-        reviews = Review.get_approved_for_product(product_id)
+        reviews = Review.get_for_product_approved_by_shop(shop_id, product_id)
     except DbException as e:
         return jsonify({"error": e.message}), e.status_code
     return jsonify(product.serialize_with_reviews(reviews))
@@ -92,7 +92,7 @@ def authenticate():
         user.validate_password(password)
     except (ParamException, DbException) as e:
         return jsonify({"error": e.message}), e.status_code
-    return jsonify({})
+    return jsonify({}), 200
 
 
 @api.route('/shops/<int:shop_id>/products/<int:product_id>/reviews', methods=['POST'])
@@ -101,6 +101,13 @@ def add_shop_product_review(shop_id, product_id):
     try:
         payload = get_post_payload()
         Shop.exists(shop_id)
+
+        user = User.get_by_email(auth.username())
+        order = Order.get_by_shop_product_user(shop_id, product_id, user.id)
+        order.review_not_exists()
+
+        product = Product.get_by_id(product_id)
+
         body = payload.get('body', None)
         photo_url = ''
         if 'photo' in request.files:
@@ -110,10 +117,6 @@ def add_shop_product_review(shop_id, product_id):
         if not body and not tag_ids and not photo_url:
             raise ParamException('At least one of body, photo or tags need to be provided.', 400)
 
-        user = User.get_by_email(auth.username())
-        product = Product.get_by_id(product_id)
-
-        order = Order.get_by_shop_product_user(shop_id, product_id, user.id)
         review = product.add_review(order=order, body=body, photo_url=photo_url, tag_ids=tag_ids)
     except (ParamException, DbException) as e:
         return jsonify({"error": e.message}), e.status_code
@@ -127,24 +130,23 @@ def approve_shop_product_review(shop_id, review_id):
         shop_user = User.get_by_email(auth.username())
         shop = Shop.get_by_id(shop_id)
         shop.is_owner(shop_user)
-        review = Review.get_by_id(review_id)
-        review.is_for_shop(shop)
+        shop_review = ShopReview.get_by_shop_and_review_id(shop_id, review_id)
 
         payload = get_post_payload()
         action = param_required('action', payload)
 
         if action == 'approve':
-            review.approve()
+            shop_review.approve()
         elif action == 'disapprove':
-            review.disapprove()
+            shop_review.disapprove()
         else:
             raise ParamException('action can be one of approve|disapprove', 400)
     except (ParamException, DbException) as e:
         return jsonify({"error": e.message}), e.status_code
-    return '', 204
+    return jsonify(shop_review.serialize()), 200
 
 
-@api.route('/shop/<int:shop_id>/orders/<int:order_id>')
+@api.route('/shops/<int:shop_id>/orders/<int:order_id>')
 @auth.login_required
 def get_shop_order(shop_id, order_id):
     try:
@@ -158,7 +160,7 @@ def get_shop_order(shop_id, order_id):
     return jsonify(order.serialize())
 
 
-@api.route('/shop/<int:shop_id>/orders', methods=['POST'])
+@api.route('/shops/<int:shop_id>/orders', methods=['POST'])
 @auth.login_required
 def create_shop_order(shop_id):
     try:
@@ -177,10 +179,10 @@ def create_shop_order(shop_id):
         order = Order(user=user, product=product, shop=shop)
     except (ParamException, DbException) as e:
         return jsonify({"error": e.message}), e.status_code
-    return build_created_response('.get_order', order_id=order.id)
+    return build_created_response('.get_shop_order', shop_id=shop_id, order_id=order.id)
 
 
-@api.route('/shop/<int:shop_id>/orders/<int:order_id>', methods=['PATCH'])
+@api.route('/shops/<int:shop_id>/orders/<int:order_id>', methods=['PATCH'])
 @auth.login_required
 def update_shop_order(shop_id, order_id):
     try:
@@ -204,4 +206,35 @@ def update_shop_order(shop_id, order_id):
             raise ParamException('action can be one of ship|deliver|notify', 400)
     except (ParamException, DbException) as e:
         return jsonify({"error": e.message}), e.status_code
-    return '', 204
+    return order.serialize(), 200
+
+
+@api.route('/notifications')
+@auth.login_required
+def get_notifications():
+    try:
+        user = User.get_by_email(auth.username())
+        notifications = Notification.query.filter_by(user_id=user.id).order_by(Notification.id.desc()).all()
+    except (ParamException, DbException) as e:
+        return jsonify({"error": e.message}), e.status_code
+    return jsonify({'notifications': [notification.serialize() for notification in notifications]}), 200
+
+
+@api.route('/notifications/<int:notification_id>', methods=['PATCH'])
+@auth.login_required
+def update_notification(notification_id):
+    try:
+        user = User.get_by_email(auth.username())
+        notification = Notification.get_by_id(notification_id)
+        notification.is_for_user(user)
+
+        payload = get_post_payload()
+        action = param_required('action', payload)
+
+        if action == 'read':
+            notification.read()
+        else:
+            raise ParamException('action can be one of read', 400)
+    except (ParamException, DbException) as e:
+        return jsonify({"error": e.message}), e.status_code
+    return jsonify(notification.serialize()), 200

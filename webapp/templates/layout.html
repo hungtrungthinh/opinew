@@ -12,7 +12,7 @@
           <a href="{{ url_for('.login') }}">Log in</a>
       {% else %}
         {{ current_user.name }} |
-          Notifications (<a href="{{ url_for('.get_notifications') }}">{{ current_user.notifications | length }}</a>) |
+          Notifications (<a href="{{ url_for('.get_notifications') }}">{{ current_user.unread_notifications() }}</a>) |
           <a href="{{ url_for('.logout') }}">Log out</a>
       {% endif %}
     </span>

@@ -6,7 +6,7 @@ from flask import url_for
 from flask.ext.uploads import TestingFileStorage
 from webapp import create_app, db
 from webapp.common import get_with_auth, post_with_auth, patch_with_auth
-from webapp.models import User, Product, Review, Shop, ShopProduct, Order
+from webapp.models import User, Product, Review, Shop, ShopProduct, Order, ShopReview
 from config import Config
 
 
@@ -70,8 +70,7 @@ class TestNonShopTiedAPI(TestAPI):
                     'body': 'hello world',
                     'photo_url': None,
                     'tags': [],
-                    'approved_by_shop': False,
-                    'approval_pending': True
+                    'user': None
                 }
             ]
         }
@@ -106,9 +105,9 @@ class TestNonShopTiedAPI(TestAPI):
             'id': 1,
             'body': 'hello world',
             'photo_url': None,
+            'product': {u'id': 1, u'label': u'skirt', u'tags': []},
             'tags': [],
-            'approved_by_shop': False,
-            'approval_pending': True
+            'user': None
         }
         self.assertEquals(json.loads(response_actual.data), response_expected)
         self.assertEquals(response_actual.status_code, 200)
@@ -172,69 +171,12 @@ class TestShopTiedAPI(TestAPI):
                 {
                     'id': 1,
                     'body': 'hello world',
-                    'approved_by_shop': False,
-                    'approval_pending': True,
                     'photo_url': None,
-                    'tags': []
+                    'tags': [],
+                    'user': None
                 }
             ]
         }
-        self.assertEquals(json.loads(response_actual.data), response_expected)
-        self.assertEquals(response_actual.status_code, 200)
-
-    def test_shop_reviews_existing_product_approved(self):
-        review = Review.query.filter_by(id=1).first()
-        review.approve()
-        db.session.add(review)
-        db.session.commit()
-        response_actual = self.client.get("/api/shops/1/products/1/reviews")
-        response_expected = {
-            'id': 1,
-            'label': 'skirt',
-            'tags': [],
-            'reviews': [
-                {
-                    'id': 1,
-                    'body': 'hello world',
-                    'approved_by_shop': True,
-                    'approval_pending': False,
-                    'photo_url': None,
-                    'tags': []
-                }
-            ]
-        }
-        review.approved_by_shop = False
-        review.approval_pending = True
-        db.session.add(review)
-        db.session.commit()
-        self.assertEquals(json.loads(response_actual.data), response_expected)
-        self.assertEquals(response_actual.status_code, 200)
-
-    def test_shop_reviews_existing_product_disapproved(self):
-        review = Review.query.filter_by(id=1).first()
-        review.disapprove()
-        db.session.add(review)
-        db.session.commit()
-        response_actual = self.client.get("/api/shops/1/products/1/reviews")
-        response_expected = {
-            'id': 1,
-            'label': 'skirt',
-            'tags': [],
-            'reviews': [
-                {
-                    'id': 1,
-                    'body': 'hello world',
-                    'approved_by_shop': False,
-                    'approval_pending': False,
-                    'photo_url': None,
-                    'tags': []
-                }
-            ]
-        }
-        review.approved_by_shop = False
-        review.approval_pending = True
-        db.session.add(review)
-        db.session.commit()
         self.assertEquals(json.loads(response_actual.data), response_expected)
         self.assertEquals(response_actual.status_code, 200)
 
@@ -304,8 +246,6 @@ class TestAuthenticationRequiredAPI(TestAPI):
         product = Product(label=cls.PRODUCT_LABEL)
         shop_product = ShopProduct(shop=shop, product=product)
         order = Order(user=user, shop=shop, product=product)
-        review = Review(body='first')
-        order.review = review
 
         db.session.add(shop_product)
         db.session.add(order)
@@ -334,6 +274,7 @@ class TestAuthenticationRequiredAPI(TestAPI):
         self.assertEquals(response_actual.status_code, 201)
         review = Review.get_last()
         self.assertEquals(review.body, review_body)
+        db.session.delete(review)
 
     def test_add_shop_product_review_photo(self):
         review_photo_name = 'hello_world.png'
@@ -348,11 +289,43 @@ class TestAuthenticationRequiredAPI(TestAPI):
         self.assertEquals(response_actual.status_code, 201)
         review = Review.get_last()
         self.assertEquals(review.photo_url, review_photo_name)
+        db.session.delete(review)
         fpath = os.path.join(Config.UPLOADED_REVIEWPHOTOS_DEST, review_photo_name)
         try:
             os.remove(fpath)
         except OSError:
             pass
+
+
+class TestReviewAuthenticationRequiredAPI(TestAPI):
+    @classmethod
+    @freeze_time("2012-04-26")
+    def setUpClass(cls):
+        super(TestReviewAuthenticationRequiredAPI, cls).setUpClass()
+
+        cls.USER_SHOP_OWNER_EMAIL = 'shop_owner@example.com'
+        cls.USER_SHOP_OWNER_PWD = 'shop_testing'
+        cls.USER_EMAIL = 'test@example.com'
+        cls.USER_PWD = 'testing'
+        cls.SHOP_LABEL = 'My shop'
+        cls.PRODUCT_LABEL = 'skirt'
+
+        shop_owner = User(email=cls.USER_SHOP_OWNER_EMAIL, password=cls.USER_SHOP_OWNER_PWD)
+        user = User(email=cls.USER_EMAIL, password=cls.USER_PWD)
+        shop = Shop(label=cls.SHOP_LABEL)
+        shop.owner = shop_owner
+        product = Product(label=cls.PRODUCT_LABEL)
+        shop_product = ShopProduct(shop=shop, product=product)
+        order = Order(user=user, shop=shop, product=product)
+        review = Review(user=user, body='first')
+        shop_review = ShopReview(shop=shop, review=review)
+        order.review = review
+
+        db.session.add(shop_product)
+        db.session.add(order)
+        db.session.add(shop_review)
+        db.session.add(user)
+        db.session.commit()
 
     def test_bad_action_shop_product_review(self):
         response_actual = patch_with_auth(self.client,
@@ -370,70 +343,80 @@ class TestAuthenticationRequiredAPI(TestAPI):
                                           username=self.USER_SHOP_OWNER_EMAIL,
                                           password=self.USER_SHOP_OWNER_PWD,
                                           data={'action': 'approve'})
-        response_expected = ''
-        self.assertEquals(response_actual.data, response_expected)
-        self.assertEquals(response_actual.status_code, 204)
-        review = Review.get_by_id(1)
-        self.assertFalse(review.approval_pending)
-        self.assertTrue(review.approved_by_shop)
-        review.approval_pending = True
-        review.approved_by_shop = False
-        db.session.add(review)
-        db.session.commit()
-
-    def test_disapprove_shop_product_review(self):
-        response_actual = patch_with_auth(self.client,
-                                          url_for('api.approve_shop_product_review', shop_id=1, review_id=1),
-                                          username=self.USER_SHOP_OWNER_EMAIL,
-                                          password=self.USER_SHOP_OWNER_PWD,
-                                          data={'action': 'disapprove'})
-        response_expected = ''
-        self.assertEquals(response_actual.data, response_expected)
-        self.assertEquals(response_actual.status_code, 204)
-        review = Review.get_by_id(1)
-        self.assertFalse(review.approval_pending)
-        self.assertFalse(review.approved_by_shop)
-        review.approval_pending = True
-        review.approved_by_shop = False
-        db.session.add(review)
-        db.session.commit()
-
-    def test_get_shop_order(self):
-        response_actual = get_with_auth(self.client,
-                                        url_for('api.get_shop_order', shop_id=1, order_id=1),
-                                        username=self.USER_SHOP_OWNER_EMAIL,
-                                        password=self.USER_SHOP_OWNER_PWD)
-        self.maxDiff = None
-        response_expected = {
-            u"delivery_estimation_accuracy": 0,
-            u"delivery_estimation_timestamp": None,
-            u"delivery_timestamp": None,
-            u"id": 1,
-            u"notification_timestamp": None,
-            u"product": {
-                u"id": 1,
-                u"label": u"skirt",
-                u"tags": []
-            },
-            u"purchase_timestamp": u"Thu, 26 Apr 2012 00:00:00 GMT",
-            u"review": {
-                u"approval_pending": True,
-                u"approved_by_shop": False,
-                u"body": u"first",
-                u"id": 1,
-                u"photo_url": None,
-                u"tags": []
-            },
-            u"shipment_timestamp": None,
-            u"shop": {
-                u"id": 1,
-                u"label": u"My shop"
-            },
-            u"status": u"PURCHASED",
-            u"user": {
-                u"id": 1,
-                u"name": None
-            }
-        }
+        response_expected = {u'approval_pending': False,
+                             u'approved_by_shop': True,
+                             u'id': 1,
+                             u'review': {
+                                 u'body': u'first', u'id': 1, u'photo_url': None, u'tags': [],
+                                 u'user': {
+                                     u'id': 1,
+                                     u'name': None,
+                                     u'profile_picture_url': u'default_user.png'}
+                             },
+                             u'shop': {u'id': 1, u'label': u'My shop'}}
         self.assertEquals(json.loads(response_actual.data), response_expected)
         self.assertEquals(response_actual.status_code, 200)
+        shop_review = ShopReview.get_by_shop_and_review_id(1, 1)
+        shop_review.approval_pending = True
+        shop_review.approved_by_shop = False
+        db.session.add(shop_review)
+        db.session.commit()
+
+
+def test_disapprove_shop_product_review(self):
+    response_actual = patch_with_auth(self.client,
+                                      url_for('api.approve_shop_product_review', shop_id=1, review_id=1),
+                                      username=self.USER_SHOP_OWNER_EMAIL,
+                                      password=self.USER_SHOP_OWNER_PWD,
+                                      data={'action': 'disapprove'})
+    response_expected = {u'approval_pending': False,
+                         u'approved_by_shop': False,
+                         u'id': 1,
+                         u'review': {u'body': u'first', u'id': 1, u'photo_url': None, u'tags': []},
+                         u'shop': {u'id': 1, u'label': u'My shop'}}
+    self.assertEquals(json.loads(response_actual.data), response_expected)
+    self.assertEquals(response_actual.status_code, 200)
+    shop_review = ShopReview.get_by_shop_and_review_id(1, 1)
+    shop_review.approval_pending = True
+    shop_review.approved_by_shop = False
+    db.session.add(shop_review)
+    db.session.commit()
+
+
+def test_get_shop_order(self):
+    response_actual = get_with_auth(self.client,
+                                    url_for('api.get_shop_order', shop_id=1, order_id=1),
+                                    username=self.USER_SHOP_OWNER_EMAIL,
+                                    password=self.USER_SHOP_OWNER_PWD)
+    self.maxDiff = None
+    response_expected = {
+        u"delivery_estimation_accuracy": 0,
+        u"delivery_estimation_timestamp": None,
+        u"delivery_timestamp": None,
+        u"id": 1,
+        u"notification_timestamp": None,
+        u"product": {
+            u"id": 1,
+            u"label": u"skirt",
+            u"tags": []
+        },
+        u"purchase_timestamp": u"Thu, 26 Apr 2012 00:00:00 GMT",
+        u"review": {
+            u"body": u"first",
+            u"id": 1,
+            u"photo_url": None,
+            u"tags": []
+        },
+        u"shipment_timestamp": None,
+        u"shop": {
+            u"id": 1,
+            u"label": u"My shop"
+        },
+        u"status": u"PURCHASED",
+        u"user": {
+            u"id": 1,
+            u"name": None
+        }
+    }
+    self.assertEquals(json.loads(response_actual.data), response_expected)
+    self.assertEquals(response_actual.status_code, 200)

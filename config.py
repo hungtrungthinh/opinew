@@ -9,6 +9,7 @@ class Constants(object):
 
 
 class Config(object):
+    OPINEW_API_SERVER = 'http://162.13.140.76'
     SECRET_KEY = 'fheiy3rihiewui4439845ty89o'
 
     UPLOADED_USERPHOTOS_DEST = os.path.join(basedir, 'media', 'user')
@@ -28,7 +29,9 @@ class ConfigTest(Config):
 
 class ConfigDev(Config):
     DEBUG = True
+    OPINEW_API_SERVER = 'http://opinew_api.local:5000'
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api.db'
+
 
 class ConfigProd(Config):
     SQLALCHEMY_DATABASE_URI = 'sqlite:////home/opinew_server/db/ecommerce_api_test.db'

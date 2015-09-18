@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Review about {{ review.product.label }}</h1>
+  {% include "plugin/review.html" %}
+    <form action="{{ url_for('.approve_review', review_id=review.id) }}">
+        <input type="submit" value="Approve review"/>
+    </form>
+    <form action="{{ url_for('.disapprove_review', review_id=review.id) }}">
+        <input type="submit" value="Disapprove review"/>
+    </form>
+{% endblock %}
