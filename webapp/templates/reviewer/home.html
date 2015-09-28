@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>Opinew</h1>
+  {% if not reviews %}
+    <h2>No reviews yet.</h2>
+    {% for review in reviews %}
+      {% include "review/review.html" %}
+    {% endfor %}
+  {% endif %}
+{% endblock %}

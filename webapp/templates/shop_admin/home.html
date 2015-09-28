@@ -42,20 +42,4 @@
         {% endfor %}
       </table>
   {% endif %}
-    <h2>Plugin code</h2>
-    <textarea style="margin: 0px;
-    width: 600px;
-    height: 200px;">
-&lt;iframe style="border:0; width:500px; height:400px;"
-        id="opinew-review-plugin"
-        src="about:blank"&gt;&lt;/iframe&gt;
-&lt;script&gt;
-    (function () {
-        var productId = document.getElementById('product-id').value;
-        document.getElementById('opinew-review-plugin').src =
-          "http://localhost:5000/plugin/shop/{{ shop.id }}/product/" +
-          productId +
-          "/reviews";
-    })();
-&lt;/script&gt;</textarea>
 {% endblock %}

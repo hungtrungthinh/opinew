@@ -1,6 +1,6 @@
 from flask.ext.wtf import Form
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, FileField
-from wtforms.validators import DataRequired, Email, Length
+from wtforms.validators import DataRequired, Email, Length, EqualTo
 
 
 class LoginForm(Form):
@@ -10,8 +10,17 @@ class LoginForm(Form):
     submit = SubmitField('Log in')
 
 
+class SignupForm(Form):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    name = StringField('Name', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired(),
+                                                     EqualTo('password_verify', message='Passwords must match')])
+    password_verify = PasswordField('Password Verify', validators=[DataRequired()])
+    remember_me = BooleanField('Keep me logged in')
+    submit = SubmitField('Sign up')
+
+
 class ReviewForm(Form):
     body = TextAreaField('', validators=[Length(max=260)])
     photo = FileField('photo')
     submit = SubmitField('Post')
-

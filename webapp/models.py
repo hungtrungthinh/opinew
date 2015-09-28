@@ -6,12 +6,7 @@ from webapp.exceptions import DbException
 from flask import url_for
 from flask.ext.login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from config import Config, Constants
-
-role_access_table = db.Table('role_access',
-                             db.Column('role_id', db.Integer, db.ForeignKey('role.id')),
-                             db.Column('access_id', db.Integer, db.ForeignKey('access.id'))
-                             )
+from config import Config
 
 product_tags_table = db.Table('product_tags',
                               db.Column('product_id', db.Integer, db.ForeignKey('product.id')),
@@ -23,23 +18,10 @@ review_tags_table = db.Table('review_tags',
                              db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
                              )
 
-
-class Access(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String)
-
-    def __init__(self, url=None, **kwargs):
-        self.url = url
-
-
-class Role(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    access_whitelist = db.relationship("Access", secondary=role_access_table,
-                                       backref=db.backref("roles", lazy="dynamic"))
-
-    def __init__(self, name=None, **kwargs):
-        self.name = name
+order_products_table = db.Table('order_products',
+                                db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
+                                db.Column('product_id', db.Integer, db.ForeignKey('product.id'))
+                                )
 
 
 @login_manager.user_loader
@@ -50,17 +32,15 @@ def load_user(user_id):
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String)
+    role = db.Column(db.String)
     password = db.Column(db.String)
     temp_password = db.Column(db.String)
     pw_hash = db.Column(db.String)
     name = db.Column(db.String)
     profile_picture_url = db.Column(db.String)
 
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
-    role = db.relationship('Role', backref=db.backref('users'))
-
     def __init__(self, email=None, name=None, profile_picture_url=Config.DEFAULT_PROFILE_PICTURE,
-                 password=None, **kwargs):
+                 password=None, role=None, **kwargs):
         self.email = email
         if not password:
             self.temp_password = generate_temp_password()
@@ -71,10 +51,21 @@ class User(db.Model, UserMixin):
             self.password = password
         self.name = name
         self.profile_picture_url = profile_picture_url
+        self.role = role
 
     @classmethod
     def get_by_id(cls, user_id):
         return cls.query.filter_by(id=user_id).first()
+
+    @classmethod
+    def get_or_create_by_email(cls, email):
+        user = cls.query.filter_by(email=email).first()
+        if not user:
+            user = User(email=email)
+            db.session.add(user)
+            db.session.commit()
+            # TODO: send email
+        return user
 
     @classmethod
     def get_by_email(cls, email):
@@ -90,7 +81,7 @@ class User(db.Model, UserMixin):
 
     def unread_notifications(self):
         notifications = Notification.query.filter(and_(Notification.user_id == self.id,
-                                                        Notification.read_status == False)).all()
+                                                       Notification.read_status == False)).all()
         return len(notifications)
 
     def __repr__(self):
@@ -101,6 +92,13 @@ class User(db.Model, UserMixin):
             'id': self.id,
             'name': self.name,
             'profile_picture_url': self.profile_picture_url
+        }
+
+    def serialize_with_pass(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'password': self.password,
         }
 
 
@@ -150,6 +148,10 @@ class Notification(db.Model):
             raise DbException(message="Notification is not for logged in user", status_code=400)
         return True
 
+    @classmethod
+    def get_for_user(cls, user):
+        return cls.query.filter_by(user=user).order_by(Notification.id.desc()).all()
+
     def serialize(self):
         return {
             'id': self.id,
@@ -159,33 +161,20 @@ class Notification(db.Model):
             'meta': self.order.serialize() if self.order else self.review.serialize_with_product(),
         }
 
-class DeliveryService(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    label = db.Column(db.String)
-    delivery_time_in_days = db.Column(db.Integer)
-
-    def __init__(self, label=None, delivery_time_in_days=None):
-        self.label = label
-        self.delivery_time_in_days = delivery_time_in_days
-
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
+    platform_order_id = db.Column(db.Integer)
+
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("orders"))
 
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    product = db.relationship("Product", backref=db.backref("orders"))
+    products = db.relationship("Product", secondary=order_products_table,
+                               backref=db.backref("orders", lazy="dynamic"))
 
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship("Shop", backref=db.backref("orders"))
-
-    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("order", uselist=False))
-
-    delivery_service_id = db.Column(db.Integer, db.ForeignKey('delivery_service.id'))
-    delivery_service = db.relationship("DeliveryService", backref=db.backref("orders"))
 
     delivery_tracking_number = db.Column(db.String)
 
@@ -195,39 +184,20 @@ class Order(db.Model):
     shipment_timestamp = db.Column(db.DateTime)
     delivery_timestamp = db.Column(db.DateTime)
 
-    delivery_estimation_timestamp = db.Column(db.DateTime)
-    delivery_estimation_accuracy = db.Column(db.Integer)  # points
-
     to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
 
-    def __init__(self, user=None, product=None, shop=None, delivery_service=None):
+    def __init__(self, platform_order_id=None, user=None, shop=None):
+        self.platform_order_id = platform_order_id
         self.user = user
-        self.product = product
         self.shop = shop
 
         self.status = 'PURCHASED'
         self.purchase_timestamp = datetime.utcnow()
 
-        self.delivery_estimation_accuracy = 0
-        if shop.shipment_time_in_days:
-            self.delivery_estimation_timestamp = self.purchase_timestamp + \
-                                                 timedelta(shop.shipment_time_in_days)
-
-            if delivery_service:
-                self.delivery_service = delivery_service
-                self.delivery_estimation_accuracy += 1
-                self.delivery_estimation_timestamp = self.delivery_estimation_timestamp + \
-                                                     delivery_service.delivery_time_in_days
-
-            self.to_notify_timestamp = self.delivery_estimation_timestamp + \
-                                       timedelta(0, Constants.NOTIFICATION_AFTER_DELIVERY_SECONDS)
-        db.session.add(self)
-        db.session.commit()
-
-    def is_for_shop(self, shop):
-        if not self.shop == shop:
-            raise DbException(message="This order is not for this shop", status_code=404)
+    def is_for_user(self, user):
+        if not self.shop.user == user:
+            raise DbException(message="This order is not for this user", status_code=403)
         return True
 
     @classmethod
@@ -246,14 +216,10 @@ class Order(db.Model):
             raise DbException(message='Order doesn\'t exist', status_code=404)
         return order
 
-    def review_not_exists(self):
-        if self.review:
-            raise DbException(message='Review for order exists', status_code=400)
-        return True
-
-    def ship(self, delivery_service=None, delivery_tracking_number=None):
+    def ship(self, delivery_tracking_number=None):
         self.status = 'SHIPPED'
         self.shipment_timestamp = datetime.utcnow()
+        self.delivery_tracking_number = delivery_tracking_number
         # TODO: Update estimation
         db.session.add(self)
         db.session.commit()
@@ -276,15 +242,12 @@ class Order(db.Model):
         return {
             'id': self.id,
             'user': self.user.serialize(),
-            'product': self.product.serialize(),
+            'products': self.product.serialize(),
             'shop': self.shop.serialize(),
-            'review': self.review.serialize() if self.review else {},
             'status': self.status,
             'purchase_timestamp': self.purchase_timestamp,
             'shipment_timestamp': self.shipment_timestamp,
             'delivery_timestamp': self.delivery_timestamp,
-            'delivery_estimation_timestamp': self.delivery_estimation_timestamp,
-            'delivery_estimation_accuracy': self.delivery_estimation_accuracy,
             'notification_timestamp': self.notification_timestamp
         }
 
@@ -362,6 +325,11 @@ class Review(db.Model):
         return review
 
     @classmethod
+    def get_latest(cls, count=10):
+        reviews = cls.query.order_by(Review.id.desc()).all()[:count]
+        return reviews
+
+    @classmethod
     def get_for_product(cls, product_id):
         return Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
 
@@ -376,17 +344,23 @@ class Review(db.Model):
 class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String)
-    url = db.Column(db.String)
-    shipment_time_in_days = db.Column(db.Integer)
+    domain = db.Column(db.String)
+
+    access_token = db.Column(db.String)
+    products_imported = db.Column(db.Boolean, default=False)
 
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     owner = db.relationship("User", backref=db.backref("shop", uselist=False))
 
-    def __init__(self, label=None, url=None, owner=None, shipment_time_in_days=None):
+    platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
+    platform = db.relationship("Platform", backref=db.backref("platform", uselist=False))
+
+    def __init__(self, label=None, domain=None, access_token=None, owner=None, platform=None):
         self.label = label
-        self.url = url
+        self.domain = domain
+        self.access_token = access_token
         self.owner = owner
-        self.shipment_time_in_days = shipment_time_in_days
+        self.platform = platform
 
     def __repr__(self):
         return '<Shop %r>' % self.id
@@ -394,8 +368,26 @@ class Shop(db.Model):
     def serialize(self):
         return {
             'id': self.id,
-            'label': self.label
+            'label': self.label,
+            'domain': self.domain
         }
+
+    def update_access_token(self, access_token):
+        self.access_token = access_token
+        db.session.add(self)
+        db.session.commit()
+
+    def products_imported_complete(self):
+        self.products_imported = True
+        db.session.add(self)
+        db.session.commit()
+
+    @classmethod
+    def get_by_shop_domain(cls, shop_domain):
+        shop = Shop.query.filter_by(domain=shop_domain).first()
+        if not shop:
+            raise DbException(message='Shop %s not registered with Opinew.' % shop_domain, status_code=400)
+        return shop
 
     @classmethod
     def get_by_id(cls, shop_id):
@@ -415,6 +407,21 @@ class Shop(db.Model):
         if not shop_user.shop.id == self.id:
             raise DbException(message="User is not an owner of this shop", status_code=403)
         return True
+
+
+class Platform(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+
+    def __init__(self, name=None):
+        self.name = name
+
+    @classmethod
+    def get_by_name(cls, name):
+        platform = cls.query.filter_by(name=name).first()
+        if not platform:
+            raise DbException(message='Platform %s not registered with Opinew.' % name, status_code=400)
+        return platform
 
 
 class ShopReview(db.Model):
@@ -467,6 +474,7 @@ class ShopReview(db.Model):
 class ShopProduct(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     url = db.Column(db.String)
+    platform_product_id = db.Column(db.Integer)
 
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship("Shop", backref=db.backref("shop_product", uselist=False))
@@ -474,10 +482,11 @@ class ShopProduct(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     product = db.relationship("Product", backref=db.backref("shop_product", uselist=False))
 
-    def __init__(self, shop=None, product=None, url=None):
+    def __init__(self, shop=None, product=None, url=None, platform_product_id=None):
         self.shop = shop
         self.product = product
         self.url = url
+        self.platform_product_id = platform_product_id
 
     def serialize(self):
         return {
@@ -488,31 +497,18 @@ class ShopProduct(db.Model):
         }
 
     @classmethod
-    def search_for_products_in_shop(cls, shop_id, query):
-        try:
-            Shop.exists(shop_id)
-        except:
-            raise
-        shop_products = cls.query.filter(and_(ShopProduct.shop_id == shop_id, Product.label.like("%s%%" % query))).all()
-        return [sp.product for sp in shop_products]
-
-    @classmethod
-    def get_product_in_shop(cls, shop_id, product_id):
-        try:
-            Shop.exists(shop_id)
-        except:
-            raise
-        sp = ShopProduct.query.filter(
-            and_(ShopProduct.shop_id == shop_id, ShopProduct.product_id == product_id)).first()
+    def get_by_platform_product_id(cls, platform_product_id):
+        sp = ShopProduct.query.filter_by(platform_product_id=platform_product_id).first()
         if not sp or not sp.product:
-            raise DbException(message='Product doesn\'t exist', status_code=404)
-        return sp.product
+            raise DbException(message='Shop_Product doesn\'t exist', status_code=404)
+        return sp
 
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String)
-    tags = db.relationship("Tag", secondary=product_tags_table, backref=db.backref("products", lazy="dynamic"))
+    tags = db.relationship("Tag", secondary=product_tags_table,
+                           backref=db.backref("products", lazy="dynamic"))
 
     def __init__(self, label=None, **kwargs):
         self.label = label
@@ -560,10 +556,6 @@ class Product(db.Model):
         if not product:
             raise DbException(message='Product doesn\'t exist', status_code=404)
         return product
-
-    @classmethod
-    def search_by_label(cls, query):
-        return Product.query.filter(Product.label.like("%s%%" % query)).all()
 
     @classmethod
     def serialize_list(cls, products):

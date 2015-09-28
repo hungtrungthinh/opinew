@@ -2,21 +2,15 @@
 <html>
 <head lang="en">
     <meta charset="UTF-8">
-    <script src="https://cdn.shopify.com/s/assets/external/app.js"></script>
-    <script type="text/javascript">
-        ShopifyApp.init({
-            apiKey: '7260cb38253b9adc4af0c90eb622f4ce',
-            shopOrigin: 'https://opinew.myshopify.com',
-            debug: true
-        });
-    </script>
 </head>
-<body>
+<body style="margin: 0;">
 <div style="height: 40px; background-color: #222;">
     <img style="height: 25px; margin: 5px;"
          src="{{ url_for('static', filename='opinew_logo.png') }}" alt="Opinew logo"/>
 </div>
-<h2>{{ product.label }}</h2>
+<a href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=product.id) }}" target="_blank">
+    <h2>{{ product.label }}</h2>
+</a>
 {% if not product.reviews %}
     <h3>No reviews yet</h3>
 {% else %}

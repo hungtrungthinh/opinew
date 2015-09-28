@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h2>Plugin code</h2>
+    <ol>
+        <li>Click on <b>Online store</b> in your admin panel</li>
+        <li>Click on <b>Themes</b></li>
+        <li>On the top right corner click on <b>the three dots</b> (next to the blue Customize theme button) and select <b>Edit HTML/CSS</b>.</li>
+        <li>Under Templates folder click <b>product.liquid</b></li>
+        <li>Copy the following code below the last line:</li>
+    <textarea disabled style="margin: 0; width: 700px; height: 70px;">
+&lt;iframe style="border:0; width:100%; height:400px;"
+  src="{{ g.config.OPINEW_API_SERVER }}/plugin?platform_product_id={{ '{{product.id}}' }}"&gt;
+&lt;/iframe&gt;
+    </textarea>
+        <li>Click <b>Save</b></li>
+    </ol>
+{% endblock %}

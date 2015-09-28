@@ -2,12 +2,15 @@ import json
 import base64
 import random
 import string
+import hmac
+import hashlib
+from functools import wraps
 from flask import jsonify, abort, request, url_for
 from flask.ext.login import current_user
 from werkzeug.exceptions import HTTPException
 from webapp import auth
 from webapp.exceptions import ParamException
-from config import Constants
+from config import Constants, Config
 
 
 @auth.get_password
@@ -110,3 +113,29 @@ def post_with_auth(client, url, username, password, **kwargs):
 
 def patch_with_auth(client, url, username, password, **kwargs):
     return open_with_auth(client, url, 'patch', username, password, **kwargs)
+
+def shop_owner_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated() or not current_user.role == Constants.SHOP_OWNER_ROLE:
+            abort(401)
+        return f(*args, **kwargs)
+    return wrapper
+
+def reviewer_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated() or not current_user.role == Constants.REVIEWER_ROLE:
+            abort(401)
+        return f(*args, **kwargs)
+    return wrapper
+
+def verify_webhook(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        request_hmac = request.headers.get("X-Shopify-Hmac-SHA256")
+        calulated_hmac = hmac.new(Config.SHOPIFY_APP_SECRET, msg=request.data, digestmod=hashlib.sha256).digest()
+        if not calulated_hmac == request_hmac:
+            raise ParamException("Invalid signature.", 403)
+        return f(*args, **kwargs)
+    return wrapper

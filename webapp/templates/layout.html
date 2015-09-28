@@ -9,9 +9,11 @@
     <a href="{{ url_for('.home') }}">Home</a>
     <span style="float: right">
       {% if not current_user.is_authenticated() %}
+          <a href="{{ url_for('.signup') }}">Sign up</a> |
           <a href="{{ url_for('.login') }}">Log in</a>
       {% else %}
         {{ current_user.name }} |
+          {{ current_user.role }} |
           Notifications (<a href="{{ url_for('.get_notifications') }}">{{ current_user.unread_notifications() }}</a>) |
           <a href="{{ url_for('.logout') }}">Log out</a>
       {% endif %}

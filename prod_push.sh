@@ -28,7 +28,12 @@ pushprod() {
                                       tar xfz opinew_ecommerce_api.tar.gz -C ~/opinew_new &&
                                       rm -rf ~/opinew_ecommerce_api &&
                                       mv ~/opinew_new ~/opinew_ecommerce_api &&
-                                      rm -f opinew_ecommerce_api.tar.gz"
+                                      rm -f opinew_ecommerce_api.tar.gz &&
+                                      cd opinew_ecommerce_api &&
+                                      ln -s ../opinew_venv ./venv &&
+                                      source venv/bin/activate &&
+                                      pip install -r requirements.txt &&
+                                      sudo service uwsgi restart"
 }
 
 send_update() {
