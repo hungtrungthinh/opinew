@@ -134,8 +134,9 @@ def verify_webhook(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         request_hmac = request.headers.get("X-Shopify-Hmac-SHA256")
-        calulated_hmac = hmac.new(Config.SHOPIFY_APP_SECRET, msg=request.data, digestmod=hashlib.sha256).digest()
-        if not calulated_hmac == request_hmac:
+        calculated_hmac = base64.b64encode(
+            hmac.new(Config.SHOPIFY_APP_SECRET, msg=request.data, digestmod=hashlib.sha256).digest())
+        if not calculated_hmac == request_hmac:
             raise ParamException("Invalid signature.", 403)
         return f(*args, **kwargs)
     return wrapper

@@ -20,6 +20,14 @@ class SignupForm(Form):
     submit = SubmitField('Sign up')
 
 
+class BusinessSignupForm(Form):
+    name = StringField('Name', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    company_name = StringField('Company Name', validators=[DataRequired()])
+    comments = TextAreaField('Comments or questions?')
+    submit = SubmitField('Sign up')
+
+
 class ReviewForm(Form):
     body = TextAreaField('', validators=[Length(max=260)])
     photo = FileField('photo')

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy import and_
 from webapp import db, login_manager
 from webapp.common import generate_temp_password
@@ -6,7 +6,7 @@ from webapp.exceptions import DbException
 from flask import url_for
 from flask.ext.login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from config import Config
+from config import Config, Constants
 
 product_tags_table = db.Table('product_tags',
                               db.Column('product_id', db.Integer, db.ForeignKey('product.id')),
@@ -27,6 +27,21 @@ order_products_table = db.Table('order_products',
 @login_manager.user_loader
 def load_user(user_id):
     return User.get_by_id(user_id)
+
+
+class Business(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String)
+    name = db.Column(db.String)
+    company_name = db.Column(db.String)
+    comments = db.Column(db.String)
+
+    def __init__(self, email=None, name=None, company_name=None,
+                 comments=None, **kwargs):
+        self.email = email
+        self.name = name
+        self.company_name = company_name
+        self.comments = comments
 
 
 class User(db.Model, UserMixin):
@@ -61,7 +76,7 @@ class User(db.Model, UserMixin):
     def get_or_create_by_email(cls, email):
         user = cls.query.filter_by(email=email).first()
         if not user:
-            user = User(email=email)
+            user = User(email=email, role=Constants.REVIEWER_ROLE)
             db.session.add(user)
             db.session.commit()
             # TODO: send email

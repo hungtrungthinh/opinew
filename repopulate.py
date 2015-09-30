@@ -31,8 +31,8 @@ db.session.add(user1)
 rachel = models.User(name="Rachel McMillan", role=Constants.SHOP_OWNER_ROLE, email='rachel@rachel-mcmillan.com', password='password')
 db.session.add(rachel)
 
-SHOP_URL = 'opinew.myshopify.com'
-rachels_shop = models.Shop(label='Opinew Online Shop', domain=SHOP_URL, platform=shopify_platform)
+SHOP_URL = 'fake.myshopify.com'
+rachels_shop = models.Shop(label='Fake shop', domain=SHOP_URL, platform=shopify_platform)
 rachels_shop.owner = rachel
 db.session.add(rachels_shop)
 db.session.commit()

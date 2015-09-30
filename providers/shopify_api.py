@@ -70,7 +70,6 @@ class API(object):
                                   "format": "json"
                               }
                           })
-        print r
 
     def get_shop(self):
         r = requests.get("https://%s/admin/shop.json" % self.shop_domain,

@@ -8,7 +8,7 @@
       <table border="1">
           <tr>
               <th>User name</th>
-              <th>Product name</th>
+              <th>Products</th>
               <th>Status</th>
               <th>Purchase TS</th>
               <th>Shipment TS</th>
@@ -20,7 +20,13 @@
         {% for order in shop.orders %}
             <tr>
                 <td>{{ order.user.name }}</td>
-                <td>{{ order.product.label }}</td>
+                <td>
+                    <ul>
+                  {% for product in order.products %}
+                    <li><a href="{{ url_for('client.get_product', product_id=product.id) }}" target="_blank">{{ product.label }}</a></li>
+                  {% endfor %}
+                    </ul>
+                </td>
                 <td>{{ order.status }}</td>
                 <td>{{ order.purchase_timestamp }}</td>
                 <td>{{ order.shipment_timestamp }}</td>
@@ -32,7 +38,7 @@
                     {{ order.notification_timestamp }}
                   {% elif order.delivery_timestamp %}
                       <form action="{{ url_for('.notify_for_review', order_id=order.id) }}">
-                        <input type="submit" value="Notify review"/>
+                          <input type="submit" value="Notify review"/>
                       </form>
                   {% else %}
 

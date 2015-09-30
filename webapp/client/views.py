@@ -1,12 +1,12 @@
-from flask import request, jsonify, redirect, url_for, render_template, flash, g, current_app, send_from_directory
+from flask import request, jsonify, redirect, url_for, render_template, flash, g, send_from_directory, session
 from flask.ext.login import login_required, login_user, current_user, logout_user
 from providers.shopify_api import API
-from webapp import db, login_manager
+from webapp import db, login_manager, review_photos
 from webapp.client import client
-from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification
-from webapp.common import shop_owner_required, param_required
+from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, Business
+from webapp.common import shop_owner_required, reviewer_required, param_required, get_post_payload
 from webapp.exceptions import ParamException, DbException
-from webapp.forms import LoginForm, SignupForm
+from webapp.forms import LoginForm, SignupForm, ReviewForm, BusinessSignupForm
 from config import Config, Constants
 
 
@@ -127,6 +127,17 @@ def home():
             return render_template('shop_admin/home.html', shop=shop)
     return render_template('reviewer/home.html', reviews=reviews)
 
+@client.route('/business', methods=['GET', 'POST'])
+def business():
+    business_signup_form = BusinessSignupForm()
+    if business_signup_form.validate_on_submit():
+        business = Business(**{k: v[0] for k, v in request.form.iteritems() if len(v) > 0})
+        db.session.add(business)
+        db.session.commit()
+        flash('Thanks for you interest.')
+        session['business_signed_up'] = True
+    return render_template('shop_admin/business.html', business_signup_form=business_signup_form)
+
 
 @client.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -148,6 +159,7 @@ def signup():
         next_param = request.form.get('next')
         return redirect(next_param or url_for('.home'))
     return render_template('signup.html', signup_form=signup_form)
+
 
 @client.route('/login', methods=['GET', 'POST'])
 def login():
@@ -199,7 +211,7 @@ def get_product(product_id):
         reviews = Review.get_for_product(product_id)
     except (ParamException, DbException) as e:
         return jsonify({"error": e.message}), e.status_code
-    return render_template('client/product.html', product=product.serialize_with_reviews(reviews))
+    return render_template('product/main.html', product=product.serialize_with_reviews(reviews))
 
 
 @client.route('/products/clickthrough')
@@ -222,6 +234,55 @@ def clickthrough_product():
 def get_notifications():
     notifications = Notification.get_for_user(current_user)
     return render_template('client/notifications.html', notifications=notifications)
+
+
+@client.route('/review/<int:order_id>/<int:product_id>', methods=['GET', 'POST'])
+@reviewer_required
+@login_required
+def web_review(order_id, product_id):
+    order = Order.get_by_id(order_id)
+    product = Product.get_by_id(product_id)
+    if not order:
+        flash('Not such order.')
+        return redirect(url_for('.home'))
+    if not product:
+        flash('Not such product.')
+        return redirect(url_for('.home'))
+    if product not in order.products:
+        flash('Product not in orders.')
+        return redirect(url_for('.home'))
+    if not order.user == current_user:
+        flash('Not your order to review.')
+        return redirect(url_for('.home'))
+    review_form = ReviewForm()
+    if request.method == 'POST' and review_form.validate_on_submit():
+        try:
+            payload = get_post_payload()
+            body = payload.get('body', None)
+            photo_url = ''
+            if 'photo' in request.files:
+                photo_url = review_photos.save(request.files['photo'])
+            tag_ids = request.values.getlist('tag_id')
+
+            if not body and not tag_ids and not photo_url:
+                raise ParamException('At least one of body, photo or tags need to be provided.', 400)
+        except ParamException as e:
+            flash(e.message)
+            return redirect(url_for('.home'))
+
+        product.add_review(order=order, body=body, photo_url=photo_url, tag_ids=tag_ids)
+
+        flash('Review submitted')
+        return redirect(url_for('.home'))
+    return render_template('web_review/main.html', order=order, product=product, review_form=review_form)
+
+
+@client.route('/view_review/<int:review_id>')
+@shop_owner_required
+@login_required
+def view_review(review_id):
+    review = Review.get_by_id(review_id)
+    return render_template('shop_admin/view_review.html', review=review)
 
 
 @client.route('/media/user/<path:filename>')

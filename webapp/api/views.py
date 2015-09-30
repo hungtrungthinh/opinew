@@ -47,11 +47,14 @@ def create_product():
     try:
         payload = get_post_payload()
 
+        shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+        shop = Shop.get_by_shop_domain(shopify_shop_domain)
+
         platform_product_id = payload.get('id')
         product_title = payload.get('title')
 
         product = Product(label=product_title)
-        shop = current_user.shop
+
         shop_product = ShopProduct(product=product, shop=shop, platform_product_id=platform_product_id)
         db.session.add(shop_product)
         db.session.commit()
@@ -76,7 +79,7 @@ def update_product():
 
         shop_product = ShopProduct.get_by_platform_product_id(platform_product_id)
         product = shop_product.product
-        product.title = product_title
+        product.label = product_title
 
         db.session.add(product)
         db.session.commit()
@@ -121,7 +124,7 @@ def get_latest_reviews():
 @api.route('/orders/<int:order_id>')
 @shop_owner_required
 @login_required
-def get_shop_order(order_id):
+def get_order(order_id):
     try:
         order = Order.get_by_id(order_id)
         order.is_for_user(current_user)
@@ -135,11 +138,12 @@ def get_shop_order(order_id):
 def create_order():
     try:
         payload = get_post_payload()
-        customer_email = payload.get('customer', {}).get('email')
-        customer = User.get_or_create_by_email(customer_email)
 
         shop_domain = request.headers.get('X-Shopify-Shop-Domain')
-        shop = Shop.get_by_domain_name(shop_domain)
+        shop = Shop.get_by_shop_domain(shop_domain)
+
+        customer_email = payload.get('customer', {}).get('email')
+        customer = User.get_or_create_by_email(customer_email)
 
         platform_order_id = payload.get('id')
 
@@ -159,7 +163,7 @@ def create_order():
     return build_created_response('.get_order', order_id=order.id)
 
 
-@api.route('/orders/fullfill', methods=['POST'])
+@api.route('/orders/fulfill', methods=['POST'])
 @verify_webhook
 def fulfill_order():
     try:
@@ -207,7 +211,7 @@ def approve_product_review(review_id):
     return jsonify(shop_review.serialize()), 200
 
 
-@api.route('/products/<int:product_id>/reviews', methods=['POST'])
+@api.route('/shop/<int:shop_id>/products/<int:product_id>/reviews', methods=['POST'])
 @reviewer_required
 @login_required
 def add_product_review(shop_id, product_id):
