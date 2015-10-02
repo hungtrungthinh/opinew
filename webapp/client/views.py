@@ -1,5 +1,7 @@
 import os
-from flask import request, jsonify, redirect, url_for, render_template, flash, g, send_from_directory, session, current_app
+import datetime
+from flask import request, jsonify, redirect, url_for, render_template, flash, g, send_from_directory, session, \
+    current_app, make_response
 from flask.ext.login import login_required, login_user, current_user, logout_user
 from providers.shopify_api import API
 from webapp import db, login_manager, review_photos
@@ -128,26 +130,6 @@ def index():
         flash('Thanks for you interest.')
         session['business_signed_up'] = True
     return render_template('index.html', business_signup_form=business_signup_form)
-
-
-@client.route('/about_us')
-def about_us():
-    return render_template('about_us.html')
-
-
-@client.route('/support')
-def support():
-    return render_template('support.html')
-
-
-@client.route('/terms_and_conditions')
-def terms_and_conditions():
-    return render_template('terms_and_conditions.html')
-
-
-@client.route('/privacy_policy')
-def privacy_policy():
-    return render_template('privacy_policy.html')
 
 
 @client.route('/home')
@@ -322,6 +304,27 @@ def media_user(filename):
 def media_review(filename):
     return send_from_directory(Config.UPLOADED_REVIEWPHOTOS_DEST, filename)
 
+
+@client.route('/about_us')
+def about_us():
+    return render_template('about_us.html', page_title="About us - ")
+
+
+@client.route('/support')
+def support():
+    return render_template('support.html', page_title="Support - ")
+
+
+@client.route('/terms')
+def terms_of_use():
+    return render_template('terms_of_use.html', page_title="Terms of Use - ")
+
+
+@client.route('/privacy')
+def privacy_policy():
+    return render_template('privacy_policy.html', page_title="Privacy Policy - ")
+
+
 @client.route('/robots.txt')
 def robotstxt():
     return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'txt'), 'robots.txt')
@@ -332,11 +335,20 @@ def humanstxt():
     return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'txt'), 'humans.txt')
 
 
-@client.route('/sitemap.xml')
-def sitemapxml():
-    return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'txt'), 'sitemap.xml')
-
-
 @client.route('/favicon.ico')
 def faviconico():
     return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'icons'), 'opinew32.ico')
+
+
+@client.route('/sitemap.xml')
+def sitemapxml():
+    """Generate sitemap.xml. Makes a list of urls and date modified."""
+    pages = []
+    # static pages
+    for rule in current_app.url_map.iter_rules():
+        if "GET" in rule.methods and len(rule.arguments) == 0:
+            pages.append([rule.rule])
+    sitemap_xml = render_template('sitemap.xml', pages=pages)
+    response = make_response(sitemap_xml)
+    response.headers["Content-Type"] = "application/xml"
+    return response
