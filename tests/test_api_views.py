@@ -7,7 +7,7 @@ from webapp.models import User
 class TestAPI(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app = create_app('test')
+        cls.app = create_app('testing')
         cls.client = cls.app.test_client()
         cls.app.app_context().push()
         db.create_all()

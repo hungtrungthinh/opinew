@@ -1,13 +1,23 @@
 {% extends "layout.html" %}
 {% import "_macros.html" as macros %}
 {% block content %}
-    <h1>Opinew</h1>
+    <h1>Opinew for business</h1>
+    <div>
+        <h2>TODO: How it looks like: single screenshot and call to action: Get started!</h2>
+    </div>
+    <hr>
+    <div>
+
+    </div>
+    <hr>
+    <div>
+        <h2>TODO: Gallery of screenshots</h2>
+    </div>
+    <hr>
     <div style="width:800px; padding: 0 0 0 50px;">
-        <h2>What is Opinew?</h2>
+        <h2>F.A.Q.</h2>
 
-        <p>Opinew is a reviews plugin for your e-commerce website. The reviews are mainly based on pictures.</p>
-
-        <h2>Why reviews?</h2>
+        <h3 id="why-reviews">Why reviews?</h3>
 
         <p>They are pretty important for conversion these days. Look at that: </p>
         <ul>
@@ -18,8 +28,6 @@
             <li>
                 <a href="https://econsultancy.com/blog/64406-77-of-uk-shoppers-consult-reviews-before-buying-online-report/">77%
                     of UK shoppers consult reviews before buying online</a></li>
-            <i>More than half of respondents (52%) said friends’ recommendations were influential, followed by consumer
-                reviews (48%), advertising (24%) and advice from sales assistants (22%).</i>
 
             <li>
                 <a href="http://marketingland.com/survey-customers-more-frustrated-by-how-long-it-takes-to-resolve-a-customer-service-issue-than-the-resolution-38756">90%
@@ -32,7 +40,7 @@
         </ul>
 
 
-        <h2>So how does it work?</h2>
+        <h3>So how does it work?</h3>
 
         <p>When someone receives a product from your store, we send them a notification on their phone to review it
             with a coupon incentive. The whole thing is gamified - the quicker the user posts a review, the more
@@ -44,7 +52,7 @@
             with your
             specific platform.</p>
 
-        <h2>I don't want sh*#ty reviews</h2>
+        <h3>I don't want sh*#ty reviews</h3>
 
         <p>Both good and bad reviews actually help you bring up the trust of your customers. (<a
                 href="https://econsultancy.com/blog/8638-bad-reviews-improve-conversion-by-67">Bad reviews help
@@ -52,14 +60,57 @@
             But of course, the
             website is yours and no one likes cr@p. You have full control on moderating the reviews.</p>
 
-        <h2>I don't have time to moderate</h2>
+        <h3>I don't have time to moderate</h3>
 
         <p>You can switch on our automatic computer magic do that for you.
         </p>
 
-        <h2>Okay, what's the damage?</h2>
+        <h3>Okay, what's the damage?</h3>
 
-        <p>It's <b>free</b> for lifetime for you if you sign up with us until 1st of December.</p>
+        <p>It's <b>free</b> for lifetime for you if you sign up with us until 1st of November.</p>
+
+        <p>Here is how we are pricing companies that sign up after that:</p>
+        <table>
+            <tr style="font-size: 22pt;">
+                <th>Micro</th>
+                <th>Pro</th>
+                <th>Premium</th>
+            </tr>
+            <tr style="font-size: 28pt; text-align: center;">
+                <td>$9.00</td>
+                <td>$19.00</td>
+                <td>$39.00</td>
+            </tr>
+            <tr style="vertical-align:top;">
+                <td>
+                    <ul>
+                        <li>Photo reviews</li>
+                        <li>Video reviews</li>
+                        <li>Up to 500 reviews per month</li>
+                    </ul>
+                </td>
+                <td>
+                    <ul>
+                        <li>Photo reviews</li>
+                        <li>Video reviews</li>
+                        <li>Up to 2000 reviews per month</li>
+                        <li><b>Reviews commenting</b></li>
+                        <li><b>Resolved reviews section</b></li>
+                    </ul>
+                </td>
+                <td>
+                    <ul>
+                        <li>Photo reviews</li>
+                        <li>Video reviews</li>
+                        <li>Unlimited reviews per month</li>
+                        <li><b>Reviews commenting</b></li>
+                        <li><b>Resolved reviews section</b></li>
+                        <li><b>Whitelabeling / own branding</b></li>
+                        <li><b>Questions and answers</b></li>
+                    </ul>
+                </td>
+            </tr>
+        </table>
 
       {% if 'business_signed_up' in session %}
           <p style="color: green">Thanks for your interest, we will contact you soon!</p>

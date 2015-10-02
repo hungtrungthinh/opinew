@@ -1,0 +1,18 @@
+# humanstxt.org/
+# The humans responsible & technology colophon
+
+# TEAM
+
+    Daniel Tsvetkov -- Founder -- http://github.com/danieltcv
+    Tomasz Sadowski -- Founder -- http://github.com/Tomazz
+
+# THANKS
+
+    Huw Evans
+    Jill Ramsay
+    Jonathan Tait
+    Urszula Sadowska
+
+# TECHNOLOGY COLOPHON
+
+    CSS3, HTML5

@@ -29,25 +29,28 @@ class Config(object):
 
 
 class ConfigTest(Config):
+    MODE = 'testing'
     TESTING = True
     SERVER_NAME = 'localhost:5000'
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api_test.db'
 
 
 class ConfigDev(Config):
+    MODE = 'development'
     DEBUG = True
     OPINEW_API_SERVER = 'http://opinew_api.local:5000'
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api.db'
 
 
 class ConfigProd(Config):
+    MODE = 'production'
     SQLALCHEMY_DATABASE_URI = 'sqlite:////home/opinew_server/db/ecommerce_api.db'
 
 
 config_factory = {
     'db_prod': ConfigProd,
     'db_dev': ConfigDev,
-    'test': ConfigTest,
-    'dev': ConfigDev,
+    'testing': ConfigTest,
+    'development': ConfigDev,
     'production': ConfigProd
 }

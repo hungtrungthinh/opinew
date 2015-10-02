@@ -1,4 +1,5 @@
-from flask import request, jsonify, redirect, url_for, render_template, flash, g, send_from_directory, session
+import os
+from flask import request, jsonify, redirect, url_for, render_template, flash, g, send_from_directory, session, current_app
 from flask.ext.login import login_required, login_user, current_user, logout_user
 from providers.shopify_api import API
 from webapp import db, login_manager, review_photos
@@ -7,12 +8,13 @@ from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, No
 from webapp.common import shop_owner_required, reviewer_required, param_required, get_post_payload
 from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, SignupForm, ReviewForm, BusinessSignupForm
-from config import Config, Constants
+from config import Config, Constants, basedir
 
 
 @client.before_request
 def before_request():
     g.config = Config
+    g.mode = current_app.config.get('MODE')
 
 
 login_manager.login_view = "client.login"
@@ -116,7 +118,39 @@ def user_setup():
     return render_template('shopify/user_setup.html')
 
 
-@client.route('/')
+@client.route('/', methods=['GET', 'POST'])
+def index():
+    business_signup_form = BusinessSignupForm()
+    if business_signup_form.validate_on_submit():
+        business = Business(**{k: v[0] for k, v in request.form.iteritems() if len(v) > 0})
+        db.session.add(business)
+        db.session.commit()
+        flash('Thanks for you interest.')
+        session['business_signed_up'] = True
+    return render_template('index.html', business_signup_form=business_signup_form)
+
+
+@client.route('/about_us')
+def about_us():
+    return render_template('about_us.html')
+
+
+@client.route('/support')
+def support():
+    return render_template('support.html')
+
+
+@client.route('/terms_and_conditions')
+def terms_and_conditions():
+    return render_template('terms_and_conditions.html')
+
+
+@client.route('/privacy_policy')
+def privacy_policy():
+    return render_template('privacy_policy.html')
+
+
+@client.route('/home')
 def home():
     reviews = Review.get_latest(10)
     if current_user.is_authenticated():
@@ -127,16 +161,10 @@ def home():
             return render_template('shop_admin/home.html', shop=shop)
     return render_template('reviewer/home.html', reviews=reviews)
 
-@client.route('/business', methods=['GET', 'POST'])
-def business():
-    business_signup_form = BusinessSignupForm()
-    if business_signup_form.validate_on_submit():
-        business = Business(**{k: v[0] for k, v in request.form.iteritems() if len(v) > 0})
-        db.session.add(business)
-        db.session.commit()
-        flash('Thanks for you interest.')
-        session['business_signed_up'] = True
-    return render_template('shop_admin/business.html', business_signup_form=business_signup_form)
+
+@client.route('/faq')
+def faq():
+    return render_template('faq.html')
 
 
 @client.route('/signup', methods=['GET', 'POST'])
@@ -293,3 +321,22 @@ def media_user(filename):
 @client.route('/media/review/<path:filename>')
 def media_review(filename):
     return send_from_directory(Config.UPLOADED_REVIEWPHOTOS_DEST, filename)
+
+@client.route('/robots.txt')
+def robotstxt():
+    return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'txt'), 'robots.txt')
+
+
+@client.route('/humans.txt')
+def humanstxt():
+    return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'txt'), 'humans.txt')
+
+
+@client.route('/sitemap.xml')
+def sitemapxml():
+    return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'txt'), 'sitemap.xml')
+
+
+@client.route('/favicon.ico')
+def faviconico():
+    return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'icons'), 'opinew32.ico')
