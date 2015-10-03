@@ -1,0 +1,52 @@
+{% import "_macros.html" as macros %}
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}"/>
+    <title>Opinew</title>
+    <meta charset="UTF-8">
+    <style>
+        .navbar-collapse.collapse {
+            display: block !important;
+        }
+
+        .navbar-nav > li, .navbar-nav {
+            float: left !important;
+        }
+
+        .navbar-nav.navbar-right:last-child {
+            margin-right: -15px !important;
+        }
+
+        .navbar-right {
+            float: right !important;
+        }
+    </style>
+</head>
+<body>
+{% if not current_user.is_authenticated() %}
+  {% include "plugin/modal_signup.html" %}
+{% endif %}
+{% include "plugin/navigation.html" %}
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12 col-md-8 col-md-offset-2">
+            <a href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=product.id) }}"
+               target="_blank">
+                <h2>{{ product.label }} Reviews</h2>
+            </a>
+          {% if not reviews %}
+              <h3>No reviews yet</h3>
+          {% else %}
+            {% for review in reviews %}
+              {% include "plugin/review.html" %}
+            {% endfor %}
+          {% endif %}
+        </div>
+    </div>
+</div>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+</body>
+</html>

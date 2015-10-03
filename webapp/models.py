@@ -39,7 +39,6 @@ class Business(db.Model):
         self.email = email
         self.name = name
         self.company_name = company_name
-        self.comments = comments
 
 
 class User(db.Model, UserMixin):
@@ -276,20 +275,16 @@ class Review(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref=db.backref('reviews'))
 
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    product = db.relationship('Product', backref=db.backref('reviews'))
+    shop_product_id = db.Column(db.Integer, db.ForeignKey('shop_product.id'))
+    shop_product = db.relationship('ShopProduct', backref=db.backref('reviews'))
 
-    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
-    shop = db.relationship('Shop', backref=db.backref('reviews'))
-
-    def __init__(self, user=None, product=None, shop=None, order=None, body=None, photo_url=None, **kwargs):
+    def __init__(self, user=None, shop_product=None, order=None, body=None, photo_url=None, **kwargs):
         self.user = user
-        self.product = product
-        self.shop = shop
         self.order = order
         self.body = body
         self.photo_url = photo_url
         self.created_ts = datetime.utcnow()
+        self.shop_product = shop_product
 
     def __repr__(self):
         return '<Review %r>' % self.body
@@ -310,7 +305,7 @@ class Review(db.Model):
             'photo_url': self.photo_url,
             'tags': [t.serialize() for t in self.tags],
             'user': self.user.serialize() if self.user else None,
-            'product': self.product.serialize() if self.product else None
+            'product': self.shop_product.product.serialize() if self.shop_product.product else None
         }
 
     def is_for_shop(self, shop):
@@ -339,14 +334,14 @@ class Review(db.Model):
 
     @classmethod
     def get_for_product(cls, product_id):
-        return Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
+        shop_products = ShopProduct.query.filter(ShopProduct.product_id==product_id).all()
+        return Review.query.filter(Review.shop_product_id.in_([sp.id for sp in shop_products])).order_by(Review.created_ts.desc()).all()
 
     @classmethod
-    def get_for_product_approved_by_shop(cls, shop_id, product_id):
-        shop_reviews = ShopReview.query.filter(
-            and_(ShopReview.shop_id == shop_id, ShopReview.approved_by_shop, Review.product_id == product_id)).order_by(
-            Review.created_ts.desc()).all()
-        return [r.review for r in shop_reviews]
+    def get_for_product_approved_by_shop(cls, product_id, shop_id):
+        shop_product = ShopProduct.query.filter(and_(ShopProduct.product_id==product_id, ShopProduct.shop_id==shop_id)).first()
+        reviews = Review.query.filter_by(shop_product=shop_product).order_by(Review.created_ts.desc()).all()
+        return [r for r in reviews if r.shop_review.approved_by_shop]
 
 
 class Shop(db.Model):

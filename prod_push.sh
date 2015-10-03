@@ -33,6 +33,9 @@ pushprod() {
                                       ln -s ../opinew_venv ./venv &&
                                       source venv/bin/activate &&
                                       pip install -r requirements.txt &&
+                                      find ./media -type f -exec chmod 664 {} \; &&
+                                      find ./webapp/static -type f -exec chmod 664 {} \; &&
+                                      sudo service nginx restart &&
                                       sudo service uwsgi restart"
 }
 

@@ -77,8 +77,12 @@ with open(os.path.join(basedir, 'init_db', 'Review.csv'), 'r') as csvfile:
     for row in reviewreader:
         user = models.User.query.filter_by(id=row[4]).first()
         product = models.Product.query.filter_by(id=row[5]).first()
-        review = models.Review(user=user, product=product, body=row[1], photo_url=row[3], shop=opinew_shop)
-        db.session.add(review)
+        shop_product = models.ShopProduct.query.filter_by(shop=opinew_shop, product=product).first()
+        review = models.Review(user=user, product=product, body=row[1], photo_url=row[3], shop_product=shop_product)
+        shop_review = models.ShopReview(shop=opinew_shop, review=review)
+        shop_review.approved_by_shop = True
+        shop_review.approval_pending = False
+        db.session.add(shop_review)
 
 # Flush to db
 db.session.commit()

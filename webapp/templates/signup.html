@@ -3,21 +3,43 @@
 {% block content %}
     <div class="container">
         <div class="row">
-            <div class="col-xs-12 col-md-8 col-md-offset-2">
-                <h1>Sign Up</h1>
+            <h1 class="text-center">Sign Up</h1>
+
+            <div class="col-md-4 col-md-offset-2">
+
               {% if 'business_signed_up' in session %}
-                  <p style="color: green">Thanks for your interest, we will contact you soon!</p>
+                  <p class="lead text-success">Thanks for your interest, we will contact you soon!</p>
               {% else %}
                   <div class="well">
-                      <form class="action" method="post" action="{{ url_for('.index') }}">
-                          <input type="hidden" name="next" value="{{ request.args.next }}"/>
-                        {{ business_signup_form.hidden_tag() }}
-                        {{ macros.form_field(business_signup_form, business_signup_form.name, class="form-control") }}<br>
-                        {{ macros.form_field(business_signup_form, business_signup_form.email, class="form-control") }}<br>
-                        {{ macros.form_field(business_signup_form, business_signup_form.company_name, class="form-control") }}<br>
-                        {{ business_signup_form.submit(class="btn btn-primary") }}<br>
-                      </form>
+                      {% include "forms/signup.html" %}
                   </div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+                <div class="well">
+                    <b>What happens next?</b>
+
+                    <p>
+                        We will notify you very soon to become part of exclusive trial!
+                    </p>
+                  {#                    <p>Start your free trial<br>#}
+                  {#                        Add our snippet to your site<br>#}
+                  {#                        Get help if you run into any problems<br>#}
+                  {#                        Drive tons of sales through our review system<br>#}
+                  {#                        Your card will not be charged until after your 7 day free trial.<br>#}
+                  {#                        Cancel any time if you're not happy</p>#}
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4 col-md-offset-2">
+              {% if 'business_signed_up' in session %}
+                  <p>Copy the following code in your web application:</p>
+                  <textarea disabled style="margin: 0; width: 700px; height: 90px;">
+&lt;iframe style="border:0; width:100%; height:400px;"
+  src="{{ g.config.OPINEW_API_SERVER }}/plugin?platform_product_id={{ '{{product.id}}' }}"&gt;
+&lt;/iframe&gt;
+                  </textarea>
               {% endif %}
             </div>
         </div>

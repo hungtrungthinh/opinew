@@ -1,0 +1,9 @@
+{% import "_macros.html" as macros %}
+<form class="action" method="post" action="{{ url_for('.signup') }}">
+    <input type="hidden" name="next" value="{{ request.args.next }}"/>
+  {{ business_signup_form.hidden_tag() }}
+  {{ macros.form_field(business_signup_form, business_signup_form.name, class="form-control") }}<br>
+  {{ macros.form_field(business_signup_form, business_signup_form.email, class="form-control") }}<br>
+  {{ macros.form_field(business_signup_form, business_signup_form.company_name, class="form-control") }}<br>
+  {{ business_signup_form.submit(class="form-control") }}<br>
+</form>

@@ -1,0 +1,41 @@
+{% import "_macros.html" as macros %}
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+            <a class="navbar-brand" target="_blank" href="{{ g.config.OPINEW_API_SERVER }}">
+                <img alt="Opinew logo" id="logo-image"
+                     src="{{ url_for('static', filename='img/opinew_logo_inv.png') }}">
+            </a>
+
+            <ul class="nav navbar-nav" style="position: absolute; right: 0;">
+              {% if current_user.is_authenticated() %}
+                  <li role="presentation" class="dropdown"
+                      style="margin-left: 10px;  margin-right: 10px; position: relative; right: 0;">
+                      <span href="#" class="dropdown-toggle mobile-menu-profile-pic" data-toggle="dropdown"
+                            role="button"
+                            aria-expanded="false">
+                          <img alt="{{ current_user.name }} profile picture" class="navbar-profile-pic"
+
+                               src="{{ url_for('client.media_user', filename='%s' % current_user.profile_picture_url) }}"/>
+                          <span class="navbar-name" style="position: relative; right: 12px;">
+                              {{ current_user.name }}
+                          </span>
+                      </span>
+                      <ul class="dropdown-menu pull-right" style="margin-top: 20px">
+                          <li><a href="{{ url_for('client.logout_from_plugin') }}">Log out</a></li>
+                      </ul>
+                  </li>
+              {% else %}
+                  <li style="position: relative; right: 0;">
+                      <a href="#" data-toggle="modal" data-target="#modal-signup">Log in</a>
+                  </li>
+                  <li class="btn-success" style="position: relative; right: 12px;">
+                      <a href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('.signup') }}" target="_blank" style="color:white;">Sign up</a>
+                  </li>
+              {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="spacer"></div>

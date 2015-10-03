@@ -120,7 +120,7 @@ def user_setup():
     return render_template('shopify/user_setup.html')
 
 
-@client.route('/', methods=['GET', 'POST'])
+@client.route('/')
 def index():
     if current_user.is_authenticated():
         if current_user.role == Constants.REVIEWER_ROLE:
@@ -133,7 +133,7 @@ def index():
 @client.route('/reviews')
 def reviews():
     reviews = Review.get_latest(10)
-    return render_template('reviewer/home.html', reviews=reviews)
+    return render_template('reviewer/home.html', page_title="Reviews - ", reviews=reviews)
 
 
 @client.route('/shop_admin')
@@ -148,7 +148,6 @@ def signup():
         business = Business(**{k: v[0] for k, v in request.form.iteritems() if len(v) > 0})
         db.session.add(business)
         db.session.commit()
-        flash('Thanks for you interest.')
         session['business_signed_up'] = True
     return render_template('signup.html', business_signup_form=business_signup_form)
 
@@ -205,27 +204,39 @@ def logout():
     return redirect(url_for('.index'))
 
 
+@client.route('/logout_from_plugin', methods=['GET'])
+@login_required
+def logout_from_plugin():
+    logout_user()
+    return redirect(request.referrer)
+
 @client.route('/plugin')
 def get_plugin():
     try:
+        business_signup_form = BusinessSignupForm()
+        login_form = LoginForm()
         platform_product_id = param_required('platform_product_id', request.args)
         shop_product = ShopProduct.get_by_platform_product_id(platform_product_id)
         product = shop_product.product
         shop = shop_product.shop
         reviews = Review.get_for_product_approved_by_shop(product.id, shop.id)
+        next_arg = request.url
     except (ParamException, DbException) as e:
         return jsonify({"error": e.message}), e.status_code
-    return render_template('plugin/shopify.html', product=product.serialize_with_reviews(reviews))
+    return render_template('plugin/plugin.html', product=product, reviews=reviews,
+                           business_signup_form=business_signup_form,
+                           login_form=login_form, next_arg=next_arg)
 
 
 @client.route('/product/<int:product_id>')
-def product(product_id):
+def get_product(product_id):
     try:
         product = Product.get_by_id(product_id)
         reviews = Review.get_for_product(product_id)
     except (ParamException, DbException) as e:
         return jsonify({"error": e.message}), e.status_code
-    return render_template('product/main.html', product=product.serialize_with_reviews(reviews))
+    return render_template('product/product.html', page_title="%s Reviews - " % product.label,
+                           product=product, reviews=reviews)
 
 
 @client.route('/product/clickthrough')
@@ -291,7 +302,7 @@ def web_review(order_id, product_id):
     return render_template('web_review/main.html', order=order, product=product, review_form=review_form)
 
 
-@client.route('/view_review/<int:review_id>')
+@client.route('/review/<int:review_id>')
 @shop_owner_required
 @login_required
 def view_review(review_id):

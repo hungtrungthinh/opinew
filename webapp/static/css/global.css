@@ -2,6 +2,10 @@ body {
   background-color: #F2F2F2;
 }
 
+#content-wrapper {
+  min-height: 600px;
+}
+
 /* Opinew colors */
 .opinew-cherry {
   background-color: #fb412d;
