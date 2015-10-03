@@ -122,6 +122,27 @@ def user_setup():
 
 @client.route('/', methods=['GET', 'POST'])
 def index():
+    if current_user.is_authenticated():
+        if current_user.role == Constants.REVIEWER_ROLE:
+            return redirect(url_for('.reviews'))
+        elif current_user.role == Constants.SHOP_OWNER_ROLE:
+            return redirect(url_for('.shop_admin'))
+    return render_template('index.html')
+
+
+@client.route('/reviews')
+def reviews():
+    reviews = Review.get_latest(10)
+    return render_template('reviewer/home.html', reviews=reviews)
+
+
+@client.route('/shop_admin')
+def shop_admin():
+    shop = current_user.shop
+    return render_template('shop_admin/home.html', shop=shop)
+
+@client.route('/signup', methods=['GET', 'POST'])
+def signup():
     business_signup_form = BusinessSignupForm()
     if business_signup_form.validate_on_submit():
         business = Business(**{k: v[0] for k, v in request.form.iteritems() if len(v) > 0})
@@ -129,28 +150,11 @@ def index():
         db.session.commit()
         flash('Thanks for you interest.')
         session['business_signed_up'] = True
-    return render_template('index.html', business_signup_form=business_signup_form)
+    return render_template('signup.html', business_signup_form=business_signup_form)
 
 
-@client.route('/home')
-def home():
-    reviews = Review.get_latest(10)
-    if current_user.is_authenticated():
-        if current_user.role == Constants.REVIEWER_ROLE:
-            return render_template('reviewer/home.html', reviews=reviews)
-        elif current_user.role == Constants.SHOP_OWNER_ROLE:
-            shop = current_user.shop
-            return render_template('shop_admin/home.html', shop=shop)
-    return render_template('reviewer/home.html', reviews=reviews)
-
-
-@client.route('/faq')
-def faq():
-    return render_template('faq.html')
-
-
-@client.route('/signup', methods=['GET', 'POST'])
-def signup():
+@client.route('/signup_user', methods=['GET', 'POST'])
+def signup_user():
     if current_user.is_authenticated():
         return redirect(request.referrer or url_for('.shop_admin'))
     signup_form = SignupForm()
@@ -190,7 +194,7 @@ def login():
             return render_template('login.html', login_form=login_form)
         login_user(registered_user)
         next_param = request.form.get('next')
-        return redirect(next_param or url_for('.home'))
+        return redirect(next_param or url_for('.index'))
     return render_template('login.html', login_form=login_form)
 
 
@@ -198,7 +202,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('.home'))
+    return redirect(url_for('.index'))
 
 
 @client.route('/plugin')
@@ -214,8 +218,8 @@ def get_plugin():
     return render_template('plugin/shopify.html', product=product.serialize_with_reviews(reviews))
 
 
-@client.route('/products/<int:product_id>')
-def get_product(product_id):
+@client.route('/product/<int:product_id>')
+def product(product_id):
     try:
         product = Product.get_by_id(product_id)
         reviews = Review.get_for_product(product_id)
@@ -224,7 +228,7 @@ def get_product(product_id):
     return render_template('product/main.html', product=product.serialize_with_reviews(reviews))
 
 
-@client.route('/products/clickthrough')
+@client.route('/product/clickthrough')
 def clickthrough_product():
     """
     Create a clickthrough record
@@ -303,6 +307,11 @@ def media_user(filename):
 @client.route('/media/review/<path:filename>')
 def media_review(filename):
     return send_from_directory(Config.UPLOADED_REVIEWPHOTOS_DEST, filename)
+
+
+@client.route('/faq')
+def faq():
+    return render_template('faq.html')
 
 
 @client.route('/about_us')

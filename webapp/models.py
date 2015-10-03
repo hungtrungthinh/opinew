@@ -34,10 +34,8 @@ class Business(db.Model):
     email = db.Column(db.String)
     name = db.Column(db.String)
     company_name = db.Column(db.String)
-    comments = db.Column(db.String)
 
-    def __init__(self, email=None, name=None, company_name=None,
-                 comments=None, **kwargs):
+    def __init__(self, email=None, name=None, company_name=None, **kwargs):
         self.email = email
         self.name = name
         self.company_name = company_name
@@ -292,11 +290,6 @@ class Review(db.Model):
         self.body = body
         self.photo_url = photo_url
         self.created_ts = datetime.utcnow()
-
-        if self.shop:
-            notification = Notification(user=self.shop.owner, order=self.order, ntype='customer')
-            db.session.add(notification)
-            db.session.commit()
 
     def __repr__(self):
         return '<Review %r>' % self.body

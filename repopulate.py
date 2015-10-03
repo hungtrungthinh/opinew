@@ -1,8 +1,10 @@
 #!venv/bin/python
 import os
 import sys
+import csv
+from flask import url_for
 from webapp import models, db, create_app
-from config import Constants
+from config import Constants, basedir
 
 # populate tables
 arguments = sys.argv
@@ -19,20 +21,64 @@ try:
 except OSError:
     pass
 
+###############################
+# INIT DB
+###############################
 app.app_context().push()
 db.create_all()
 
+###############################
+# CREATE USERS
+###############################
+with open(os.path.join(basedir, 'init_db', 'User.csv'), 'r') as csvfile:
+    userreader = csv.reader(csvfile)
+    csvfile.readline()  # skip first line
+    for row in userreader:
+        user = models.User(email=row[1], password=row[2], name=row[3], profile_picture_url=row[4],
+                           role=Constants.REVIEWER_ROLE)
+        db.session.add(user)
+
+###############################
+# CREATE PLATFORMS
+###############################
 shopify_platform = models.Platform(name='shopify')
+custom_platform = models.Platform(name='custom')
 db.session.add(shopify_platform)
 
-user1 = models.User(name="Peter Reviewer", role=Constants.REVIEWER_ROLE, email='peter@example.com', password='password')
-db.session.add(user1)
+###############################
+# CREATE SHOPS
+###############################
+# Create opinew shop
+SHOP_URL = 'http://shop.opinew.com'
+jack_owner = models.User(name="Jack Shepard", role=Constants.SHOP_OWNER_ROLE, email='juliet@opinew.com')
+opinew_shop = models.Shop(label='Opinew shop', domain=SHOP_URL, platform=custom_platform)
+opinew_shop.owner = jack_owner
+db.session.add(opinew_shop)
 
-rachel = models.User(name="Rachel McMillan", role=Constants.SHOP_OWNER_ROLE, email='rachel@rachel-mcmillan.com', password='password')
-db.session.add(rachel)
 
-SHOP_URL = 'fake.myshopify.com'
-rachels_shop = models.Shop(label='Fake shop', domain=SHOP_URL, platform=shopify_platform)
-rachels_shop.owner = rachel
-db.session.add(rachels_shop)
+###############################
+# CREATE PRODUCTS
+###############################
+with open(os.path.join(basedir, 'init_db', 'Product.csv'), 'r') as csvfile:
+    productreader = csv.reader(csvfile)
+    csvfile.readline()  # skip first line
+    for row in productreader:
+        product = models.Product(label=row[1])
+        shop_product = models.ShopProduct(shop=opinew_shop, product=product, url="%s/product/%s" % (SHOP_URL, row[0]),
+                                          platform_product_id=row[0])
+        db.session.add(shop_product)
+
+###############################
+# CREATE REVIEWS
+###############################
+with open(os.path.join(basedir, 'init_db', 'Review.csv'), 'r') as csvfile:
+    reviewreader = csv.reader(csvfile)
+    csvfile.readline()  # skip first line
+    for row in reviewreader:
+        user = models.User.query.filter_by(id=row[4]).first()
+        product = models.Product.query.filter_by(id=row[5]).first()
+        review = models.Review(user=user, product=product, body=row[1], photo_url=row[3], shop=opinew_shop)
+        db.session.add(review)
+
+# Flush to db
 db.session.commit()

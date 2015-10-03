@@ -1,6 +1,7 @@
-<header style="color: #777; font-size:1em; margin: 10px 10px 30px 10px;">
-    <img style="height: 1em; margin-right: 5px;"
+<header class="review-header">
+    <img class="review-profile-pic"
          src="{{ url_for('client.media_user', filename=review.user.profile_picture_url) }}"
          alt="{{ review.user.name }} profile picture"/>
-  {{ review.user.name }} | {{ review.created_ts }}
+  <div class="review-author-name">{{ review.user.name }}</div>
+  <div class="review-time-posted">{{ review.created_ts | timesince }}</div>
 </header>

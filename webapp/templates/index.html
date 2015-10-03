@@ -1,5 +1,5 @@
-{% extends "layout.html" %}
 {% import "_macros.html" as macros %}
+{% extends "layout.html" %}
 {% block style %}
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
     <!--[if lt IE 9]>
@@ -7,190 +7,210 @@
 		<![endif]-->
     <link href="{{ url_for('static', filename='css/index_styles.css') }}" rel="stylesheet">
 {% endblock %}
-{% block content %}
-    <nav class="navbar navbar-trans navbar-fixed-top" role="navigation">
-        <div class="container">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-collapsible">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="#">Opinew</a>
-            </div>
-            <div class="navbar-collapse collapse" id="navbar-collapsible">
-                <ul class="nav navbar-nav navbar-left">
-                    <li><a href="#section1">Welcome</a></li>
-                    <li><a href="#section2">What is</a></li>
-                    <li><a href="#section3">Features</a></li>
-                    <li><a href="#section4">Four</a></li>
-                    <li><a href="#section5">Pricing</a></li>
-                    <li><a href="#section6">Sign up</a></li>
-                    <li><a href="#section7">Share</a></li>
-                    <li>&nbsp;</li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <section class="container-fluid" id="section1">
-        <h1 class="text-center v-center">Opinew - Photo Reviews</h1>
+{% block content %}
+    <section class="container-fluid" id="welcome">
 
         <div class="container">
             <div class="row">
+                <div class="col-sm-4 col-sm-offset-1">
+                    <h1>Opinew - Photo Product Reviews</h1>
+
+                    <p class="lead">Add a product reviews widget to any site in minutes with no coding required.</p>
+                    <a href="{{ url_for('.signup') }}" class="btn btn-block btn-primary btn-lg">Get started</a>
+                    <small class="text-center">7 days free trial</small>
+                </div>
+                <div class="col-sm-6">
+                    <h1 class="text-center v-center">
+                        <img class="img-responsive img-thumbnail"
+                             src="{{ url_for('static', filename='img/marketing/reviews_shot.png') }}"
+                             alt="reviews screenshot"/>
+                    </h1>
+                </div>
+            </div>
+
+
+            <div class="row">
                 <div class="col-sm-4">
                     <div class="row">
-                        <div class="col-sm-10 col-sm-offset-2 text-center"><h3>Robust</h3>
+                        <div class="col-sm-10 col-sm-offset-2 text-center"><h3>Better Reviews</h3>
 
-                            <p>There is other content and snippets of details or features that can be placed here..</p>
-                            <i
-                                    class="fa fa-cog fa-5x"></i></div>
+                            <p>Get better reviews for your products, driving conversions and increasing sales.</p>
+                            <span class="glyphicon glyphicon-star glyphicon-5x"></span></div>
                     </div>
                 </div>
                 <div class="col-sm-4 text-center">
                     <div class="row">
-                        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Simple</h3>
+                        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Based on quick snaps</h3>
 
-                            <p>You may also want to create content that compells users to scroll down more..</p><i
-                                    class="fa fa-user fa-5x"></i></div>
+                            <p>The reviews are based on pictures which users do anyway these days.</p>
+                            <span class="glyphicon glyphicon-camera glyphicon-5x"></span></div>
                     </div>
                 </div>
                 <div class="col-sm-4 text-center">
                     <div class="row">
                         <div class="col-sm-10 text-center"><h3>Mobile first</h3>
 
-                            <p>Our dedicated review mobile app verifies the reviews.</p><i
-                                    class="fa fa-mobile fa-5x"></i>
-                        </div>
+                            <p>Our dedicated review mobile app verifies the reviews.</p>
+                            <span class="glyphicon glyphicon-phone glyphicon-5x"></span></div>
                     </div>
                 </div>
             </div>
-            <!--/row-->
-            <div class="row"><br></div>
+        </div>
+        <!--/row-->
+        <div class="row"><br></div>
         </div>
         <!--/container-->
     </section>
 
-    <section class="container-fluid" id="section2">
-        <div class="row">
-            <div class="col-sm-8 col-sm-offset-2 text-center">
-                <h1>What is Opinew?</h1>
-                <br>
-
-                <p class="lead">Opinew is the modern way to get reviews for your products. It's a reviews plugin for
-                    your
-                    e-commerce website which is simple to install and requires no maintenance. We manage the whole
-                    process -
-                    remind your customers, moderate the reviews and display the best ones on your product page.</p>
-                <br>
-                <img style="height: 500px;" src="{{ url_for('static', filename='img/marketing/opinew_nexus.png') }}"/>
-
-                <p>And the reviews are based on pictures which users do anyway these days...</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="container-fluid" id="section3">
+    <section class="container-fluid" id="features">
         <h1 class="text-center">What do you get</h1>
         <br>
 
-        <div class="row">
-            <div class="col-md-4" style="text-align: center">
-                <span class="glyphicon glyphicon-shopping-cart" style="font-size: 52pt;"></span>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4" style="text-align: center">
+                    <span class="glyphicon glyphicon-shopping-cart glyphicon-5x"></span>
 
-                <p class="lead">Increase conversions</p>
+                    <p class="lead">Increase conversions</p>
 
-                <p>High quality reviews can increase sales by up to <a href="#why-reviews">20 percent</a></p>
+                    <p>High quality reviews can increase sales by up to <a href="#why-reviews">20 percent</a></p>
+                </div>
+                <div class="col-md-4" style="text-align: center">
+                    <span class="glyphicon glyphicon-check glyphicon-5x"></span>
+
+                    <p class="lead">Verified reviews</p>
+
+                    <p>Not everyone can post a review - only after we know they've bought the product. Additionally our
+                        picture-based approach from our app only tightens the process.</p>
+                </div>
+                <div class="col-md-4" style="text-align: center">
+                    <span class="glyphicon glyphicon-envelope glyphicon-5x"></span>
+
+                    <p class="lead">Automatic post-purchase email</p>
+
+                    <p>We will take care of reminding the buyers of the great benefits coming with posting a review -
+                        discounts
+                        and helping others.</p>
+                </div>
             </div>
-            <div class="col-md-4" style="text-align: center">
-                <span class="glyphicon glyphicon-check" style="font-size: 52pt;"></span>
 
-                <p class="lead">Verified reviews</p>
+            <div class="row">
+                <div class="col-md-4" style="text-align: center">
+                    <span class="glyphicon glyphicon-random glyphicon-5x"></span>
 
-                <p>Not everyone can post a review - only after we know they've bought the product. Additionally our
-                    picture-based approach from our app only tightens the process.</p>
-            </div>
-            <div class="col-md-4" style="text-align: center">
-                <span class="glyphicon glyphicon-envelope" style="font-size: 52pt;"></span>
+                    <p class="lead">Works everywhere</p>
 
-                <p class="lead">Automatic post-purchase email</p>
+                    <p>Cross-browser and looks great on Shopify, BigCommerce, Volusion, Magento, Wordpress &
+                        Facebook.</p>
+                </div>
+                <div class="col-md-4" style="text-align: center">
+                    <span class="glyphicon glyphicon-comment glyphicon-5x"></span>
 
-                <p>We will take care of reminding the buyers of the great benefits coming with posting a review -
-                    discounts
-                    and helping others.</p>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-4" style="text-align: center">
-                <span class="glyphicon glyphicon-random" style="font-size: 52pt;"></span>
+                    <p class="lead">Automatic moderation</p>
 
-                <p class="lead">Works everywhere</p>
+                    <p>Having too much on your head already? We will take care of profanity filters and suggesting which
+                        reviews
+                        will help you and your customers the most.</p>
+                </div>
+                <div class="col-md-4" style="text-align: center">
+                    <span class="glyphicon glyphicon-picture glyphicon-5x"></span>
 
-                <p>Cross-browser and looks great on Shopify, BigCommerce, Volusion, Magento, Wordpress & Facebook.</p>
-            </div>
-            <div class="col-md-4" style="text-align: center">
-                <span class="glyphicon glyphicon-comment" style="font-size: 52pt;"></span>
+                    <p class="lead">Rich content</p>
 
-                <p class="lead">Automatic moderation</p>
-
-                <p>Having too much on your head already? We will take care of profanity filters and suggesting which
-                    reviews
-                    will help you and your customers the most.</p>
-            </div>
-            <div class="col-md-4" style="text-align: center">
-                <span class="glyphicon glyphicon-picture" style="font-size: 52pt;"></span>
-
-                <p class="lead">Rich content</p>
-
-                <p>Over a billion photos are posted everyday on services like Snapchat, Pinterest and Instagram. Be part
-                    of
-                    the revolution - pictures and videos over dull text.</p>
+                    <p>Over a billion photos are posted everyday on services like Snapchat, Pinterest and Instagram. Be
+                        part
+                        of
+                        the revolution - pictures and videos over dull text.</p>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="container-fluid" id="section4">
+    <section class="container-fluid" id="examples">
         <h2 class="text-center">Our customers love their photo product reviews</h2>
 
         <div class="row">
             <div class="col-sm-8 col-sm-offset-2">
-                <img src="" class="img-responsive center-block ">
-
+                <img class="img-responsive"
+                     src="{{ url_for('static', filename='img/marketing/reviews_shot.png') }}"
+                     alt="reviews screenshot"/>
             </div>
         </div>
     </section>
 
-    <section class="container-fluid" id="section5">
+    <section class="container-fluid" id="about_us">
+        <h2 class="text-center">Who we are</h2>
+
+        <div class="row">
+            <div class="col-sm-8 col-sm-offset-2">
+                <img src="{{ url_for('static',filename='img/opinew_logo.png') }}" class="img-responsive center-block opinew-logo-marketing"/>
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-offset-2 col-sm-4">
+                <img alt="Daniel photo" class="about-us-picture img-circle"
+                     src="{{ url_for('static', filename='img/marketing/dani.jpg') }}"/>
+
+                <p class="person-name">Daniel Tsvetkov
+
+                <p class="justified-text">Daniel spent the summer of 2014 as a tech intern at Google, at the heart of
+                    the Silicon Valley in Mountain View where he caught the entrepreneurial spirit of the Valley so much
+                    he formed Opinew. Along with his passion for creating things, Daniel brings to Opinew his experience
+                    of the web and visualizations technologies to make it friendly for anyone, anywhere.
+            </div>
+            <div class="col-sm-4">
+                <img alt="Tomasz photo" class="about-us-picture img-circle"
+                     src="{{ url_for('static', filename='img/marketing/tom.jpg') }}"/>
+
+                <p class="person-name">Tomasz Sadowski
+
+                <p class="justified-text">Tomasz works with the Scottish Institute for Enterprise and has an extensive
+                    network of business contacts all around the world. His respect for the good software engineering
+                    practices gained at Verint and experience with Big Data is helping Opinew get in shape for the big
+                    days. Tomasz loves helping people find what they need which gives Opinew its guiding light.
+            </div>
+        </div>
+    </section>
+
+    <section class="container-fluid" id="pricing">
         <div class="col-sm-10 col-sm-offset-1">
             <div class="container">
                 <div class="row">
                     <div class="col-sm-4 col-xs-12">
-                        <div class="list-group">
-                            <a href="#" class="list-group-item active">
-                                <h2 class="list-group-item-heading">Basic</h2>
-                                <h6>Free to get started</h6>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 100 - more about this</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 2 - this is more about this</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 3 GB</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 4</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Feature</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Feature</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <button class="btn btn-primary btn-lg btn-block">Get Started</button>
+                        <div class="list-group text-center">
+                            <span class="list-group-item active">
+                                <h2 class="list-group-item-heading">Micro</h2>
+                            </span>
+                            <span class="list-group-item">
+                                <div class="price-circle">
+                                    <span class="price-label">£9</span>
+                                </div>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">Photo reviews</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">Video reviews</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">Up to 500 reviews per month</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">&nbsp;</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">&nbsp;</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">&nbsp;</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">&nbsp;</p>
+                            </span>
+                            <a href="{{ url_for('.signup') }}" class="list-group-item">
+                                <button class="btn btn-default btn-lg btn-block">Start trial</button>
                             </a>
                         </div>
                     </div>
@@ -198,61 +218,75 @@
 
                     <div class="col-sm-4 col-xs-12">
                         <div class="list-group text-center">
-                            <a href="#" class="list-group-item active">
-                                <h2 class="list-group-item-heading">Better</h2>
-                                <h6>Most popular plan</h6>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 200 - more about this</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 2 - this is more about this</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 5 GB</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 6</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Feature</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Feature</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <button class="btn btn-default btn-lg btn-block">$10 per month</button>
+                            <span class="list-group-item active">
+                                <h2 class="list-group-item-heading">Pro</h2>
+                            </span>
+                            <span class="list-group-item">
+                                <div class="price-circle">
+                                    <span class="price-label">£19</span>
+                                </div>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">Photo reviews</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">Video reviews</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">Up to 2000 reviews per month</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text"><b>Reviews commenting</b></p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text"><b>Resolved reviews section</b></p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">&nbsp;</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">&nbsp;</p>
+                            </span>
+                            <a href="{{ url_for('.signup') }}" class="list-group-item">
+                                <button class="btn btn-default btn-lg btn-block">Start trial</button>
                             </a>
                         </div>
                     </div>
                     <!--/middle-->
 
                     <div class="col-sm-4 col-xs-12">
-                        <div class="list-group text-right">
-                            <a href="#" class="list-group-item active">
-                                <h2 class="list-group-item-heading">Best</h2>
-                                <h6>For enterprise grade</h6>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 100 - more about this</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 2 - this is more about this</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 8 GB</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Option 10</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Unlimited</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <p class="list-group-item-text">Unlimited</p>
-                            </a>
-                            <a href="#" class="list-group-item">
-                                <button class="btn btn-default btn-lg btn-block">$20 per month</button>
+                        <div class="list-group text-center">
+                            <span class="list-group-item active">
+                                <h2 class="list-group-item-heading">Premium</h2>
+                            </span>
+                            <span class="list-group-item">
+                                <div class="price-circle">
+                                    <span class="price-label">£39</span>
+                                </div>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">Photo reviews</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">Video reviews</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text">Unlimited reviews per month</p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text"><b>Reviews commenting</b></p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text"><b>Resolved reviews section</b></p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text"><b>Whitelabeling / own branding</b></p>
+                            </span>
+                            <span class="list-group-item">
+                                <p class="list-group-item-text"><b>Questions and answers</b></p>
+                            </span>
+                            <a href="{{ url_for('.signup') }}" class="list-group-item">
+                                <button class="btn btn-default btn-lg btn-block">Start trial</button>
                             </a>
                         </div>
                     </div>
@@ -263,60 +297,6 @@
             </div>
             <!--/container-->
         </div>
-    </section>
-
-    <section class="container-fluid" id="section6">
-        <h2 class="text-center">Sign up for exclusive access!</h2>
-
-      {% if 'business_signed_up' in session %}
-          <p style="color: green">Thanks for your interest, we will contact you soon!</p>
-      {% else %}
-          <div class="well">
-              <form class="action" method="post" action="{{ url_for('.home') }}">
-                  <input type="hidden" name="next" value="{{ request.args.next }}"/>
-                {{ business_signup_form.hidden_tag() }}
-                {{ macros.form_field(business_signup_form, business_signup_form.name, class="form-control") }}<br>
-                {{ macros.form_field(business_signup_form, business_signup_form.email, class="form-control") }}<br>
-                {{ macros.form_field(business_signup_form, business_signup_form.company_name, class="form-control") }}<br>
-                {{ macros.form_field(business_signup_form, business_signup_form.comments, class="form-control") }}<br>
-                {{ business_signup_form.submit(class="btn btn-primary") }}<br>
-              </form>
-          </div>
-      {% endif %}
-
-    </section>
-
-    <section class="container" id="section7">
-        <h1 class="text-center">Social Media Fascination</h1>
-
-        <div class="row">
-            <!--fontawesome icons-->
-            <div class="col-sm-1 col-sm-offset-2 col-xs-4 text-center">
-                <i class="fa fa-github fa-4x"></i>
-            </div>
-            <div class="col-sm-1 col-xs-4 text-center">
-                <i class="fa fa-foursquare fa-4x"></i>
-            </div>
-            <div class="col-sm-1 col-xs-4 text-center">
-                <i class="fa fa-facebook fa-4x"></i>
-            </div>
-            <div class="col-sm-1 col-xs-4 text-center">
-                <i class="fa fa-pinterest fa-4x"></i>
-            </div>
-            <div class="col-sm-1 col-xs-4 text-center">
-                <i class="fa fa-google-plus fa-4x"></i>
-            </div>
-            <div class="col-sm-1 col-xs-4 text-center">
-                <i class="fa fa-twitter fa-4x"></i>
-            </div>
-            <div class="col-sm-1 col-xs-4 text-center">
-                <i class="fa fa-dribbble fa-4x"></i>
-            </div>
-            <div class="col-sm-1 col-xs-4 text-center">
-                <i class="fa fa-instagram fa-4x"></i>
-            </div>
-        </div>
-        <!--/row-->
     </section>
 {% endblock %}
 {% block script %}

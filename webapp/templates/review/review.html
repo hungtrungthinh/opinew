@@ -1,7 +1,6 @@
-<div style="border: 1px solid #888; padding: 10px; margin-top:10px;">
-
-    <h3><a href="#">{{ review.product.label }}
-        from {{ review.shop.label }}</a></h3>
+<div class="review-container">
+    <h3><a href="{{ url_for('.product', product_id=review.product.id) }}"><b>{{ review.product.label }}</b></a> from
+        <a href="{{ review.shop.domain }}" target="_blank"><b>{{ review.shop.label }}</b></a></h3>
 
     <hr>
   {% include "review/review_author.html" %}

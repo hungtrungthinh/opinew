@@ -3,6 +3,14 @@
 USER_NAME=opinew_server
 HOME_DIR=/home/${USER_NAME}
 
+echo "Creating user ${USER_NAME}..."
+useradd -G sudo -s /bin/bash ${USER_NAME}
+passwd ${USER_NAME}
+mkdir -p ${HOME_DIR} && cp -r ./ ${HOME_DIR}
+chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}
+sudo su opinew_server
+cd
+
 PACKAGES="git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl"
 
 SOCKETS_DIR=${HOME_DIR}/sockets
@@ -17,15 +25,6 @@ VENV_SHORTCUT=${PROJECT_DIR}/venv
 
 ID_RSA_PUB_DW="https://drive.google.com/uc?export=download&id=0B_mzL8Vwx1yObDdSdHpadWVqbDg"
 ID_RSA_DW="https://drive.google.com/uc?export=download&id=0B_mzL8Vwx1yOaDdIVS11dWRSc3M"
-
-
-echo "Creating user ${USER_NAME}..."
-useradd -G sudo -s /bin/bash ${USER_NAME}
-passwd ${USER_NAME}
-mkdir -p ${HOME_DIR} && cp -r ./ ${HOME_DIR}
-chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}
-sudo su opinew_server
-cd
 
 echo "Installing ubuntu packages"
 sudo apt-get update

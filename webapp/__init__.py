@@ -5,6 +5,7 @@ from flask.ext.login import LoginManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads
 from werkzeug.exceptions import default_exceptions
 
+
 from config import config_factory
 
 auth = HTTPBasicAuth()
@@ -18,6 +19,8 @@ def create_app(option):
     app = Flask(__name__)
     config = config_factory.get(option)
     app.config.from_object(config)
+    from common import create_jinja_filters
+    create_jinja_filters(app)
     if not option == 'db':
         from webapp.api import api
         from webapp.client import client

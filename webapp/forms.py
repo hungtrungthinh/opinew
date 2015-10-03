@@ -24,7 +24,10 @@ class BusinessSignupForm(Form):
     name = StringField('Name', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
     company_name = StringField('Company Name', validators=[DataRequired()])
-    comments = TextAreaField('Comments or questions?')
+    # Credit card number
+    # Security code (CVV)
+    # Card expiration - month
+    # Card expiration - year
     submit = SubmitField('Sign up')
 
 

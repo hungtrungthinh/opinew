@@ -1,66 +1,17 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>Opinew</h1>
-    <div>
-        <h2>TODO: How it looks like: single screenshot and call to action: Download the app!</h2>
-    </div>
-    <hr>
-    <div>
-        <h2>TODO: Comic of a guy taking a picture with his phone and the pic appearing on many sites.
-            Appeal to helping others and discounts for products</h2>
-    </div>
-    <hr>
-    <div style="width:800px; padding: 0 0 0 50px;">
-        <h2>What is Opinew?</h2>
-
-        <p>Opinew is a mobile app for showing of things you have that you think are awesome or suck.</p>
-
-        <h2>Why should I bother?</h2>
-
-        <p>Do you own things? Clothes, a phone or a watch? You can make your items do the work for you!
-            Snapping pictures and posting your review will collect you <b>coupons</b> which you can then use
-            the very next time you shop!</p>
-
-        <h2>Who will read my reviews?</h2>
-
-        <p>The reviews are listed on online shops websites. Business owners are in desperate need for reviews.
-            Accidentally, buyers are too.</p>
-
-        <p>One review goes on many websites with the same product page. You will be helping not only the shop owner
-            but also thousands of buyers of this product who are not sure yet whether to buy yet or search for something
-            else.
-        </p>
-
-        <h2>So how does it work?</h2>
-
-        <p>Do you read reviews before buying something online? Yes? Turns out that most of us do.<br>
-            But also we rarely leave reviews.<br>
-            We just can't be bothered, we forget or don't know exactly what to write.</p>
-
-        <p>With Opinew it's easy.
-        <ol>
-            <li>Find something you already own.
-            <li>Snap a photo. Maybe leave a comment.
-            <li>Done.
-        </ol>
-        You are rewarded each time you post a review of something you own.<br>
-        If you buy something new, the sooner you post a review, the more rewards you can expect!</p>
-
-        <h2>Okay, I want the rewards, what do I do?</h2>
-
-        <p>Android: <a href="#">Install the app</a></p>
-
-        <h2>I'm a business owner, I want to know more</h2>
-
-        <p><a href="{{ url_for('.business') }}">Opinew for business owners</a></p>
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-12 col-md-8 col-md-offset-2">
+              {% if not reviews %}
+                  <h2>No reviews yet.</h2>
+              {% else %}
+                {% for review in reviews %}
+                  {% include "review/review.html" %}
+                {% endfor %}
+              {% endif %}
+            </div>
+        </div>
     </div>
 
-    <hr>
-  {% if not reviews %}
-      <h2>No reviews yet.</h2>
-  {% else %}
-    {% for review in reviews %}
-      {% include "review/review.html" %}
-    {% endfor %}
-  {% endif %}
 {% endblock %}

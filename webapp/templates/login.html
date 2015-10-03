@@ -1,13 +1,22 @@
 {% extends "layout.html" %}
 {% import "_macros.html" as macros %}
 {% block content %}
-  <h1>Log in</h1>
-<form class="action" method="post" action="{{ url_for('.login') }}">
-  <input type="hidden" name="next" value="{{ request.args.next }}" />
-  {{ login_form.hidden_tag() }}
-  {{ macros.form_field(login_form, login_form.email) }}<br>
-  {{ macros.form_field(login_form, login_form.password) }}<br>
-  {{ login_form.remember_me() }} {{ login_form.remember_me.label() }}<br>
-  {{ login_form.submit() }}<br>
-</form>
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-12 col-md-8 col-md-offset-2">
+                <h1>Log in</h1>
+
+                <div class="well">
+                    <form class="action" method="post" action="{{ url_for('.login') }}">
+                        <input type="hidden" name="next" value="{{ request.args.next }}"/>
+                      {{ login_form.hidden_tag() }}
+                      {{ macros.form_field(login_form, login_form.email, class="form-control")  }}<br>
+                      {{ macros.form_field(login_form, login_form.password, class="form-control") }}<br>
+                      {{ login_form.remember_me() }} {{ login_form.remember_me.label() }}<br>
+                      {{ login_form.submit() }}<br>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

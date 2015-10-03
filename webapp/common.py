@@ -4,6 +4,7 @@ import random
 import string
 import hmac
 import hashlib
+import datetime
 from functools import wraps
 from flask import jsonify, abort, request, url_for
 from flask.ext.login import current_user
@@ -67,13 +68,16 @@ def next_is_valid(next_url):
     return False
 
 
+def random_pwd():
+    return ''.join(
+            random.choice(string.ascii_uppercase + string.digits) for _ in range(Constants.TEMP_PWD_LEN))
+
 def generate_temp_password():
     from webapp.models import User
 
     users = User.query.all()
     while True:
-        temp_password = ''.join(
-            random.choice(string.ascii_uppercase + string.digits) for _ in range(Constants.TEMP_PWD_LEN))
+        temp_password = random_pwd()
         for user in users:
             if user.temp_password == temp_password:
                 break
@@ -140,3 +144,31 @@ def verify_webhook(f):
             raise ParamException("Invalid signature.", 403)
         return f(*args, **kwargs)
     return wrapper
+
+def create_jinja_filters(app):
+    @app.template_filter('timesince')
+    def timesince(dt, default="just now"):
+        """
+        Returns string representing "time since" e.g.
+        3 days ago, 5 hours ago etc.
+        """
+
+        now = datetime.datetime.utcnow()
+        diff = now - dt
+
+        periods = (
+            (diff.days / 365, "year", "years"),
+            (diff.days / 30, "month", "months"),
+            (diff.days / 7, "week", "weeks"),
+            (diff.days, "day", "days"),
+            (diff.seconds / 3600, "hour", "hours"),
+            (diff.seconds / 60, "minute", "minutes"),
+            (diff.seconds, "second", "seconds"),
+        )
+
+        for period, singular, plural in periods:
+
+            if period:
+                return "%d %s ago" % (period, singular if period == 1 else plural)
+
+        return default

@@ -11,7 +11,11 @@ class Constants(object):
 
 
 class Config(object):
-    OPINEW_API_SERVER = 'http://opinew.com'  #'http://109.151.240.95:5000'
+    SMTP_SERVER = "smtp.example.com"
+    EMAIL_ADDRESS = "admin@example.com"
+    EMAIL_PASSWORD = "password"
+
+    OPINEW_API_SERVER = 'http://opinew.com'
     SECRET_KEY = 'fheiy3rihiewui4439845ty89o'
 
     UPLOADED_USERPHOTOS_DEST = os.path.join(basedir, 'media', 'user')
