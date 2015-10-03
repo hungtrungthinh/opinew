@@ -305,7 +305,7 @@ class Review(db.Model):
             'photo_url': self.photo_url,
             'tags': [t.serialize() for t in self.tags],
             'user': self.user.serialize() if self.user else None,
-            'product': self.shop_product.product.serialize() if self.shop_product.product else None
+            'product': self.shop_product.product.serialize() if self.shop_product and self.shop_product.product else None
         }
 
     def is_for_shop(self, shop):

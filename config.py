@@ -15,7 +15,7 @@ class Config(object):
     EMAIL_ADDRESS = "admin@example.com"
     EMAIL_PASSWORD = "password"
 
-    OPINEW_API_SERVER = 'http://opinew.com'
+    OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = 'fheiy3rihiewui4439845ty89o'
 
     UPLOADED_USERPHOTOS_DEST = os.path.join(basedir, 'media', 'user')

@@ -108,7 +108,10 @@ server {
 }
 EOF"
 
-#echo "Configure nginx"
+# !!!!!!!!!!!!!!!!!!
+# http only
+# !!!!!!!!!!!!!!!!!!
+# echo "Configure nginx"
 #sudo bash -c "cat << 'EOF' > /etc/nginx/sites-available/opinew
 #server {
 #        listen 80;
@@ -151,6 +154,7 @@ sudo ln -s /etc/uwsgi/apps-available/opinew.ini /etc/uwsgi/apps-enabled/opinew.i
 
 echo "Open ports"
 sudo iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
+sudo iptables -I INPUT 1 -p tcp --dport 443 -j ACCEPT
 
 echo "Create db"
 cd ${PROJECT_DIR}

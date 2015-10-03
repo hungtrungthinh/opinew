@@ -31,7 +31,7 @@ db.create_all()
 ###############################
 # CREATE USERS
 ###############################
-with open(os.path.join(basedir, 'init_db', 'User.csv'), 'r') as csvfile:
+with open(os.path.join(basedir, 'install', 'init_db', 'User.csv'), 'r') as csvfile:
     userreader = csv.reader(csvfile)
     csvfile.readline()  # skip first line
     for row in userreader:
@@ -60,7 +60,7 @@ db.session.add(opinew_shop)
 ###############################
 # CREATE PRODUCTS
 ###############################
-with open(os.path.join(basedir, 'init_db', 'Product.csv'), 'r') as csvfile:
+with open(os.path.join(basedir, 'install', 'init_db', 'Product.csv'), 'r') as csvfile:
     productreader = csv.reader(csvfile)
     csvfile.readline()  # skip first line
     for row in productreader:
@@ -72,7 +72,7 @@ with open(os.path.join(basedir, 'init_db', 'Product.csv'), 'r') as csvfile:
 ###############################
 # CREATE REVIEWS
 ###############################
-with open(os.path.join(basedir, 'init_db', 'Review.csv'), 'r') as csvfile:
+with open(os.path.join(basedir, 'install', 'init_db', 'Review.csv'), 'r') as csvfile:
     reviewreader = csv.reader(csvfile)
     csvfile.readline()  # skip first line
     for row in reviewreader:
