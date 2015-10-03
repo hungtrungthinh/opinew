@@ -31,13 +31,16 @@ sudo apt-get update
 sudo apt-get install -y ${PACKAGES}
 
 echo "Copy ssh keys"
+mkdir -p ${HOME_DIR}/.ssh
 cd ${HOME_DIR}/.ssh
 curl -L ${ID_RSA_DW} > id_rsa
 curl -L ${ID_RSA_PUB_DW} > id_rsa.pub
+chmod 600 id_rsa
 eval `ssh-agent`
 ssh-add ~/.ssh/id_rsa
 
 echo "Set up required directories"
+cd ${HOME_DIR}
 mkdir ${SOCKETS_DIR}
 touch ${SOCKETS_DIR}/opinew.sock
 sudo chown www-data:www-data ${SOCKET_FILE}
@@ -54,12 +57,37 @@ cd ${PROJECT_DIR}
 source venv/bin/activate
 pip install -r requirements.txt
 
-echo "Configure nginx"
+echo
+echo "========================================================================="
+echo "== Installing https certificate"
+echo "========================================================================="
+echo
+
+cd ${PROJECT_DIR}/install/cert
+cat opinew_com.crt COMODORSADomainValidationSecureServerCA.crt COMODORSAAddTrustCA.crt AddTrustExternalCARoot.crt >> cert_chain.crt
+sudo cp cert_chain.crt "/etc/ssl/"
+sudo cp opinew_com.key "/etc/ssl/"
+sudo rm cert_chain.crt
+cd ${PROJECT_DIR}
+echo
+echo "========================================================================="
+echo "== Create HTTPS config file for nginx"
+echo "========================================================================="
+echo
 sudo bash -c "cat << 'EOF' > /etc/nginx/sites-available/opinew
 server {
-        listen 80;
+       listen         80;
+       server_name    opinew.com;
+       return         301 https://\$server_name\$request_uri;
+}
+
+server {
+        listen 443;
+        ssl on;
+        ssl_certificate    /etc/ssl/cert_chain.crt;
+        ssl_certificate_key    /etc/ssl/opinew_com.key;
         server_tokens off;
-        server_name localhost;
+        server_name opinew.com;
         charset utf-8;
 
         access_log  /var/log/nginx/access.log;
@@ -79,6 +107,32 @@ server {
         }
 }
 EOF"
+
+#echo "Configure nginx"
+#sudo bash -c "cat << 'EOF' > /etc/nginx/sites-available/opinew
+#server {
+#        listen 80;
+#        server_tokens off;
+#        server_name localhost;
+#        charset utf-8;
+#
+#        access_log  /var/log/nginx/access.log;
+#        error_log  /var/log/nginx/error.log;
+#
+#        location / {
+#                include uwsgi_params;
+#                uwsgi_pass unix:${SOCKET_FILE};
+#        }
+#
+#        location /static {
+#                alias ${PROJECT_DIR}/webapp/static;
+#        }
+#
+#        location /media {
+#                alias ${PROJECT_DIR}/media;
+#        }
+#}
+#EOF"
 sudo rm /etc/nginx/sites-enabled/default
 sudo ln -s /etc/nginx/sites-available/opinew /etc/nginx/sites-enabled/opinew
 

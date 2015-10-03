@@ -18,6 +18,7 @@ db.init_app(app)
 
 try:
     os.remove('/tmp/ecommerce_api.db')
+    os.remove('/home/opinew_server/db/ecommerce_api.db')
 except OSError:
     pass
 
