@@ -1,51 +1,52 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>{{ shop.label }} admin panel</h1>
-    <h2>Orders</h2>
-  {% if not shop.orders %}
-      <p>No orders yet</p>
-  {% else %}
-      <table border="1">
-          <tr>
-              <th>User name</th>
-              <th>Products</th>
-              <th>Status</th>
-              <th>Purchase TS</th>
-              <th>Shipment TS</th>
-              <th>Delivery TS</th>
-              <th>Delivery estimate</th>
-              <th>Delivery estimate accuracy</th>
-              <th>Notify for review</th>
-          </tr>
-        {% for order in shop.orders %}
-            <tr>
-                <td>{{ order.user.name }}</td>
-                <td>
-                    <ul>
-                  {% for product in order.products %}
-                    <li><a href="{{ url_for('client.get_product', product_id=product.id) }}" target="_blank">{{ product.label }}</a></li>
-                  {% endfor %}
-                    </ul>
-                </td>
-                <td>{{ order.status }}</td>
-                <td>{{ order.purchase_timestamp }}</td>
-                <td>{{ order.shipment_timestamp }}</td>
-                <td>{{ order.delivery_timestamp }}</td>
-                <td>{{ order.delivery_estimation_timestamp }}</td>
-                <td>{{ order.delivery_estimation_accuracy }}</td>
-                <td>
-                  {% if order.notification_timestamp %}
-                    {{ order.notification_timestamp }}
-                  {% elif order.delivery_timestamp %}
-                      <form action="{{ url_for('.notify_for_review', order_id=order.id) }}">
-                          <input type="submit" value="Notify review"/>
-                      </form>
-                  {% else %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <h1>{{ shop.label }} admin panel</h1>
 
-                  {% endif %}
-                </td>
-            </tr>
-        {% endfor %}
-      </table>
-  {% endif %}
+                <div class="row">
+                    <div class="col-sm-3">
+                        <ul class="nav nav-pills nav-stacked" role="tablist">
+                            <li role="presentation">
+                                <a href="#tab-general-settings" aria-controls="tab-general-settings" role="tab"
+                                   data-toggle="tab">General settings</a>
+                            </li>
+                            <li role="presentation">
+                                <a href="#tab-products" aria-controls="tab-products" role="tab"
+                                   data-toggle="tab">Products</a>
+                            </li>
+                            <li role="presentation" class="active">
+                                <a href="#tab-orders" aria-controls="tab-orders" role="tab"
+                                   data-toggle="tab">Orders</a>
+                            </li>
+                            <li role="presentation">
+                                <a href="#tab-reviews" aria-controls="tab-reviews" role="tab"
+                                   data-toggle="tab">Reviews</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-sm-9">
+                        <div class="tab-content">
+                            <div role="tabpanel" class="tab-pane" id="tab-general-settings">
+                                {% include "shop_admin/general_settings.html" %}
+                            </div>
+                            <div role="tabpanel" class="tab-pane" id="tab-products">
+                                {% include "shop_admin/products.html" %}
+                            </div>
+                            <div role="tabpanel" class="tab-pane active" id="tab-orders">
+                                {% include "shop_admin/orders.html" %}
+                            </div>
+                            <div role="tabpanel" class="tab-pane" id="tab-reviews">
+                                {% include "shop_admin/reviews.html" %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
 {% endblock %}

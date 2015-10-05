@@ -537,7 +537,8 @@ class Product(db.Model):
 
     def add_review(self, order, body, photo_url, tag_ids):
         user = User.get_by_email(order.user.email)
-        review = Review(order_id=order.id, user_id=user.id, product_id=self.id, shop_id=order.shop.id,
+        shop_product = ShopProduct.query.filter_by(product_id=self.id, shop_id=order.shop.id).first()
+        review = Review(order=order, user=user, shop_product=shop_product,
                         photo_url=photo_url, body=body)
         shop_review = ShopReview(review=review, shop=order.shop)
         for tag_id in tag_ids:

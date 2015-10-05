@@ -6,7 +6,7 @@ from providers.shopify_api import API
 from webapp import db, login_manager, review_photos
 from webapp.client import client
 from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, Business
-from webapp.common import shop_owner_required, reviewer_required, param_required, get_post_payload
+from webapp.common import shop_owner_required, reviewer_required, param_required, get_post_payload, catch_exceptions
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, SignupForm, ReviewForm, BusinessSignupForm
 from config import Constants, basedir
@@ -14,6 +14,7 @@ from config import Constants, basedir
 
 @client.before_request
 def before_request():
+    g.constants = Constants
     g.config = current_app.config
     g.mode = current_app.config.get('MODE')
 
@@ -22,25 +23,23 @@ login_manager.login_view = "client.login"
 
 
 @client.route('/install')
+@catch_exceptions
 def install():
     """
     First step of the oauth process - generate address
     for permission grant from user
     :return:
     """
-    try:
-        shop_domain = request.args.get('shop')
-        if not len(shop_domain) > 14:
-            raise ParamException('invalid shop domain', 400)
-        shop_domain_ends_in = shop_domain[-14:]
-        shop_name = shop_domain[:-14]
-        if not shop_domain_ends_in or not shop_domain_ends_in == '.myshopify.com':
-            raise ParamException('incorrect shop name', 400)
-        shop = Shop.get_by_shop_domain(shop_domain)
-        if shop and shop.access_token:
-            return redirect(url_for('.user_setup'))
-    except (ApiException, ParamException, DbException) as e:
-        return jsonify({"error": e.message}), e.status_code
+    shop_domain = request.args.get('shop')
+    if not len(shop_domain) > 14:
+        raise ParamException('invalid shop domain', 400)
+    shop_domain_ends_in = shop_domain[-14:]
+    shop_name = shop_domain[:-14]
+    if not shop_domain_ends_in or not shop_domain_ends_in == '.myshopify.com':
+        raise ParamException('incorrect shop name', 400)
+    shop = Shop.get_by_shop_domain(shop_domain)
+    if shop and shop.access_token:
+        return redirect(url_for('.user_setup'))
 
     client_id = g.config.get('SHOPIFY_APP_API_KEY')
     scopes = g.config.get('SHOPIFY_APP_SCOPES')
@@ -59,6 +58,7 @@ def install():
 
 
 @client.route('/oauth/callback')
+@catch_exceptions
 def shopify_plugin_callback():
     """
     Seconds step of the oauth process - verify callback and
@@ -74,50 +74,47 @@ def shopify_plugin_callback():
     shop_name = shop_domain[:-14]
     code = request.args.get('code')
 
-    try:
-        # Initialize the API
-        shopify_api = API(client_id, client_secret, shop_domain)
-        shopify_api.initialize_api(nonce_request=nonce_request, hmac_request=hmac_request, code=code)
+    # Initialize the API
+    shopify_api = API(client_id, client_secret, shop_domain)
+    shopify_api.initialize_api(nonce_request=nonce_request, hmac_request=hmac_request, code=code)
 
-        # Get shop and products info from API
-        shopify_shop = shopify_api.get_shop()
-        shopify_products = shopify_api.get_products()
+    # Get shop and products info from API
+    shopify_shop = shopify_api.get_shop()
+    shopify_products = shopify_api.get_products()
 
-         # Create webhooks
-        shopify_api.create_webhook("products/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_product')))
-        shopify_api.create_webhook("products/update", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.update_product')))
-        shopify_api.create_webhook("products/delete", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.delete_product')))
-        shopify_api.create_webhook("orders/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_order')))
-        shopify_api.create_webhook("fulfillments/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.fulfill_order')))
+     # Create webhooks
+    shopify_api.create_webhook("products/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_product')))
+    shopify_api.create_webhook("products/update", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.update_product')))
+    shopify_api.create_webhook("products/delete", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.delete_product')))
+    shopify_api.create_webhook("orders/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_order')))
+    shopify_api.create_webhook("fulfillments/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.fulfill_order')))
 
-        # Create db records
-        # Create shop user, generate pass
-        shop_owner = User(email=shopify_shop.get('email', ''),
-                          name=shopify_shop.get('shop_owner', ''),
-                          role=Constants.SHOP_OWNER_ROLE)
-        db.session.add(shop_owner)
+    # Create db records
+    # Create shop user, generate pass
+    shop_owner = User(email=shopify_shop.get('email', ''),
+                      name=shopify_shop.get('shop_owner', ''),
+                      role=Constants.SHOP_OWNER_ROLE)
+    db.session.add(shop_owner)
 
-        # Create shop with owner = shop_user
-        shopify_platform = Platform.get_by_name('shopify')
-        shop = Shop(label=shop_name, domain=shop_domain, platform=shopify_platform, access_token=shopify_api.access_token,
-                    owner=shop_owner)
-        db.session.add(shop)
+    # Create shop with owner = shop_user
+    shopify_platform = Platform.get_by_name('shopify')
+    shop = Shop(label=shop_name, domain=shop_domain, platform=shopify_platform, access_token=shopify_api.access_token,
+                owner=shop_owner)
+    db.session.add(shop)
 
-        # Import shop products
-        for product_j in shopify_products:
-            product = Product(label=product_j.get('title', ''))
-            product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
-            shop_product = ShopProduct(product=product,
-                                       shop=shop,
-                                       url=product_url,
-                                       platform_product_id=product_j.get('id', ''))
-            db.session.add(shop_product)
-        db.session.commit()
+    # Import shop products
+    for product_j in shopify_products:
+        product = Product(label=product_j.get('title', ''))
+        product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
+        shop_product = ShopProduct(product=product,
+                                   shop=shop,
+                                   url=product_url,
+                                   platform_product_id=product_j.get('id', ''))
+        db.session.add(shop_product)
+    db.session.commit()
 
-        # Login shop_user
-        login_user(shop_owner)
-    except (ApiException, ParamException, DbException) as e:
-        return jsonify({"error": e.message}), e.status_code
+    # Login shop_user
+    login_user(shop_owner)
     return redirect(url_for('.user_setup'))
 
 
@@ -145,6 +142,8 @@ def reviews():
 
 
 @client.route('/shop_admin')
+@shop_owner_required
+@login_required
 def shop_admin():
     shop = current_user.shop
     return render_template('shop_admin/home.html', shop=shop)
@@ -220,6 +219,15 @@ def logout_from_plugin():
 
 @client.route('/plugin')
 def get_plugin():
+    # TODO: Graceful degradation - try js first
+    # <div id="opinew-reviews"></div>
+    # <script src="http://opinew_api.local:5000/widgets/widget.js"></script>
+    # <noscript>
+    #     <iframe style="border:0; width:100%; height:600px;"
+    #             src="http://opinew_api.local:5000/plugin?platform_product_id={{ product.id }}">
+    #     </iframe>
+    #     <p><a href="http://opinew_api.local:5000/">This widget provided by example.com</a></p>
+    # </noscript>
     try:
         business_signup_form = BusinessSignupForm()
         login_form = LoginForm()
@@ -230,7 +238,7 @@ def get_plugin():
         reviews = Review.get_for_product_approved_by_shop(product.id, shop.id)
         next_arg = request.url
     except (ParamException, DbException) as e:
-        return jsonify({"error": e.message}), e.status_code
+        return '', 500
     return render_template('plugin/plugin.html', product=product, reviews=reviews,
                            business_signup_form=business_signup_form,
                            login_form=login_form, next_arg=next_arg)
@@ -242,7 +250,8 @@ def get_product(product_id):
         product = Product.get_by_id(product_id)
         reviews = Review.get_for_product(product_id)
     except (ParamException, DbException) as e:
-        return jsonify({"error": e.message}), e.status_code
+        flash(e.message)
+        return redirect(request.referrer)
     return render_template('product/product.html', page_title="%s Reviews - " % product.label,
                            product=product, reviews=reviews)
 
@@ -272,6 +281,7 @@ def get_notifications():
 @client.route('/review/<int:order_id>/<int:product_id>', methods=['GET', 'POST'])
 @reviewer_required
 @login_required
+@catch_exceptions
 def web_review(order_id, product_id):
     order = Order.get_by_id(order_id)
     product = Product.get_by_id(product_id)
@@ -306,7 +316,7 @@ def web_review(order_id, product_id):
         product.add_review(order=order, body=body, photo_url=photo_url, tag_ids=tag_ids)
 
         flash('Review submitted')
-        return redirect(url_for('.home'))
+        return redirect(request.args.get('next') or url_for('.reviews'))
     return render_template('web_review/main.html', order=order, product=product, review_form=review_form)
 
 

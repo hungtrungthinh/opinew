@@ -6,11 +6,11 @@ import hmac
 import hashlib
 import datetime
 from functools import wraps
-from flask import jsonify, abort, request, url_for
+from flask import jsonify, abort, request, url_for, g
 from flask.ext.login import current_user
 from werkzeug.exceptions import HTTPException
 from webapp import auth
-from webapp.exceptions import ParamException
+from webapp.exceptions import ParamException, ApiException, DbException
 from config import Constants, Config
 
 
@@ -117,6 +117,18 @@ def post_with_auth(client, url, username, password, **kwargs):
 
 def patch_with_auth(client, url, username, password, **kwargs):
     return open_with_auth(client, url, 'patch', username, password, **kwargs)
+
+def catch_exceptions(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if g.mode == 'development':
+            return f(*args, **kwargs)
+        else:
+            try:
+                return f(*args, **kwargs)
+            except (ApiException, ParamException, DbException) as e:
+                return jsonify({"error": e.message}), e.status_code
+    return wrapper
 
 def shop_owner_required(f):
     @wraps(f)

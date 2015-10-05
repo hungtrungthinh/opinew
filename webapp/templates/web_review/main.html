@@ -1,5 +1,12 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>Review {{ product.label }} from {{ order.shop.label }}</h1>
-  {% include "web_review/review_form.html" %}
+    <div class="container">
+        <div class="row">
+            <h1>Review {{ product.label }} from {{ order.shop.label }}</h1>
+
+            <div class="col-md-6 col-md-offset-3">
+              {% include "forms/review.html" %}
+            </div>
+        </div>
+    </div>
 {% endblock %}

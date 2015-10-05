@@ -2,7 +2,6 @@
 import os
 import sys
 import csv
-from flask import url_for
 from webapp import models, db, create_app
 from config import Constants, basedir
 
@@ -51,9 +50,9 @@ db.session.add(shopify_platform)
 ###############################
 # Create opinew shop
 SHOP_URL = 'http://shop.opinew.com'
-jack_owner = models.User(name="Jack Shepard", role=Constants.SHOP_OWNER_ROLE, email='juliet@opinew.com')
+shop_owner = models.User(name="Shop Owner", email='owner@opinew.com', password='Opinu@m4d4f4k4!', role=Constants.SHOP_OWNER_ROLE)
 opinew_shop = models.Shop(label='Opinew shop', domain=SHOP_URL, platform=custom_platform)
-opinew_shop.owner = jack_owner
+opinew_shop.owner = shop_owner
 db.session.add(opinew_shop)
 
 
