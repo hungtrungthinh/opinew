@@ -8,6 +8,7 @@ class Constants(object):
     TEMP_PWD_LEN = 5
     SHOP_OWNER_ROLE = 'SHOP_OWNER'
     REVIEWER_ROLE = 'REVIEWER'
+    REVIEWS_PER_PAGE = 10
 
 
 class Config(object):

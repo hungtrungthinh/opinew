@@ -3,15 +3,23 @@
     <div class="container">
         <div class="row">
             <div class="col-xs-12 col-md-8 col-md-offset-2">
-              {% if not reviews %}
-                  <h2>No reviews yet.</h2>
-              {% else %}
                 {% for review in reviews %}
                   {% include "review/review.html" %}
                 {% endfor %}
-              {% endif %}
+            {% if page and page > 1  %}
+                <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=1) }}">
+                    <span class="glyphicon glyphicon-home"></span> First
+                </a>
+                <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=page - 1) }}">
+                    <span class="glyphicon glyphicon-arrow-left"></span> Previous
+                </a>
+            {% endif %}
+            {% if reviews|length == g.constants.REVIEWS_PER_PAGE  %}
+                <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=page + 1) }}">
+                    Next <span class="glyphicon glyphicon-arrow-right"></span>
+                </a>
+            {% endif %}
             </div>
         </div>
     </div>
-
 {% endblock %}

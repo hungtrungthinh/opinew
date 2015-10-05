@@ -7,7 +7,7 @@ from webapp import db, login_manager, review_photos
 from webapp.client import client
 from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, Business
 from webapp.common import shop_owner_required, reviewer_required, param_required, get_post_payload, catch_exceptions
-from webapp.exceptions import ParamException, DbException, ApiException
+from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, SignupForm, ReviewForm, BusinessSignupForm
 from config import Constants, basedir
 
@@ -137,8 +137,13 @@ def index():
 
 @client.route('/reviews')
 def reviews():
-    reviews = Review.get_latest(10)
-    return render_template('reviewer/home.html', page_title="Reviews - ", reviews=reviews)
+    page = request.args.get('page', '1')
+    page = int(page) if page.isdigit() else 1
+    start = Constants.REVIEWS_PER_PAGE * (page - 1)
+    end = start + Constants.REVIEWS_PER_PAGE
+    reviews = Review.get_latest(start, end)
+    return render_template('reviewer/home.html', page_title="Reviews - ",
+                           reviews=reviews, page=page)
 
 
 @client.route('/shop_admin')
