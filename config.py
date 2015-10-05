@@ -11,9 +11,9 @@ class Constants(object):
 
 
 class Config(object):
-    SMTP_SERVER = "smtp.example.com"
-    EMAIL_ADDRESS = "admin@example.com"
-    EMAIL_PASSWORD = "password"
+    SMTP_SERVER = "smtpout.europe.secureserver.net"
+    EMAIL_ADDRESS = "team@opinew.com"
+    EMAIL_PASSWORD = "Opinu@m4d4f4k4!"
 
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = 'fheiy3rihiewui4439845ty89o'
@@ -51,6 +51,7 @@ class ConfigProd(Config):
 
 
 config_factory = {
+    'dummy': Config,
     'db_prod': ConfigProd,
     'db_dev': ConfigDev,
     'testing': ConfigTest,

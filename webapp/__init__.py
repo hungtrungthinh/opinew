@@ -21,19 +21,18 @@ def create_app(option):
     app.config.from_object(config)
     from common import create_jinja_filters
     create_jinja_filters(app)
-    if not option == 'db':
-        from webapp.api import api
-        from webapp.client import client
-        app.register_blueprint(client)
-        app.register_blueprint(api, url_prefix='/api')
+    from webapp.api import api
+    from webapp.client import client
+    app.register_blueprint(client)
+    app.register_blueprint(api, url_prefix='/api')
 
-        db.init_app(app)
-        login_manager.init_app(app)
+    db.init_app(app)
+    login_manager.init_app(app)
 
-        from webapp.common import make_json_error
-        for code in default_exceptions.iterkeys():
-            app.error_handler_spec[None][code] = make_json_error
+    from webapp.common import make_json_error
+    for code in default_exceptions.iterkeys():
+        app.error_handler_spec[None][code] = make_json_error
 
-        configure_uploads(app, (user_photos, review_photos,))
+    configure_uploads(app, (user_photos, review_photos,))
 
     return app
