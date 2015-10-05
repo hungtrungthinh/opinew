@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+update_requirements() {
+    echo  "*** LOCAL: Updating requirements ***"
+    source venv/bin/activate
+    pip freeze > requirements.txt
+}
+
 tar_self() {
     echo  "*** LOCAL: Creating tar of source ***"
     tar -czf opinew_ecommerce_api.tar.gz *   --exclude ".git" \
@@ -13,7 +19,7 @@ send_tar_prod() {
         return 1
     fi
     echo  "*** LOCAL: Send to production server ***"
-    scp opinew_ecommerce_api.tar.gz opinew_server@$ip_address:/home/opinew_server/
+    sshpass -p 'Opinu@m4d4f4k4!' scp opinew_ecommerce_api.tar.gz opinew_server@$ip_address:/home/opinew_server/
 }
 
 pushprod() {
@@ -23,7 +29,7 @@ pushprod() {
     fi
     ip_address=$1
     echo  "*** LOCAL: Handing control to server ***"
-    ssh -t opinew_server@$ip_address "mkdir -p ~/opinew_new &&
+    sshpass -p 'Opinu@m4d4f4k4!' ssh -t opinew_server@$ip_address "mkdir -p ~/opinew_new &&
                                       echo  \"*** Untar to opinew_new ***\" &&
                                       tar xfz opinew_ecommerce_api.tar.gz -C ~/opinew_new &&
                                       rm -rf ~/opinew_ecommerce_api &&
@@ -52,6 +58,7 @@ send_update() {
             return 1
         fi
     fi
+    update_requirements
     tar_self
     send_tar_prod "$ip_address"
     pushprod "$ip_address"

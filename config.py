@@ -29,7 +29,6 @@ class Config(object):
     SHOPIFY_APP_API_KEY = '7260cb38253b9adc4af0c90eb622f4ce'
     SHOPIFY_APP_SECRET = '4aff6d82da2174ec13167f149ff7ee50'
     SHOPIFY_APP_SCOPES = 'read_products,read_orders,read_fulfillments'
-    SHOPIFY_OAUTH_CALLBACK = '%s/oauth/callback' % OPINEW_API_SERVER
 
 
 class ConfigTest(Config):
@@ -42,6 +41,7 @@ class ConfigTest(Config):
 class ConfigDev(Config):
     MODE = 'development'
     DEBUG = True
+    OPINEW_API_SERVER = 'http://opinew.com:5000'
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api.db'
 
 

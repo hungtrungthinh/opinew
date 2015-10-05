@@ -388,8 +388,6 @@ class Shop(db.Model):
     @classmethod
     def get_by_shop_domain(cls, shop_domain):
         shop = Shop.query.filter_by(domain=shop_domain).first()
-        if not shop:
-            raise DbException(message='Shop %s not registered with Opinew.' % shop_domain, status_code=400)
         return shop
 
     @classmethod

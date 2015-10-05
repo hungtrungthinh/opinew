@@ -26,6 +26,10 @@ VENV_SHORTCUT=${PROJECT_DIR}/venv
 ID_RSA_PUB_DW="https://drive.google.com/uc?export=download&id=0B_mzL8Vwx1yObDdSdHpadWVqbDg"
 ID_RSA_DW="https://drive.google.com/uc?export=download&id=0B_mzL8Vwx1yOaDdIVS11dWRSc3M"
 
+echo "Disable password for sudo"
+sudoers_file="/etc/sudoers"
+sudo sh -c "echo \"%sudo   ALL=(ALL) NOPASSWD: ALL\" >> $sudoers_file"
+
 echo "Installing ubuntu packages"
 sudo apt-get update
 sudo apt-get install -y ${PACKAGES}

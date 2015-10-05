@@ -10,3 +10,7 @@ class ParamException(ResponseException):
 
 class DbException(ResponseException):
     pass
+
+
+class ApiException(ResponseException):
+    pass

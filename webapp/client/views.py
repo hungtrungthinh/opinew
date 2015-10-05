@@ -1,5 +1,4 @@
 import os
-import datetime
 from flask import request, jsonify, redirect, url_for, render_template, flash, g, send_from_directory, session, \
     current_app, make_response
 from flask.ext.login import login_required, login_user, current_user, logout_user
@@ -8,14 +7,14 @@ from webapp import db, login_manager, review_photos
 from webapp.client import client
 from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, Business
 from webapp.common import shop_owner_required, reviewer_required, param_required, get_post_payload
-from webapp.exceptions import ParamException, DbException
+from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, SignupForm, ReviewForm, BusinessSignupForm
-from config import Config, Constants, basedir
+from config import Constants, basedir
 
 
 @client.before_request
 def before_request():
-    g.config = Config
+    g.config = current_app.config
     g.mode = current_app.config.get('MODE')
 
 
@@ -29,24 +28,26 @@ def install():
     for permission grant from user
     :return:
     """
-    shop_domain = request.args.get('shop')
-    shop_name = shop_domain[-14:]
-    if not shop_domain or not shop_name == '.myshopify.com':
-        return jsonify({'error': 'incorrect shop name'}), 400
-
     try:
+        shop_domain = request.args.get('shop')
+        if not len(shop_domain) > 14:
+            raise ParamException('invalid shop domain', 400)
+        shop_domain_ends_in = shop_domain[-14:]
+        shop_name = shop_domain[:-14]
+        if not shop_domain_ends_in or not shop_domain_ends_in == '.myshopify.com':
+            raise ParamException('incorrect shop name', 400)
         shop = Shop.get_by_shop_domain(shop_domain)
         if shop and shop.access_token:
             return redirect(url_for('.user_setup'))
-    except DbException as e:
-        pass
+    except (ApiException, ParamException, DbException) as e:
+        return jsonify({"error": e.message}), e.status_code
 
-    client_id = Config.SHOPIFY_APP_API_KEY
-    scopes = Config.SHOPIFY_APP_SCOPES
+    client_id = g.config.get('SHOPIFY_APP_API_KEY')
+    scopes = g.config.get('SHOPIFY_APP_SCOPES')
 
     nonce = shop_name
 
-    redirect_uri = Config.SHOPIFY_OAUTH_CALLBACK
+    redirect_uri = '%s/oauth/callback' % g.config.get('OPINEW_API_SERVER')
 
     url = 'https://{shop}/admin/oauth/authorize' \
           '?client_id={api_key}' \
@@ -64,8 +65,8 @@ def shopify_plugin_callback():
     send request for an access token
     :return:
     """
-    client_id = Config.SHOPIFY_APP_API_KEY
-    client_secret = Config.SHOPIFY_APP_SECRET
+    client_id = g.config.get('SHOPIFY_APP_API_KEY')
+    client_secret = g.config.get('SHOPIFY_APP_SECRET')
 
     nonce_request = request.args.get('state')
     hmac_request = request.args.get('hmac')
@@ -73,43 +74,50 @@ def shopify_plugin_callback():
     shop_name = shop_domain[:-14]
     code = request.args.get('code')
 
-    shopify_api = API(client_id, client_secret, shop_domain)
-    shopify_api.initialize_api(nonce_request=nonce_request, hmac_request=hmac_request, code=code)
+    try:
+        # Initialize the API
+        shopify_api = API(client_id, client_secret, shop_domain)
+        shopify_api.initialize_api(nonce_request=nonce_request, hmac_request=hmac_request, code=code)
 
-    # Create db records
-    # Create shop with owner = shop_user
-    shopify_platform = Platform.get_by_name('shopify')
-    shop = Shop(label=shop_name, domain=shop_domain, platform=shopify_platform, access_token=shopify_api.access_token)
+        # Get shop and products info from API
+        shopify_shop = shopify_api.get_shop()
+        shopify_products = shopify_api.get_products()
 
-    # Create shop user, generate pass
-    shopify_shop = shopify_api.get_shop()
-    shop_owner = User(email=shopify_shop.get('email', ''),
-                      name=shopify_shop.get('shop_owner', ''),
-                      role=Constants.SHOP_OWNER_ROLE)
-    shop.owner = shop_owner
-    db.session.add(shop)
+         # Create webhooks
+        shopify_api.create_webhook("products/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_product')))
+        shopify_api.create_webhook("products/update", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.update_product')))
+        shopify_api.create_webhook("products/delete", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.delete_product')))
+        shopify_api.create_webhook("orders/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_order')))
+        shopify_api.create_webhook("fulfillments/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.fulfill_order')))
 
-    # Create webhooks
-    shopify_api.create_webhook("products/create", "%s%s" % (Config.OPINEW_API_SERVER, url_for('api.create_product')))
-    shopify_api.create_webhook("products/update", "%s%s" % (Config.OPINEW_API_SERVER, url_for('api.update_product')))
-    shopify_api.create_webhook("products/delete", "%s%s" % (Config.OPINEW_API_SERVER, url_for('api.delete_product')))
-    shopify_api.create_webhook("orders/create", "%s%s" % (Config.OPINEW_API_SERVER, url_for('api.create_order')))
-    shopify_api.create_webhook("fulfillments/create", "%s%s" % (Config.OPINEW_API_SERVER, url_for('api.fulfill_order')))
+        # Create db records
+        # Create shop user, generate pass
+        shop_owner = User(email=shopify_shop.get('email', ''),
+                          name=shopify_shop.get('shop_owner', ''),
+                          role=Constants.SHOP_OWNER_ROLE)
+        db.session.add(shop_owner)
 
-    # Import shop products
-    shopify_products = shopify_api.get_products()
-    for product_j in shopify_products:
-        product = Product(label=product_j.get('title', ''))
-        product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
-        shop_product = ShopProduct(product=product,
-                                   shop=shop,
-                                   url=product_url,
-                                   platform_product_id=product_j.get('id', ''))
-        db.session.add(shop_product)
-    db.session.commit()
+        # Create shop with owner = shop_user
+        shopify_platform = Platform.get_by_name('shopify')
+        shop = Shop(label=shop_name, domain=shop_domain, platform=shopify_platform, access_token=shopify_api.access_token,
+                    owner=shop_owner)
+        db.session.add(shop)
 
-    # Login shop_user
-    login_user(shop_owner)
+        # Import shop products
+        for product_j in shopify_products:
+            product = Product(label=product_j.get('title', ''))
+            product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
+            shop_product = ShopProduct(product=product,
+                                       shop=shop,
+                                       url=product_url,
+                                       platform_product_id=product_j.get('id', ''))
+            db.session.add(shop_product)
+        db.session.commit()
+
+        # Login shop_user
+        login_user(shop_owner)
+    except (ApiException, ParamException, DbException) as e:
+        return jsonify({"error": e.message}), e.status_code
     return redirect(url_for('.user_setup'))
 
 
@@ -312,12 +320,12 @@ def view_review(review_id):
 
 @client.route('/media/user/<path:filename>')
 def media_user(filename):
-    return send_from_directory(Config.UPLOADED_USERPHOTOS_DEST, filename)
+    return send_from_directory(g.config.get('UPLOADED_USERPHOTOS_DEST'), filename)
 
 
 @client.route('/media/review/<path:filename>')
 def media_review(filename):
-    return send_from_directory(Config.UPLOADED_REVIEWPHOTOS_DEST, filename)
+    return send_from_directory(g.config.get('UPLOADED_REVIEWPHOTOS_DEST'), filename)
 
 
 @client.route('/faq')

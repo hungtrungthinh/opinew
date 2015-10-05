@@ -2,6 +2,7 @@ import requests
 import hmac
 import hashlib
 from flask import request, jsonify
+from webapp.exceptions import ApiException, ParamException
 
 
 class API(object):
@@ -10,7 +11,7 @@ class API(object):
         self.client_secret = client_secret
         self.shop_domain = shop_domain
         if not len(shop_domain) > 14:
-            jsonify({'error': 'invalid shop domain'})
+            raise ParamException('invalid shop domain', 400)
         self.shop_name = shop_domain[:-14]
 
         self.access_token = None
@@ -23,13 +24,13 @@ class API(object):
 
     def verify_nonce(self, nonce_request):
         if not nonce_request:
-            return jsonify({'error': 'no nonce'})
+            raise ParamException('no nonce', 400)
         if not nonce_request == self.shop_name:
-            return jsonify({'error': 'incorrect nonce'})
+            raise ParamException('incorrect nonce', 400)
 
     def verify_hmac(self, hmac_request):
         if not hmac_request:
-            return jsonify({'error': 'incorrect shop name'})
+            raise ParamException('incorrect shop name', 400)
         req = dict(request.args)
         del req['signature']
         del req['hmac']
@@ -42,11 +43,11 @@ class API(object):
         hmac_message = '&'.join(sorted(unsorted))
         dig = hmac.new(self.client_secret, msg=hmac_message, digestmod=hashlib.sha256).hexdigest()
         if not hmac_request == dig:
-            return jsonify({'error': 'hmac unverified'})
+            raise ParamException('hmac unverified', 400)
 
     def verify_shop_name(self):
         if not self.shop_domain[-14:] == '.myshopify.com':
-            return jsonify({'error': 'incorrect shop name'})
+            raise ParamException('incorrect shop name', 400)
 
     def get_access_token(self, code):
         r = requests.post('https://{shop}.myshopify.com/admin/oauth/access_token'.format(
@@ -56,7 +57,7 @@ class API(object):
                   'code': code})
 
         if not r.status_code == 200:
-            return jsonify({'error': r.text})
+            raise ApiException(r.text, r.status_code)
         access_token = r.json().get('access_token')
         self.access_token = access_token
 
@@ -75,7 +76,7 @@ class API(object):
         r = requests.get("https://%s/admin/shop.json" % self.shop_domain,
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
-            return jsonify({'error': r.text})
+            raise ApiException(r.text, r.status_code)
         response = r.json()
         return response.get('shop', {})
 
@@ -83,6 +84,6 @@ class API(object):
         r = requests.get("https://%s/admin/products.json" % self.shop_domain,
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
-            return jsonify({'error': r.text})
+            raise ApiException(r.text, r.status_code)
         response = r.json()
         return response.get('products', [])
