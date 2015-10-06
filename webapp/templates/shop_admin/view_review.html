@@ -1,11 +1,43 @@
 {% extends "layout.html" %}
 {% block content %}
-    <h1>Review about {{ review.product.label }}</h1>
-  {% include "plugin/review.html" %}
-    <form action="{{ url_for('.approve_review', review_id=review.id) }}">
-        <input type="submit" value="Approve review"/>
-    </form>
-    <form action="{{ url_for('.disapprove_review', review_id=review.id) }}">
-        <input type="submit" value="Disapprove review"/>
-    </form>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h1>Review about {{ review.shop_product.product.label }}</h1>
+
+
+                <div class="row">
+                    <div class="alert
+
+                      {% if review.is_approved_by_shop() %}
+                      alert-success">
+                        <div class="col-md-6">
+                        <p>Review is allowed</p>
+                    {% else %}
+                        alert-danger">
+                        <div class="col-md-6">
+                        <p>Review is NOT allowed</p>
+                    {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                      {% if review.is_approved_by_shop() %}
+                          <form action="{{ url_for('.approve_review', review_id=review.id, vote=0) }}"
+                                method="post">
+                              <input class="form-control btn-danger" type="submit" value="Disapprove review"/>
+                          </form>
+                      {% else %}
+                          <form action="{{ url_for('.approve_review', review_id=review.id, vote=1) }}"
+                                method="post">
+                              <input class="form-control btn-success" type="submit" value="Approve review"/>
+                          </form>
+
+                      {% endif %}
+                    </div>
+                    <br><br>
+                      {% include "plugin/review.html" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
 {% endblock %}

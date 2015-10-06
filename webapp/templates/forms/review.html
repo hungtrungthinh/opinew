@@ -1,10 +1,10 @@
 {% import "_macros.html" as macros %}
-
-<form class="action" method="post" action="{{ url_for('.web_review', order_id=order.id, product_id=product.id) }}"
+<form class="action" method="post" action="{{ url_for('.web_review', order_id=order.id if order else 0, product_id=product.id) }}"
       enctype="multipart/form-data">
     <input type="hidden" name="next" value="{{ request.args.next }}"/>
   {{ review_form.hidden_tag() }}
-  {{ macros.form_field(review_form, review_form.body, class="form-control") }}<br>
+    <input type="hidden" name="shop_id" value="{{ shop.id }}">
+  {{ macros.form_field(review_form, review_form.body, class="form-control", placeholder='Write your review...') }}<br>
   {{ macros.form_field(review_form, review_form.photo, class="form-control") }}<br>
-  {{ review_form.submit(class="form-control") }}<br>
+  {{ review_form.submit(class="btn-primary form-control") }}<br>
 </form>

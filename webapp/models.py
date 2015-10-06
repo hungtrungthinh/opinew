@@ -4,6 +4,7 @@ from webapp import db, login_manager
 from webapp.common import generate_temp_password
 from webapp.exceptions import DbException
 from flask import url_for
+from flask.ext.login import current_user
 from flask.ext.login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config, Constants
@@ -29,17 +30,6 @@ def load_user(user_id):
     return User.get_by_id(user_id)
 
 
-class Business(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String)
-    name = db.Column(db.String)
-    company_name = db.Column(db.String)
-
-    def __init__(self, email=None, name=None, company_name=None, **kwargs):
-        self.email = email
-        self.name = name
-        self.company_name = company_name
-
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -64,6 +54,13 @@ class User(db.Model, UserMixin):
         self.name = name
         self.profile_picture_url = profile_picture_url
         self.role = role
+
+    def get_own_reviews_about_product_in_shop(self, product, shop):
+        shop_product = ShopProduct.query.filter_by(shop=shop, product=product).first()
+        return Review.query.filter_by(user=self, shop_product=shop_product).all()
+
+    def get_notifications(self, start=0, stop=Constants.NOTIFICATIONS_INITIAL):
+        return Notification.query.filter_by(user=self).order_by(Notification.id.desc()).all()[start:stop]
 
     @classmethod
     def get_by_id(cls, user_id):
@@ -93,7 +90,7 @@ class User(db.Model, UserMixin):
 
     def unread_notifications(self):
         notifications = Notification.query.filter(and_(Notification.user_id == self.id,
-                                                       Notification.read_status == False)).all()
+                                                       Notification.is_read == False)).all()
         return len(notifications)
 
     def __repr__(self):
@@ -117,31 +114,17 @@ class User(db.Model, UserMixin):
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
+    content = db.Column(db.String)
     url = db.Column(db.String)
-    read_status = db.Column(db.Boolean)
-    ntype = db.Column(db.String)
+    is_read = db.Column(db.Boolean, default=False)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("notifications"))
 
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
-    order = db.relationship("Order", backref=db.backref("notifications"))
-
-    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("notifications"))
-
-    def __init__(self, user=None, order=None, review=None, ntype=None):
+    def __init__(self, content=None, url=None, user=None):
+        self.content = content
+        self.url = url
         self.user = user
-        self.order = order
-        self.review = review
-        self.read_status = False
-        self.ntype = ntype
-        if review:
-            self.url = url_for('client.view_review', review_id=review.id)
-        elif order:
-            self.url = url_for('client.web_review', order_id=order.id)
-        else:
-            raise DbException("Error while creating notification", 500)
 
     @classmethod
     def get_by_id(cls, notification_id):
@@ -151,7 +134,7 @@ class Notification(db.Model):
         return notification
 
     def read(self):
-        self.read_status = True
+        self.is_read = True
         db.session.add(self)
         db.session.commit()
 
@@ -168,7 +151,7 @@ class Notification(db.Model):
         return {
             'id': self.id,
             'url': self.url,
-            'read_status': self.read_status,
+            'read_status': self.is_read,
             'ntype': self.ntype,
             'meta': self.order.serialize() if self.order else self.review.serialize_with_product(),
         }
@@ -245,8 +228,12 @@ class Order(db.Model):
     def notify(self):
         self.status = 'NOTIFIED'
         self.notification_timestamp = datetime.utcnow()
-        notification = Notification(user=self.user, order=self, ntype='customer')
-        db.session.add(notification)
+        for product in self.products:
+            notification = Notification(user=self.user,
+                                        content='We hope you love your new <b>%s</b>. <br>'
+                                                'Could you spend a minute reviewing it?' % product.label,
+                                        url=url_for('.web_review', order_id=self.id, product_id=product.id))
+            db.session.add(notification)
         db.session.add(self)
         db.session.commit()
 
@@ -312,6 +299,10 @@ class Review(db.Model):
         if not self.order.shop == shop:
             raise DbException(message="This review is not for this shop", status_code=404)
         return True
+
+    def is_approved_by_shop(self):
+        shop_review = ShopReview.get_by_shop_and_review_id(self.shop_product.shop.id, self.id)
+        return shop_review.approved_by_shop
 
     @classmethod
     def get_by_id(cls, review_id):
@@ -462,6 +453,11 @@ class ShopReview(db.Model):
     def approve(self):
         self.approved_by_shop = True
         self.approval_pending = False
+        notification = Notification(user=self.review.user,
+                                        content='The shop owner approved your review about <b>%s</b>.<br>'
+                                                'View it here!' % self.review.shop_product.product.label,
+                                        url=url_for('.get_product', product_id=self.review.shop_product.product.id))
+        db.session.add(notification)
         db.session.add(self)
         db.session.commit()
 
@@ -535,19 +531,32 @@ class Product(db.Model):
         product_serialized['reviews'] = [r.serialize() for r in reviews]
         return product_serialized
 
-    def add_review(self, order, body, photo_url, tag_ids):
-        user = User.get_by_email(order.user.email)
-        shop_product = ShopProduct.query.filter_by(product_id=self.id, shop_id=order.shop.id).first()
+    def add_review(self, order, body, photo_url, tag_ids, shop_id):
+        if order:
+            user = User.get_by_email(order.user.email)
+            shop_id = order.shop.id
+        elif current_user.is_authenticated():
+            user = current_user
+            shop_id = shop_id
+        else:
+            user = None
+            shop_id = None
+        shop = Shop.get_by_id(shop_id)
+        shop_product = ShopProduct.query.filter_by(product_id=self.id, shop_id=shop_id).first()
         review = Review(order=order, user=user, shop_product=shop_product,
                         photo_url=photo_url, body=body)
-        shop_review = ShopReview(review=review, shop=order.shop)
+        shop_review = ShopReview(review=review, shop=shop)
         for tag_id in tag_ids:
             tag = Tag.query.filter_by(id=tag_id).first()
             if tag:
                 review.tags.append(tag)
         db.session.add(review)
         db.session.add(shop_review)
-        notification = Notification(user=order.shop.owner, review=review, ntype='shop')
+        db.session.commit()
+        notification = Notification(user=shop.owner,
+                                    content='You received a new review about <b>%s</b>. <br>'
+                                            'Click here to allow or deny display on plugin' % review.shop_product.product.label,
+                                    url=url_for('.view_review', review_id=review.id))
         db.session.add(notification)
         db.session.commit()
         return review

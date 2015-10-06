@@ -2,23 +2,32 @@
 {% block content %}
     <div class="container">
         <div class="row">
-            <div class="col-xs-12 col-md-8 col-md-offset-2">
-                {% for review in reviews %}
-                  {% include "review/review.html" %}
-                {% endfor %}
-            {% if page and page > 1  %}
-                <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=1) }}">
-                    <span class="glyphicon glyphicon-home"></span> First
-                </a>
-                <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=page - 1) }}">
-                    <span class="glyphicon glyphicon-arrow-left"></span> Previous
-                </a>
-            {% endif %}
-            {% if reviews|length == g.constants.REVIEWS_PER_PAGE  %}
-                <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=page + 1) }}">
-                    Next <span class="glyphicon glyphicon-arrow-right"></span>
-                </a>
-            {% endif %}
+            <div class="col-md-2">
+              {% if not current_user.is_authenticated() %}
+                  <br>
+                  <div class="well" style="position:fixed;">
+                      <p>Business owner?</p>
+                      <a href="{{ url_for('.signup') }}" class="btn btn-block btn-primary btn-lg">Get our plugin</a>
+                  </div>
+              {% endif %}
+            </div>
+            <div class="col-md-8">
+              {% for review in reviews %}
+                {% include "review/review.html" %}
+              {% endfor %}
+              {% if page and page > 1 %}
+                  <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=1) }}">
+                      <span class="glyphicon glyphicon-home"></span> First
+                  </a>
+                  <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=page - 1) }}">
+                      <span class="glyphicon glyphicon-arrow-left"></span> Previous
+                  </a>
+              {% endif %}
+              {% if reviews|length == g.constants.REVIEWS_PER_PAGE %}
+                  <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=page + 1) }}">
+                      Next <span class="glyphicon glyphicon-arrow-right"></span>
+                  </a>
+              {% endif %}
             </div>
         </div>
     </div>

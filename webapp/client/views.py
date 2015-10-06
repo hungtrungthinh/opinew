@@ -5,10 +5,10 @@ from flask.ext.login import login_required, login_user, current_user, logout_use
 from providers.shopify_api import API
 from webapp import db, login_manager, review_photos
 from webapp.client import client
-from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, Business
+from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, ShopReview
 from webapp.common import shop_owner_required, reviewer_required, param_required, get_post_payload, catch_exceptions
 from webapp.exceptions import ParamException, DbException
-from webapp.forms import LoginForm, SignupForm, ReviewForm, BusinessSignupForm
+from webapp.forms import LoginForm, SignupForm, ReviewForm, CustomerSignupForm
 from config import Constants, basedir
 
 
@@ -155,13 +155,12 @@ def shop_admin():
 
 @client.route('/signup', methods=['GET', 'POST'])
 def signup():
-    business_signup_form = BusinessSignupForm()
-    if business_signup_form.validate_on_submit():
-        business = Business(**{k: v[0] for k, v in request.form.iteritems() if len(v) > 0})
-        db.session.add(business)
-        db.session.commit()
+    # TODO: Communicate with Stripe server to add bank details
+    # TODO: Create shop owner user
+    customer_signup_form = CustomerSignupForm()
+    if customer_signup_form.validate_on_submit():
         session['business_signed_up'] = True
-    return render_template('signup.html', business_signup_form=business_signup_form)
+    return render_template('signup.html', customer_signup_form =customer_signup_form )
 
 
 @client.route('/signup_user', methods=['GET', 'POST'])
@@ -183,7 +182,7 @@ def signup_user():
         login_user(user)
         next_param = request.form.get('next')
         return redirect(next_param or url_for('.home'))
-    return render_template('signup.html', signup_form=signup_form)
+    return render_template('signup_user.html', signup_form=signup_form)
 
 
 @client.route('/login', methods=['GET', 'POST'])
@@ -234,7 +233,8 @@ def get_plugin():
     #     <p><a href="http://opinew_api.local:5000/">This widget provided by example.com</a></p>
     # </noscript>
     try:
-        business_signup_form = BusinessSignupForm()
+        review_form = ReviewForm()
+        signup_form = SignupForm()
         login_form = LoginForm()
         platform_product_id = param_required('platform_product_id', request.args)
         shop_product = ShopProduct.get_by_platform_product_id(platform_product_id)
@@ -245,8 +245,8 @@ def get_plugin():
     except (ParamException, DbException) as e:
         return '', 500
     return render_template('plugin/plugin.html', product=product, reviews=reviews,
-                           business_signup_form=business_signup_form,
-                           login_form=login_form, next_arg=next_arg)
+                           signup_form=signup_form, login_form=login_form, review_form=review_form,
+                           shop=shop, next_arg=next_arg)
 
 
 @client.route('/product/<int:product_id>')
@@ -282,24 +282,36 @@ def get_notifications():
     notifications = Notification.get_for_user(current_user)
     return render_template('client/notifications.html', notifications=notifications)
 
+@client.route('/read_notification')
+@login_required
+@catch_exceptions
+def read_notification():
+    notification_id = param_required('id', request.args)
+    next = param_required('next', request.args)
+    notification = Notification.get_by_id(notification_id)
+    notification.read()
+    return redirect(next)
+
 
 @client.route('/review/<int:order_id>/<int:product_id>', methods=['GET', 'POST'])
 @reviewer_required
 @login_required
 @catch_exceptions
 def web_review(order_id, product_id):
-    order = Order.get_by_id(order_id)
+    order = None
     product = Product.get_by_id(product_id)
-    if not order:
-        flash('Not such order.')
-        return redirect(url_for('.home'))
+    if order_id:
+        order = Order.get_by_id(order_id)
+        if not order:
+            flash('Not such order.')
+            return redirect(url_for('.home'))
     if not product:
         flash('Not such product.')
         return redirect(url_for('.home'))
-    if product not in order.products:
+    if order_id and product not in order.products:
         flash('Product not in orders.')
         return redirect(url_for('.home'))
-    if not order.user == current_user:
+    if order_id and not order.user == current_user:
         flash('Not your order to review.')
         return redirect(url_for('.home'))
     review_form = ReviewForm()
@@ -307,6 +319,7 @@ def web_review(order_id, product_id):
         try:
             payload = get_post_payload()
             body = payload.get('body', None)
+            shop_id = param_required('shop_id', payload)
             photo_url = ''
             if 'photo' in request.files:
                 photo_url = review_photos.save(request.files['photo'])
@@ -318,9 +331,11 @@ def web_review(order_id, product_id):
             flash(e.message)
             return redirect(url_for('.home'))
 
-        product.add_review(order=order, body=body, photo_url=photo_url, tag_ids=tag_ids)
+        product.add_review(order=order, body=body, photo_url=photo_url, tag_ids=tag_ids, shop_id=shop_id)
 
         flash('Review submitted')
+        if not order_id:
+            return redirect(request.referrer)
         return redirect(request.args.get('next') or url_for('.reviews'))
     return render_template('web_review/main.html', order=order, product=product, review_form=review_form)
 
@@ -331,6 +346,21 @@ def web_review(order_id, product_id):
 def view_review(review_id):
     review = Review.get_by_id(review_id)
     return render_template('shop_admin/view_review.html', review=review)
+
+@client.route('/approve_review/<int:review_id>/<int:vote>', methods=['POST'])
+@shop_owner_required
+@login_required
+@catch_exceptions
+def approve_review(review_id, vote):
+    review = Review.get_by_id(review_id)
+    shop_review = ShopReview.get_by_shop_and_review_id(review.shop_product.shop.id, review_id)
+    if vote == 1:
+        shop_review.approve()
+        flash('review approved')
+    elif vote == 0:
+        shop_review.disapprove()
+        flash('review disapproved')
+    return redirect(request.referrer)
 
 
 @client.route('/media/user/<path:filename>')

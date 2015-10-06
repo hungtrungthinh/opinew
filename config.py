@@ -9,6 +9,7 @@ class Constants(object):
     SHOP_OWNER_ROLE = 'SHOP_OWNER'
     REVIEWER_ROLE = 'REVIEWER'
     REVIEWS_PER_PAGE = 10
+    NOTIFICATIONS_INITIAL = 20
 
 
 class Config(object):

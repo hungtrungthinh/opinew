@@ -23,57 +23,42 @@
         </div>
 
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-          {% if request.path == '/' %}
-              <ul class="nav navbar-nav navbar-left">
-                  <li><a href="#welcome">Welcome</a></li>
-                  <li><a href="#features">Features</a></li>
-                  <li><a href="#examples">Examples</a></li>
-                  <li><a href="#about_us">About Opinew</a></li>
-                  <li><a href="#pricing">Pricing</a></li>
-                  <li>&nbsp;</li>
-              </ul>
-          {% else %}
-              <ul class="nav navbar-nav">
-                {% set link = url_for('.reviews') %}
+            <ul class="nav navbar-nav">
+              {% if not current_user.is_authenticated() %}
+                {% set link = url_for('.index') %}
                   <li {% if request.path == link %}class="active"{% endif %}>
-                      <a href="{{ link }}">Reviews</a>
+                      <a href="{{ link }}">What is Opinew?</a>
                   </li>
-                {% set link = url_for('.faq') %}
+              {% endif %}
+              {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
+                {% set link = url_for('.shop_admin') %}
                   <li {% if request.path == link %}class="active"{% endif %}>
-                      <a href="{{ link }}">FAQ</a>
+                      <a href="{{ link }}">Shop Admin</a>
                   </li>
-                {% set link = "http://blog.opinew.com/" %}
-                  <li>
-                      <a href="{{ link }}" target="_blank">Blog</a>
-                  </li>
-              </ul>
-          {% endif %}
+              {% endif %}
+              {% set link = url_for('.reviews') %}
+                <li {% if request.path == link %}class="active"{% endif %}>
+                    <a href="{{ link }}">Reviews</a>
+                </li>
+              {% set link = url_for('.faq') %}
+                <li {% if request.path == link %}class="active"{% endif %}>
+                    <a href="{{ link }}">FAQ</a>
+                </li>
+              {% set link = "http://blog.opinew.com/" %}
+                <li>
+                    <a href="{{ link }}" target="_blank">Blog</a>
+                </li>
+            </ul>
             <ul class="nav navbar-nav navbar-right">
               {% if current_user.is_authenticated() %}
-                  <li role="presentation" class="dropdown"
-                      style="margin-top: 10px; margin-left: 10px;  margin-right: 10px">
-                      <span href="#" class="dropdown-toggle mobile-menu-profile-pic" data-toggle="dropdown"
-                            role="button"
-                            aria-expanded="false">
-                          <img alt="{{ current_user.name }} profile picture" class="navbar-profile-pic  pull-left"
-                               src="{{ url_for('client.media_user', filename='%s' % current_user.profile_picture_url) }}"/>
-                          <span class="hidden-xs navbar-name">
-                              {{ current_user.name }}
-                            {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
-                                <br><span class="text-muted">(shop owner)</span>
-                            {% endif %}
-                          </span>
-                      </span>
-                      <ul class="dropdown-menu pull-right" style="margin-top: 20px">
-                          <li><a href="{{ url_for('client.logout') }}">Log out</a></li>
-                      </ul>
-                  </li>
+                  {% include "navigation_notifications.html" %}
+                  {% include "navigation_profile.html" %}
               {% else %}
                   <li>
                       <a href="{{ url_for('.login') }}">Log in</a>
                   </li>
                   <li class="btn-success" style="float:left;">
-                      <a href="{{ url_for('.signup') }}" style="color:white;">Sign up</a>
+                      <a href="{{ url_for('.signup_user') }}" style="color:white;">Sign up</a>
                   </li>
               {% endif %}
             </ul>

@@ -1,6 +1,8 @@
+import datetime
 from flask.ext.wtf import Form
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, FileField
-from wtforms.validators import DataRequired, Email, Length, EqualTo
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, FileField, SelectField, \
+    IntegerField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange
 
 
 class LoginForm(Form):
@@ -20,15 +22,18 @@ class SignupForm(Form):
     submit = SubmitField('Sign up')
 
 
-class BusinessSignupForm(Form):
-    name = StringField('Name', validators=[DataRequired()])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    company_name = StringField('Company Name', validators=[DataRequired()])
+class CustomerSignupForm(SignupForm):
+    MONTHS = [(month, month) for month in range(1,13)]
+    this_year = datetime.date.today().year
+    YEARS = [(year, year) for year in range(this_year, this_year + 15)]
     # Credit card number
+    card_number = StringField('Card number', validators=[DataRequired(), Length(min=16, max=16)])
     # Security code (CVV)
+    card_cvv = IntegerField('CVV', validators=[DataRequired(), NumberRange(min=100, max=999)])
     # Card expiration - month
+    card_exp_month = SelectField('Expiry Month', choices=MONTHS)
     # Card expiration - year
-    submit = SubmitField('Sign up')
+    card_exp_year = SelectField('Expiry Year',choices=YEARS)
 
 
 class ReviewForm(Form):

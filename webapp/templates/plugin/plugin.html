@@ -25,7 +25,9 @@
     </style>
 </head>
 <body>
-{% if not current_user.is_authenticated() %}
+{% if current_user.is_authenticated() %}
+  {% include "plugin/modal_review.html" %}
+{% else %}
   {% include "plugin/modal_signup.html" %}
 {% endif %}
 {% include "plugin/navigation.html" %}
@@ -39,6 +41,21 @@
           {% if not reviews %}
               <h3>No reviews yet</h3>
           {% else %}
+            {% if current_user.is_authenticated() %}
+                <h3>Your reviews</h3>
+              {% for review in current_user.get_own_reviews_about_product_in_shop(product, shop) %}
+                {% if review.is_approved_by_shop() %}
+                    <div class="alert alert-success">
+                    <p>Approved by the shop!</p>
+                    {% else %}
+                    <div class="alert alert-warning">
+                    <p>Not approved by the shop yet...</p>
+                {% endif %}
+              {% include "plugin/review.html" %}
+              </div>
+              {% endfor %}
+            {% endif %}
+              <hr>
             {% for review in reviews %}
               {% include "plugin/review.html" %}
             {% endfor %}

@@ -211,7 +211,7 @@ def add_product_review(shop_id, product_id):
     if not body and not tag_ids and not photo_url:
         raise ParamException('At least one of body, photo or tags need to be provided.', 400)
 
-    review = product.add_review(order=order, body=body, photo_url=photo_url, tag_ids=tag_ids)
+    review = product.add_review(order=order, body=body, photo_url=photo_url, tag_ids=tag_ids, shop_id=shop_id)
     return build_created_response('.get_review', review_id=review.id)
 
 

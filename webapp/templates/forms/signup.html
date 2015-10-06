@@ -1,9 +1,23 @@
 {% import "_macros.html" as macros %}
 <form class="action" method="post" action="{{ url_for('.signup') }}">
     <input type="hidden" name="next" value="{{ request.args.next }}"/>
-  {{ business_signup_form.hidden_tag() }}
-  {{ macros.form_field(business_signup_form, business_signup_form.name, class="form-control") }}<br>
-  {{ macros.form_field(business_signup_form, business_signup_form.email, class="form-control") }}<br>
-  {{ macros.form_field(business_signup_form, business_signup_form.company_name, class="form-control") }}<br>
-  {{ business_signup_form.submit(class="form-control") }}<br>
+  {{ customer_signup_form.hidden_tag() }}
+  {{ macros.form_field(customer_signup_form, customer_signup_form.email, class="form-control") }}<br>
+  {{ macros.form_field(customer_signup_form, customer_signup_form.password, class="form-control") }}<br>
+  {{ macros.form_field(customer_signup_form, customer_signup_form.password_verify, class="form-control") }}<br>
+  {{ macros.form_field(customer_signup_form, customer_signup_form.card_number, class="form-control") }}<br>
+  {{ macros.form_field(customer_signup_form, customer_signup_form.card_cvv, class="form-control", style="width: 70px;") }}<br>
+
+    <b>Card expiration:</b>
+
+    <div class="row">
+        <div class="col-xs-6">
+          {{ customer_signup_form.card_exp_month(class="form-control") }}
+        </div>
+        <div class="col-xs-6">
+          {{ customer_signup_form.card_exp_year(class="form-control") }}
+        </div>
+    </div>
+    <br>
+  {{ customer_signup_form.submit(class="btn-primary form-control") }}<br>
 </form>

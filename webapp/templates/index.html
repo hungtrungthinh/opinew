@@ -22,9 +22,13 @@
                 </div>
                 <div class="col-sm-6">
                     <h1 class="text-center v-center">
+                        <a href="{{ url_for('.reviews') }}">
                         <img class="img-responsive img-thumbnail"
                              src="{{ url_for('static', filename='img/marketing/reviews_shot.png') }}"
                              alt="reviews screenshot"/>
+                        </a>
+                        <a href="{{ url_for('.reviews') }}" class="btn btn-block btn-lg btn-default">View our
+                            reviews</a>
                     </h1>
                 </div>
             </div>
@@ -61,7 +65,7 @@
         </div>
         <!--/container-->
     </section>
-    {% include "colors_bar.html" %}
+  {% include "colors_bar.html" %}
     <section class="container-fluid" id="features">
         <h1 class="text-center">What do you get</h1>
         <br>
@@ -130,9 +134,12 @@
 
         <div class="row">
             <div class="col-sm-8 col-sm-offset-2">
-                <img class="img-responsive"
-                     src="{{ url_for('static', filename='img/marketing/reviews_shot.png') }}"
-                     alt="reviews screenshot"/>
+                <a href="{{ url_for('.reviews') }}">
+                    <img class="img-responsive"
+                         src="{{ url_for('static', filename='img/marketing/reviews_shot.png') }}"
+                         alt="reviews screenshot"/>
+                </a>
+                <a href="{{ url_for('.reviews') }}" class="btn btn-block btn-lg btn-info">View our reviews</a>
             </div>
         </div>
     </section>
@@ -141,7 +148,8 @@
 
         <div class="row">
             <div class="col-sm-8 col-sm-offset-2">
-                <img src="{{ url_for('static',filename='img/opinew_logo.png') }}" class="img-responsive center-block opinew-logo-marketing"/>
+                <img src="{{ url_for('static',filename='img/opinew_logo.png') }}"
+                     class="img-responsive center-block opinew-logo-marketing"/>
 
             </div>
         </div>
