@@ -1,6 +1,6 @@
 import os
-from flask import request, jsonify, redirect, url_for, render_template, flash, g, send_from_directory, session, \
-    current_app, make_response
+from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, session, \
+    current_app, make_response, abort
 from flask.ext.login import login_required, login_user, current_user, logout_user
 from providers.shopify_api import API
 from webapp import db, login_manager, review_photos
@@ -8,7 +8,7 @@ from webapp.client import client
 from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, ShopReview
 from webapp.common import shop_owner_required, reviewer_required, param_required, get_post_payload, catch_exceptions
 from webapp.exceptions import ParamException, DbException
-from webapp.forms import LoginForm, SignupForm, ReviewForm, CustomerSignupForm
+from webapp.forms import LoginForm, SignupForm, ReviewForm
 from config import Constants, basedir
 
 
@@ -30,6 +30,18 @@ def install():
     for permission grant from user
     :return:
     """
+    ref = param_required('ref', request.args)
+    if ref == 'internal':
+        return install_internal_step_one()
+    elif ref == 'shopify':
+        return install_shopify_step_one()
+    else:
+        return install_internal_step_one()
+
+def install_internal_step_one():
+    return render_template('install/internal.html')
+
+def install_shopify_step_one():
     shop_domain = request.args.get('shop')
     if not len(shop_domain) > 14:
         raise ParamException('invalid shop domain', 400)
@@ -82,12 +94,17 @@ def shopify_plugin_callback():
     shopify_shop = shopify_api.get_shop()
     shopify_products = shopify_api.get_products()
 
-     # Create webhooks
-    shopify_api.create_webhook("products/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_product')))
-    shopify_api.create_webhook("products/update", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.update_product')))
-    shopify_api.create_webhook("products/delete", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.delete_product')))
-    shopify_api.create_webhook("orders/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_order')))
-    shopify_api.create_webhook("fulfillments/create", "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.fulfill_order')))
+    # Create webhooks
+    shopify_api.create_webhook("products/create",
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_product')))
+    shopify_api.create_webhook("products/update",
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.update_product')))
+    shopify_api.create_webhook("products/delete",
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.delete_product')))
+    shopify_api.create_webhook("orders/create",
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_order')))
+    shopify_api.create_webhook("fulfillments/create",
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.fulfill_order')))
 
     # Create db records
     # Create shop user, generate pass
@@ -153,14 +170,22 @@ def shop_admin():
     shop = current_user.shop
     return render_template('shop_admin/home.html', shop=shop)
 
+
 @client.route('/signup', methods=['GET', 'POST'])
 def signup():
-    # TODO: Communicate with Stripe server to add bank details
-    # TODO: Create shop owner user
-    customer_signup_form = CustomerSignupForm()
+    customer_signup_form = SignupForm()
     if customer_signup_form.validate_on_submit():
+        # Stripe already has validated the card
         session['business_signed_up'] = True
-    return render_template('signup.html', customer_signup_form =customer_signup_form )
+        shop_owner = User.get_or_create_by_email(email=customer_signup_form.email.data)
+        shop_owner.stripe_token = param_required('stripe_token', request.form)
+        shop = Shop()
+        shop.owner = shop_owner
+        db.session.add(shop)
+        db.session.commit()
+        login_user(shop_owner)
+        return redirect(url_for('.install', ref='internal'))
+    return render_template('signup.html', customer_signup_form=customer_signup_form)
 
 
 @client.route('/signup_user', methods=['GET', 'POST'])
@@ -220,6 +245,7 @@ def logout():
 def logout_from_plugin():
     logout_user()
     return redirect(request.referrer)
+
 
 @client.route('/plugin')
 def get_plugin():
@@ -281,6 +307,7 @@ def clickthrough_product():
 def get_notifications():
     notifications = Notification.get_for_user(current_user)
     return render_template('client/notifications.html', notifications=notifications)
+
 
 @client.route('/read_notification')
 @login_required
@@ -346,6 +373,7 @@ def web_review(order_id, product_id):
 def view_review(review_id):
     review = Review.get_by_id(review_id)
     return render_template('shop_admin/view_review.html', review=review)
+
 
 @client.route('/approve_review/<int:review_id>/<int:vote>', methods=['POST'])
 @shop_owner_required
@@ -425,3 +453,11 @@ def sitemapxml():
     response = make_response(sitemap_xml)
     response.headers["Content-Type"] = "application/xml"
     return response
+
+
+@client.route('/render_email/<filename>')
+def render_email(filename):
+    if not g.mode == 'development':
+        abort(404)
+    return render_template('email/%s' % filename,
+                           **{k: (w[0] if len(w) else w) for k, w in dict(request.args).iteritems()})

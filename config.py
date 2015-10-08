@@ -43,7 +43,7 @@ class ConfigTest(Config):
 class ConfigDev(Config):
     MODE = 'development'
     DEBUG = True
-    OPINEW_API_SERVER = 'http://opinew.com:5000'
+    OPINEW_API_SERVER = 'http://localhost:5000'
     SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api.db'
 
 

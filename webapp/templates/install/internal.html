@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h2>Plugin code</h2>
+                <ol>
+                    <li>Copy the following code below the last line on your product page:</li>
+    <textarea disabled style="margin: 0; width: 700px; height: 70px;">
+&lt;iframe style="border:0; width:100%; height:400px;"
+  src="{{ g.config.OPINEW_API_SERVER }}/plugin?platform_product_id={{ '{{product.id}}' }}"&gt;
+&lt;/iframe&gt;
+    </textarea>
+                </ol>
+            </div>
+        </div>
+    </div>
+{% endblock %}

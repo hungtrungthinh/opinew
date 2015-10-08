@@ -27,7 +27,7 @@ def send_mail(recipient, subject, template, template_context, text_only=''):
     msg['To'] = recipient
 
     # Create the body of the message (a plain-text and an HTML version).
-    html = render_template(template, **template_context)
+    html = render_template("email/%s" % template, **template_context)
 
     # Record the MIME types of both parts - text/plain and text/html.
     part1 = MIMEText(text_only, 'plain')
@@ -51,6 +51,6 @@ def send_mail(recipient, subject, template, template_context, text_only=''):
 if __name__ == '__main__':
     recipient = 'danieltcv@gmail.com'
     subject = "Review request from Opinew"
-    template = 'email/review_order.html'
+    template = 'review_order.html'
 
     send_mail(recipient, subject, template, {'subject': subject})

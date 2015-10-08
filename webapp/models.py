@@ -3,11 +3,12 @@ from sqlalchemy import and_
 from webapp import db, login_manager
 from webapp.common import generate_temp_password
 from webapp.exceptions import DbException
-from flask import url_for
+from flask import url_for, g
 from flask.ext.login import current_user
 from flask.ext.login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config, Constants
+from async import email_sender
 
 product_tags_table = db.Table('product_tags',
                               db.Column('product_id', db.Integer, db.ForeignKey('product.id')),
@@ -40,9 +41,10 @@ class User(db.Model, UserMixin):
     pw_hash = db.Column(db.String)
     name = db.Column(db.String)
     profile_picture_url = db.Column(db.String)
+    stripe_token = db.Column(db.String)
 
     def __init__(self, email=None, name=None, profile_picture_url=Config.DEFAULT_PROFILE_PICTURE,
-                 password=None, role=None, **kwargs):
+                 password=None, role=None, stripe_token=None, **kwargs):
         self.email = email
         if not password:
             self.temp_password = generate_temp_password()
@@ -54,6 +56,7 @@ class User(db.Model, UserMixin):
         self.name = name
         self.profile_picture_url = profile_picture_url
         self.role = role
+        self.stripe_token = stripe_token
 
     def get_own_reviews_about_product_in_shop(self, product, shop):
         shop_product = ShopProduct.query.filter_by(shop=shop, product=product).first()
@@ -73,7 +76,8 @@ class User(db.Model, UserMixin):
             user = User(email=email, role=Constants.REVIEWER_ROLE)
             db.session.add(user)
             db.session.commit()
-            # TODO: send email
+            if not g.mode == 'development':
+                email_sender.send_mail(email, "Welcome to Opinew", "new_user.html", {'user_password': user.temp_password},)
         return user
 
     @classmethod
