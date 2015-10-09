@@ -1,25 +1,15 @@
 import os
-from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, session, \
+from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort
-from flask.ext.login import login_required, login_user, current_user, logout_user
+from flask.ext.security import login_required, login_user, current_user
 from providers.shopify_api import API
-from webapp import db, login_manager, review_photos
+from webapp import db, review_photos
 from webapp.client import client
-from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, ShopReview
-from webapp.common import shop_owner_required, reviewer_required, param_required, get_post_payload, catch_exceptions
+from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, ShopProductReview
+from webapp.common import param_required, get_post_payload, catch_exceptions
 from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, SignupForm, ReviewForm
 from config import Constants, basedir
-
-
-@client.before_request
-def before_request():
-    g.constants = Constants
-    g.config = current_app.config
-    g.mode = current_app.config.get('MODE')
-
-
-login_manager.login_view = "client.login"
 
 
 @client.route('/install')
@@ -38,8 +28,10 @@ def install():
     else:
         return install_internal_step_one()
 
+
 def install_internal_step_one():
     return render_template('install/internal.html')
+
 
 def install_shopify_step_one():
     shop_domain = request.args.get('shop')
@@ -136,7 +128,7 @@ def shopify_plugin_callback():
 
 
 @client.route('/user_setup')
-@shop_owner_required
+# @shop_owner_required
 @login_required
 def user_setup():
     return render_template('shopify/user_setup.html')
@@ -145,9 +137,9 @@ def user_setup():
 @client.route('/')
 def index():
     if current_user.is_authenticated():
-        if current_user.role == Constants.REVIEWER_ROLE:
+        if current_user.has_role(Constants.REVIEWER_ROLE):
             return redirect(url_for('.reviews'))
-        elif current_user.role == Constants.SHOP_OWNER_ROLE:
+        elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
             return redirect(url_for('.shop_admin'))
     return render_template('index.html')
 
@@ -164,87 +156,11 @@ def reviews():
 
 
 @client.route('/shop_admin')
-@shop_owner_required
+# @shop_owner_required
 @login_required
 def shop_admin():
     shop = current_user.shop
     return render_template('shop_admin/home.html', shop=shop)
-
-
-@client.route('/signup', methods=['GET', 'POST'])
-def signup():
-    customer_signup_form = SignupForm()
-    if customer_signup_form.validate_on_submit():
-        # Stripe already has validated the card
-        session['business_signed_up'] = True
-        shop_owner = User.get_or_create_by_email(email=customer_signup_form.email.data)
-        shop_owner.stripe_token = param_required('stripe_token', request.form)
-        shop = Shop()
-        shop.owner = shop_owner
-        db.session.add(shop)
-        db.session.commit()
-        login_user(shop_owner)
-        return redirect(url_for('.install', ref='internal'))
-    return render_template('signup.html', customer_signup_form=customer_signup_form)
-
-
-@client.route('/signup_user', methods=['GET', 'POST'])
-def signup_user():
-    if current_user.is_authenticated():
-        return redirect(request.referrer or url_for('.shop_admin'))
-    signup_form = SignupForm()
-    if signup_form.validate_on_submit():
-        email = request.form.get('email')
-        password = request.form.get('password')
-        name = request.form.get('name')
-        registered_user = User.query.filter_by(email=email).first()
-        if registered_user:
-            flash('User with email %s already exist.' % email)
-            return redirect(url_for('.signup'))
-        user = User(email=email, password=password, name=name, role=Constants.REVIEWER_ROLE)
-        db.session.add(user)
-        db.session.commit()
-        login_user(user)
-        next_param = request.form.get('next')
-        return redirect(next_param or url_for('.home'))
-    return render_template('signup_user.html', signup_form=signup_form)
-
-
-@client.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated():
-        return redirect(request.referrer or url_for('.shop_admin'))
-    login_form = LoginForm()
-    if login_form.validate_on_submit():
-        email = request.form.get('email')
-        password = request.form.get('password')
-        registered_user = User.query.filter_by(email=email).first()
-        if not registered_user:
-            flash('User with email %s does not exist.' % email)
-            return redirect(url_for('.login'))
-        try:
-            registered_user.validate_password(password)
-        except DbException as e:
-            flash(e.message)
-            return render_template('login.html', login_form=login_form)
-        login_user(registered_user)
-        next_param = request.form.get('next')
-        return redirect(next_param or url_for('.index'))
-    return render_template('login.html', login_form=login_form)
-
-
-@client.route('/logout', methods=['GET'])
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('.index'))
-
-
-@client.route('/logout_from_plugin', methods=['GET'])
-@login_required
-def logout_from_plugin():
-    logout_user()
-    return redirect(request.referrer)
 
 
 @client.route('/plugin')
@@ -321,7 +237,7 @@ def read_notification():
 
 
 @client.route('/review/<int:order_id>/<int:product_id>', methods=['GET', 'POST'])
-@reviewer_required
+# @reviewer_required
 @login_required
 @catch_exceptions
 def web_review(order_id, product_id):
@@ -368,7 +284,7 @@ def web_review(order_id, product_id):
 
 
 @client.route('/review/<int:review_id>')
-@shop_owner_required
+# @shop_owner_required
 @login_required
 def view_review(review_id):
     review = Review.get_by_id(review_id)
@@ -376,12 +292,12 @@ def view_review(review_id):
 
 
 @client.route('/approve_review/<int:review_id>/<int:vote>', methods=['POST'])
-@shop_owner_required
+# @shop_owner_required
 @login_required
 @catch_exceptions
 def approve_review(review_id, vote):
     review = Review.get_by_id(review_id)
-    shop_review = ShopReview.get_by_shop_and_review_id(review.shop_product.shop.id, review_id)
+    shop_review = ShopProductReview.get_by_shop_and_review_id(review.shop_product.shop.id, review_id)
     if vote == 1:
         shop_review.approve()
         flash('review approved')
@@ -389,16 +305,6 @@ def approve_review(review_id, vote):
         shop_review.disapprove()
         flash('review disapproved')
     return redirect(request.referrer)
-
-
-@client.route('/media/user/<path:filename>')
-def media_user(filename):
-    return send_from_directory(g.config.get('UPLOADED_USERPHOTOS_DEST'), filename)
-
-
-@client.route('/media/review/<path:filename>')
-def media_review(filename):
-    return send_from_directory(g.config.get('UPLOADED_REVIEWPHOTOS_DEST'), filename)
 
 
 @client.route('/faq')

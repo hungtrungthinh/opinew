@@ -9,29 +9,9 @@ from functools import wraps
 from flask import jsonify, abort, request, url_for, g
 from flask.ext.login import current_user
 from werkzeug.exceptions import HTTPException
-from webapp import auth
 from webapp.exceptions import ParamException, ApiException, DbException
 from config import Constants, Config
 
-
-@auth.get_password
-def get_pw(username):
-    from webapp.models import User
-
-    user = User.query.filter_by(email=username).first()
-    if user:
-        return user.email
-    return None
-
-
-@auth.verify_password
-def verify_pw(username, password):
-    from webapp.models import User
-
-    user = User.query.filter_by(email=username).first()
-    if user:
-        return user.validate_password(password)
-    return False
 
 
 def validate_user_role(role):
@@ -121,7 +101,7 @@ def patch_with_auth(client, url, username, password, **kwargs):
 def catch_exceptions(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if g.mode == 'development':
+        if 'mode' in g and g.mode == 'development':
             return f(*args, **kwargs)
         else:
             try:
@@ -130,7 +110,7 @@ def catch_exceptions(f):
                 return jsonify({"error": e.message}), e.status_code
     return wrapper
 
-def shop_owner_required(f):
+def role_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not current_user.is_authenticated() or not current_user.role == Constants.SHOP_OWNER_ROLE:

@@ -25,22 +25,22 @@
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
             <ul class="nav navbar-nav">
               {% if not current_user.is_authenticated() %}
-                {% set link = url_for('.index') %}
+                {% set link = url_for('client.index') %}
                   <li {% if request.path == link %}class="active"{% endif %}>
                       <a href="{{ link }}">What is Opinew?</a>
                   </li>
               {% endif %}
-              {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
-                {% set link = url_for('.shop_admin') %}
+              {% if current_user.has_role(g.constants.SHOP_OWNER_ROLE) %}
+                {% set link = url_for('client.shop_admin') %}
                   <li {% if request.path == link %}class="active"{% endif %}>
                       <a href="{{ link }}">Shop Admin</a>
                   </li>
               {% endif %}
-              {% set link = url_for('.reviews') %}
+              {% set link = url_for('client.reviews') %}
                 <li {% if request.path == link %}class="active"{% endif %}>
                     <a href="{{ link }}">Reviews</a>
                 </li>
-              {% set link = url_for('.faq') %}
+              {% set link = url_for('client.faq') %}
                 <li {% if request.path == link %}class="active"{% endif %}>
                     <a href="{{ link }}">FAQ</a>
                 </li>
@@ -58,7 +58,7 @@
                       <a href="{{ url_for('.login') }}">Log in</a>
                   </li>
                   <li class="btn-success" style="float:left;">
-                      <a href="{{ url_for('.signup_user') }}" style="color:white;">Sign up</a>
+                      <a href="/register" style="color:white;">Sign up</a>
                   </li>
               {% endif %}
             </ul>

@@ -1,9 +1,9 @@
 {% import "_macros.html" as macros %}
-<form class="action" method="post" action="{{ url_for('.login') }}">
+<form class="action" method="post" action="/login">
     <input type="hidden" name="next" value="{{ next_arg or request.args.next }}"/>
-  {{ login_form.hidden_tag() }}
-  {{ macros.form_field(login_form, login_form.email, class="form-control") }}<br>
-  {{ macros.form_field(login_form, login_form.password, class="form-control") }}<br>
-  {{ login_form.remember_me() }} {{ login_form.remember_me.label() }}<br>
-  {{ login_form.submit(class="tn-primary form-control") }}<br>
+  {{ login_form.hidden_field() }}
+{#  {{ macros.form_field(login_form, login_form.email, class="form-control") }}<br>#}
+{#  {{ macros.form_field(login_form, login_form.password, class="form-control") }}<br>#}
+{#  {{ login_form.remember_me() }} {{ login_form.remember_me.label() }}<br>#}
+{#  {{ login_form.submit(class="tn-primary form-control") }}<br>#}
 </form>

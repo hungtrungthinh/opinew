@@ -4,10 +4,16 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Constants(object):
+    DEFAULT_PROFILE_PICTURE = 'default_user.png'
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+    API_V1_URL_PREFIX = '/api/v1'
+    AUTH_URL_PREFIX = '/auth'
+    MEDIA_URL_PREFIX = '/media'
     NOTIFICATION_AFTER_DELIVERY_SECONDS = 2 * 24 * 60 * 60  # 2 days
     TEMP_PWD_LEN = 5
     SHOP_OWNER_ROLE = 'SHOP_OWNER'
     REVIEWER_ROLE = 'REVIEWER'
+    ADMIN_ROLE = 'ADMIN'
     REVIEWS_PER_PAGE = 10
     NOTIFICATIONS_INITIAL = 20
 
@@ -16,6 +22,12 @@ class Config(object):
     SMTP_SERVER = "smtpout.europe.secureserver.net"
     EMAIL_ADDRESS = "team@opinew.com"
     EMAIL_PASSWORD = "Opinu@m4d4f4k4!"
+
+    MAIL_SERVER = "smtpout.europe.secureserver.net"
+    MAIL_PORT = 465
+    MAIL_USE_SSL = True
+    MAIL_USERNAME = "team@opinew.com"
+    MAIL_PASSWORD = "Opinu@m4d4f4k4!"
 
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = 'fheiy3rihiewui4439845ty89o'
@@ -26,11 +38,12 @@ class Config(object):
     UPLOADED_REVIEWPHOTOS_DEST = os.path.join(basedir, 'media', 'review')
     UPLOADED_REVIEWPHOTOS_URL = '/media/review/'
 
-    DEFAULT_PROFILE_PICTURE = 'default_user.png'
-
     SHOPIFY_APP_API_KEY = '7260cb38253b9adc4af0c90eb622f4ce'
     SHOPIFY_APP_SECRET = '4aff6d82da2174ec13167f149ff7ee50'
     SHOPIFY_APP_SCOPES = 'read_products,read_orders,read_fulfillments'
+
+    SECURITY_CONFIRMABLE = True
+    SECURITY_TRACKABLE = True
 
 
 class ConfigTest(Config):

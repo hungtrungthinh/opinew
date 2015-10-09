@@ -1,10 +1,17 @@
+{% if  current_user.profile_picture_url %}
+    {% set user_photo_url = url_for('media.get_user_photo', filename='%s' % current_user.profile_picture_url) %}
+{% elif current_user.email | gravatar %}
+    {% set user_photo_url = current_user.email | gravatar %}
+{% else %}
+    {% set user_photo_url = url_for('media.get_user_photo', filename='%s' % g.constants.DEFAULT_PROFILE_PICTURE) %}
+{% endif %}
 <li role="presentation" class="dropdown"
     style="margin-top: 10px; margin-left: 10px;  margin-right: 10px">
                       <span href="#" class="dropdown-toggle mobile-menu-profile-pic" data-toggle="dropdown"
                             role="button"
                             aria-expanded="false">
                           <img alt="{{ current_user.name }} profile picture" class="navbar-profile-pic  pull-left"
-                               src="{{ url_for('client.media_user', filename='%s' % current_user.profile_picture_url) }}"/>
+                               src="{{ user_photo_url }}"/>
                           <span class="hidden-xs navbar-name">
                               {{ current_user.name }}
                             {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
@@ -13,6 +20,6 @@
                           </span>
                       </span>
     <ul class="dropdown-menu pull-right">
-        <li><a href="{{ url_for('client.logout') }}">Log out</a></li>
+        <li><a href="{{ url_for('security.logout') }}">Log out</a></li>
     </ul>
 </li>
