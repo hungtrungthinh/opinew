@@ -55,25 +55,9 @@ class User(db.Model, UserMixin):
     confirmed_at = db.Column(db.DateTime)
     last_login_at = db.Column(db.DateTime)
     current_login_at = db.Column(db.DateTime)
-    last_login_ip = db.Column(db.DateTime)
-    current_login_ip = db.Column(db.DateTime)
-    login_count = db.Column(db.DateTime)
-
-    # def __init__(self, password=None, *args, **kwargs):
-    #     super(User, self).__init__(*args, **kwargs)
-    #     self.password = password
-    #
-    # @property
-    # def password(self):
-    #     raise AttributeError('password is not a readable attribute')
-    #
-    # @password.setter
-    # def password(self, password):
-    #     if not password:
-    #         self.temp_password = generate_temp_password()
-    #         self.pw_hash = generate_password_hash(self.temp_password)
-    #     else:
-    #         self.pw_hash = generate_password_hash(password)
+    last_login_ip = db.Column(db.String(40))
+    current_login_ip = db.Column(db.String(40))
+    login_count = db.Column(db.Integer)
 
     def get_own_reviews_about_product_in_shop(self, product, shop):
         shop_product = ShopProduct.query.filter_by(shop=shop, product=product).first()

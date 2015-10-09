@@ -42,7 +42,7 @@ class Config(object):
     SHOPIFY_APP_SECRET = '4aff6d82da2174ec13167f149ff7ee50'
     SHOPIFY_APP_SCOPES = 'read_products,read_orders,read_fulfillments'
 
-    SECURITY_CONFIRMABLE = True
+    SECURITY_CONFIRMABLE = False
     SECURITY_TRACKABLE = True
 
 
