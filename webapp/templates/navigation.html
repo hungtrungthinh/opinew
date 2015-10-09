@@ -55,7 +55,7 @@
                   {% include "navigation_profile.html" %}
               {% else %}
                   <li>
-                      <a href="{{ url_for('.login') }}">Log in</a>
+                      <a href="{{ url_for('security.login') }}">Log in</a>
                   </li>
                   <li class="btn-success" style="float:left;">
                       <a href="/register" style="color:white;">Sign up</a>

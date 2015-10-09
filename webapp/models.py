@@ -46,7 +46,7 @@ class User(db.Model, UserMixin):
     roles = db.relationship('Role', secondary=roles_users,
                             backref=db.backref('users', lazy='dynamic'))
     temp_password = db.Column(db.String)
-    pw_hash = db.Column(db.String)
+    password = db.Column(db.String)
     name = db.Column(db.String)
     profile_picture_url = db.Column(db.String)
     stripe_token = db.Column(db.String)
@@ -59,21 +59,21 @@ class User(db.Model, UserMixin):
     current_login_ip = db.Column(db.DateTime)
     login_count = db.Column(db.DateTime)
 
-    def __init__(self, password=None, *args, **kwargs):
-        super(User, self).__init__(*args, **kwargs)
-        self.password = password
-
-    @property
-    def password(self):
-        raise AttributeError('password is not a readable attribute')
-
-    @password.setter
-    def password(self, password):
-        if not password:
-            self.temp_password = generate_temp_password()
-            self.pw_hash = generate_password_hash(self.temp_password)
-        else:
-            self.pw_hash = generate_password_hash(password)
+    # def __init__(self, password=None, *args, **kwargs):
+    #     super(User, self).__init__(*args, **kwargs)
+    #     self.password = password
+    #
+    # @property
+    # def password(self):
+    #     raise AttributeError('password is not a readable attribute')
+    #
+    # @password.setter
+    # def password(self, password):
+    #     if not password:
+    #         self.temp_password = generate_temp_password()
+    #         self.pw_hash = generate_password_hash(self.temp_password)
+    #     else:
+    #         self.pw_hash = generate_password_hash(password)
 
     def get_own_reviews_about_product_in_shop(self, product, shop):
         shop_product = ShopProduct.query.filter_by(shop=shop, product=product).first()

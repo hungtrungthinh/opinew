@@ -7,7 +7,7 @@
                 <h1>Log in</h1>
 
                 <div class="well">
-                    {% set login_form = security.login_form %}
+                    {% set login_form = security.login_form() %}
                     {% include "forms/login.html" %}
                 </div>
             </div>
