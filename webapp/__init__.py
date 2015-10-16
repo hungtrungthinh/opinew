@@ -1,7 +1,8 @@
-from flask import Flask,g
+from flask import Flask, g
 from flask_admin import Admin
+from flask.ext.admin import AdminIndexView, expose
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.security import Security
+from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required, roles_required
 from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
 from flask.ext.gravatar import Gravatar
@@ -10,9 +11,18 @@ from werkzeug.exceptions import default_exceptions
 from config import config_factory, Constants
 from flask.ext.compress import Compress
 
+
+class MyHomeView(AdminIndexView):
+    @expose('/')
+    @login_required
+    @roles_required(Constants.ADMIN_ROLE)
+    def index(self):
+        return self.render('admin/index.html')
+
+
 db = SQLAlchemy()
 mail = Mail()
-admin = Admin()
+admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
 security = Security()
 api_manager = APIManager()
 compress = Compress()
@@ -43,8 +53,12 @@ def create_app(option):
     gravatar.init_app(app)
     db.init_app(app)
     admin.init_app(app)
-    security.init_app(app)
     mail.init_app(app)
+    from models import User, Role
+    from webapp.forms import ExtendedRegisterForm
+
+    user_datastore = SQLAlchemyUserDatastore(db, User, Role)
+    security.init_app(app, user_datastore, register_form=ExtendedRegisterForm)
     with app.app_context():
         api_manager.init_app(app, flask_sqlalchemy_db=db)
 

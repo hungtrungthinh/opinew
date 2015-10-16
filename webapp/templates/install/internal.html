@@ -3,15 +3,18 @@
     <div class="container">
         <div class="row">
             <div class="col-md-6">
+                <h2>Tell us a bit more about your shop</h2>
+                <p>TODO: Shop name form...</p>
+                <p>TODO: Shop url form:...</p>
+                <h2>Import reviews</h2>
+                <p>TODO: Import form...</p>
                 <h2>Plugin code</h2>
-                <ol>
-                    <li>Copy the following code below the last line on your product page:</li>
+                    <p>Copy the following code below the last line on your product page:</p>
     <textarea disabled style="margin: 0; width: 700px; height: 70px;">
 &lt;iframe style="border:0; width:100%; height:400px;"
-  src="{{ g.config.OPINEW_API_SERVER }}/plugin?platform_product_id={{ '{{product.id}}' }}"&gt;
+  src="{{ g.config.OPINEW_API_SERVER }}/plugin?shop_id={{ current_user.shop.id }}&platform_product_id={{ '{{product.id}}' }}"&gt;
 &lt;/iframe&gt;
     </textarea>
-                </ol>
             </div>
         </div>
     </div>

@@ -2,11 +2,23 @@
 {% block content %}
     <div class="container">
         <div class="row">
-            <h1>Review {{ product.label }} from {{ order.shop.label }}</h1>
-
-            <div class="col-md-6 col-md-offset-3">
+          {% if product %}
+              <h1>Review {{ product.name }}
+          {% else %}
+              <h1>Post a review
+          {% endif %}
+          {% if order %}
+              from {{ order.shop.name }}
+          {% endif %}
+            </h1>
+            <div class="alert" id="product-post-status" hidden></div>
+            <div class="col-md-6 col-md-offset-3" id="product-review">
               {% include "forms/review.html" %}
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block script %}
+    <script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
 {% endblock %}

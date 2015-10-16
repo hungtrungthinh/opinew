@@ -1,10 +1,11 @@
 {% import "_macros.html" as macros %}
-<form class="action" method="post" action="{{ url_for('.signup') }}">
+<form method="post" action="/register">
     <input type="hidden" name="next" value="{{ request.args.next }}"/>
-  {{ signup_form.hidden_tag() }}
+  {{ signup_form.csrf_token() }}
+  {{ macros.form_field(signup_form, signup_form.name, class="form-control") }}<br>
   {{ macros.form_field(signup_form, signup_form.email, class="form-control") }}<br>
   {{ macros.form_field(signup_form, signup_form.password, class="form-control") }}<br>
-  {{ macros.form_field(signup_form, signup_form.password_verify, class="form-control") }}<br>
+  {{ macros.form_field(signup_form, signup_form.password_confirm, class="form-control") }}<br>
     <br>
   {{ signup_form.submit(class="btn-primary form-control") }}<br>
 </form>

@@ -1,9 +1,10 @@
-from flask import jsonify
+from flask import jsonify, url_for
 from flask.ext.security import login_user, current_user
 from flask.ext.restless import ProcessingException
-from webapp import api_manager, models
+from webapp import api_manager, models, db
 from webapp.api import api
 from webapp.common import get_post_payload, param_required, catch_exceptions
+from webapp.exceptions import DbException
 from config import Constants
 
 
@@ -19,6 +20,22 @@ def req_shop_owner(*args, **kwargs):
     return True
 
 
+def create_review(result, *args, **kwargs):
+    shop_product_id = result.get('shop_product_id')
+    review_id = result.get('id')
+    review = models.Review.query.filter_by(id=review_id).first()
+    shop_product_review = models.ShopProductReview(shop_product_id=shop_product_id, review_id=review_id)
+    db.session.add(shop_product_review)
+    db.session.commit()
+    shop_owner = shop_product_review.shop_product.shop.owner
+    notification = models.Notification(user=shop_owner,
+                                       content='You received a new review about <b>%s</b>. <br>'
+                                               'Click here to allow or deny display on plugin' % review.shop_product.product.name,
+                                       url=url_for('client.view_review', review_id=review_id))
+    db.session.add(notification)
+    db.session.commit()
+
+
 api_manager.create_api(models.Product,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET'])
@@ -28,7 +45,12 @@ api_manager.create_api(models.Review,
                        methods=['GET', 'POST'],
                        preprocessors={
                            'POST': [auth_func]
-                       })
+                       },
+                       postprocessors={
+                           'POST': [create_review]
+                       },
+                       exclude_columns=models.User.exclude_fields(),
+                       validation_exceptions=[DbException])
 
 api_manager.create_api(models.Order,
                        url_prefix=Constants.API_V1_URL_PREFIX,

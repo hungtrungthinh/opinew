@@ -41,9 +41,9 @@
           {% if not reviews %}
               <h3>No reviews yet</h3>
           {% else %}
-            {% if current_user.is_authenticated() %}
+            {% if own_reviews %}
                 <h3>Your reviews</h3>
-              {% for review in current_user.get_own_reviews_about_product_in_shop(product, shop) %}
+              {% for review in own_reviews %}
                 {% if review.is_approved_by_shop() %}
                     <div class="alert alert-success">
                     <p>Approved by the shop!</p>
@@ -65,5 +65,6 @@
 </div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
 </body>
 </html>

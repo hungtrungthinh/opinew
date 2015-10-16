@@ -1,3 +1,4 @@
+# TODO: DEPRECATED. Use Flask-Mail instead
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText

@@ -1,24 +1,13 @@
 from datetime import datetime
 from sqlalchemy import and_
-from webapp import db, admin, security, review_photos
-from webapp.common import generate_temp_password
+from sqlalchemy.orm import validates
+from webapp import db, admin
 from webapp.exceptions import DbException
 from flask import url_for, g, abort, redirect, request
 from flask_admin.contrib.sqla import ModelView
-from flask.ext.security import UserMixin, RoleMixin, SQLAlchemyUserDatastore, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from config import Config, Constants
+from flask.ext.security import UserMixin, RoleMixin, current_user
+from config import Constants
 from async import email_sender
-
-product_tags_table = db.Table('product_tags',
-                              db.Column('product_id', db.Integer, db.ForeignKey('product.id')),
-                              db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
-                              )
-
-review_tags_table = db.Table('review_tags',
-                             db.Column('review_id', db.Integer, db.ForeignKey('review.id')),
-                             db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
-                             )
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
@@ -59,6 +48,19 @@ class User(db.Model, UserMixin):
     current_login_ip = db.Column(db.String(40))
     login_count = db.Column(db.Integer)
 
+    @classmethod
+    def exclude_fields(cls):
+        return ['user.active',
+                'user.confirmed_at',
+                'user.password',
+                'user.stripe_token',
+                'user.temp_password',
+                'user.current_login_at',
+                'user.current_login_ip',
+                'user.last_login_at',
+                'user.last_login_ip',
+                'user.login_count']
+
     def get_own_reviews_about_product_in_shop(self, product, shop):
         shop_product = ShopProduct.query.filter_by(shop=shop, product=product).first()
         return Review.query.filter_by(user=self, shop_product=shop_product).all()
@@ -71,16 +73,8 @@ class User(db.Model, UserMixin):
         return cls.query.filter_by(id=user_id).first()
 
     @classmethod
-    def get_or_create_by_email(cls, email):
-        user = cls.query.filter_by(email=email).first()
-        if not user:
-            user = User(email=email, role=Constants.REVIEWER_ROLE)
-            db.session.add(user)
-            db.session.commit()
-            if not g.mode == 'development':
-                email_sender.send_mail(email, "Welcome to Opinew", "new_user.html",
-                                       {'user_password': user.temp_password}, )
-        return user
+    def get_by_email_no_exception(cls, email):
+        return cls.query.filter_by(email=email).first()
 
     @classmethod
     def get_by_email(cls, email):
@@ -88,11 +82,6 @@ class User(db.Model, UserMixin):
         if not user:
             raise DbException(message="User with email %s does not exist." % email, status_code=400)
         return user
-
-    def validate_password(self, password):
-        if not check_password_hash(self.pw_hash, password):
-            raise DbException(message="Wrong password.", status_code=400)
-        return True
 
     def unread_notifications(self):
         notifications = Notification.query.filter(and_(Notification.user_id == self.id,
@@ -132,6 +121,8 @@ class Notification(db.Model):
 
     @classmethod
     def get_for_user(cls, user):
+        if not user or not user.is_authenticated():
+            raise DbException(message="User doesnt exist", status_code=400)
         return cls.query.filter_by(user=user).order_by(Notification.id.desc()).all()
 
 
@@ -208,19 +199,60 @@ class Order(db.Model):
         db.session.commit()
 
 
-class Review(db.Model):
+class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String)
     created_ts = db.Column(db.DateTime, default=datetime.utcnow())
     photo_url = db.Column(db.String)
+    by_customer_support = db.Column(db.Boolean, default=False)
 
-    tags = db.relationship("Tag", secondary=review_tags_table, backref=db.backref("reviews", lazy="dynamic"))
+    for_review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    for_review = db.relationship('Review', backref=db.backref('comments'))
+
+    def __repr__(self):
+        return '<Comment %r... for %r>' % (self.body[:10], self.for_review)
+
+
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.UnicodeText, default=u'')
+    created_ts = db.Column(db.DateTime, default=datetime.utcnow())
+    photo_url = db.Column(db.UnicodeText, default=u'')
+    verified_review = db.Column(db.Boolean, default=False)
+    star_rating = db.Column(db.Integer, default=0)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref=db.backref('reviews'))
 
     shop_product_id = db.Column(db.Integer, db.ForeignKey('shop_product.id'))
     shop_product = db.relationship('ShopProduct', backref=db.backref('reviews'))
+
+    amending_review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    amending_review = db.relationship('Review', uselist=False, remote_side=[id],
+                                      backref=db.backref('amended_review', uselist=False))
+
+    def __init__(self, body=None, photo_url=None, shop_product_id=None, star_rating=None, **kwargs):
+        self.body = body
+        self.photo_url = photo_url
+        self.shop_product_id = shop_product_id
+        self.star_rating = star_rating
+
+        self.user_id = current_user.id if current_user else 0
+
+    @classmethod
+    def create_from_repopulate(cls, user=None, shop_product_id=None, body=None, photo_url=None, star_rating=None):
+        review = cls(body=body, photo_url=photo_url, shop_product_id=shop_product_id, star_rating=star_rating)
+        review.user = user
+        return review
+
+    @validates('star_rating')
+    def validate_star_rating(self, key, rating):
+        if rating:
+            rating = int(rating)
+            if rating >= 0 and rating <= 5:
+                return rating
+        raise DbException(message="[star_rating: Rating needs to be between 0 and 5 stars]", status_code=400)
+
 
     def __repr__(self):
         return '<Review %r... by %r>' % (self.body[:10], self.user)
@@ -231,8 +263,8 @@ class Review(db.Model):
         return True
 
     def is_approved_by_shop(self):
-        shop_review = ShopProductReview.get_by_shop_and_review_id(self.shop_product.shop.id, self.id)
-        return shop_review.approved_by_shop
+        shop_product_review = ShopProductReview.get_by_shop_and_review_id(self.shop_product.id, self.id)
+        return shop_product_review.approved_by_shop
 
     @classmethod
     def get_by_id(cls, review_id):
@@ -264,7 +296,7 @@ class Review(db.Model):
         shop_product = ShopProduct.query.filter(
             and_(ShopProduct.product_id == product_id, ShopProduct.shop_id == shop_id)).first()
         reviews = Review.query.filter_by(shop_product=shop_product).order_by(Review.created_ts.desc()).all()
-        return [r for r in reviews if r.shop_review.approved_by_shop]
+        return [r for r in reviews if r.shop_product_review and r.shop_product_review.approved_by_shop]
 
 
 class Shop(db.Model):
@@ -347,11 +379,11 @@ class ShopProductReview(db.Model):
     approval_pending = db.Column(db.Boolean, default=True)
 
     @classmethod
-    def get_by_shop_and_review_id(cls, shop_id, review_id):
-        shop_review = cls.query.filter(and_(cls.shop_id == shop_id, cls.review_id == review_id)).first()
-        if not shop_review:
-            raise DbException(message='Shop %s does not have review %s' % (shop_id, review_id), status_code=400)
-        return shop_review
+    def get_by_shop_and_review_id(cls, shop_product_id, review_id):
+        shop_product_review = cls.query.filter(and_(cls.shop_product_id == shop_product_id, cls.review_id == review_id)).first()
+        if not shop_product_review:
+            raise DbException(message='Shop %s does not have review %s' % (shop_product_id, review_id), status_code=400)
+        return shop_product_review
 
     def approve(self):
         self.approved_by_shop = True
@@ -383,8 +415,8 @@ class ShopProduct(db.Model):
     product = db.relationship("Product", backref=db.backref("shop_product", uselist=False))
 
     @classmethod
-    def get_by_platform_product_id(cls, platform_product_id):
-        sp = ShopProduct.query.filter_by(platform_product_id=platform_product_id).first()
+    def get_by_shop_and_platform_product_id(cls, shop_id, platform_product_id):
+        sp = cls.query.filter_by(shop_id=shop_id, platform_product_id=platform_product_id).first()
         if not sp or not sp.product:
             raise DbException(message='Shop_Product doesn\'t exist', status_code=404)
         return sp
@@ -396,13 +428,11 @@ class ShopProduct(db.Model):
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
-    tags = db.relationship("Tag", secondary=product_tags_table,
-                           backref=db.backref("products", lazy="dynamic"))
 
     def __repr__(self):
         return '<Product %r>' % self.name
 
-    def add_review(self, order, body, photo_url, tag_ids, shop_id):
+    def add_review(self, order, body, photo_url, shop_id):
         if order:
             user = User.get_by_email(order.user.email)
             shop_id = order.shop.id
@@ -416,13 +446,9 @@ class Product(db.Model):
         shop_product = ShopProduct.query.filter_by(product_id=self.id, shop_id=shop_id).first()
         review = Review(order=order, user=user, shop_product=shop_product,
                         photo_url=photo_url, body=body)
-        shop_review = ShopProductReview(review=review, shop=shop)
-        for tag_id in tag_ids:
-            tag = Tag.query.filter_by(id=tag_id).first()
-            if tag:
-                review.tags.append(tag)
+        shop_product_review = ShopProductReview(review=review, shop=shop)
         db.session.add(review)
-        db.session.add(shop_review)
+        db.session.add(shop_product_review)
         db.session.commit()
         notification = Notification(user=shop.owner,
                                     content='You received a new review about <b>%s</b>. <br>'
@@ -438,15 +464,6 @@ class Product(db.Model):
         if not product:
             raise DbException(message='Product doesn\'t exist', status_code=404)
         return product
-
-
-class Tag(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    label = db.Column(db.String)
-    connotation = db.Column(db.Integer)
-
-    def __repr__(self):
-        return '<Tag %r (%r)>' % (self.label, self.connotation)
 
 
 # Create customized model view class
@@ -472,11 +489,6 @@ class AdminModelView(ModelView):
                 # login
                 return redirect(url_for('security.login', next=request.url))
 
-# Setup Flask-Security
-user_datastore = SQLAlchemyUserDatastore(db, User, Role)
-security.datastore = user_datastore
-
-
 # Setup Flask-Admin
 admin.add_view(AdminModelView(User, db.session))
 admin.add_view(AdminModelView(Notification, db.session))
@@ -487,4 +499,3 @@ admin.add_view(AdminModelView(Platform, db.session))
 admin.add_view(AdminModelView(ShopProductReview, db.session))
 admin.add_view(AdminModelView(ShopProduct, db.session))
 admin.add_view(AdminModelView(Product, db.session))
-admin.add_view(AdminModelView(Tag, db.session))

@@ -3,17 +3,13 @@
 {% block content %}
     <div class="container">
         <div class="row">
-            <h1 class="text-center">Business Sign Up</h1>
+            <h1 class="text-center">Customer Sign Up</h1>
 
             <div class="col-md-4 col-md-offset-2">
 
-              {% if 'business_signed_up' in session %}
-                  <p class="lead text-success">Thanks for your interest, we will contact you soon!</p>
-              {% else %}
-                  <div class="well">
-                    {% include "forms/signup.html" %}
-                  </div>
-              {% endif %}
+                <div class="well">
+                  {% include "forms/customer_signup.html" %}
+                </div>
             </div>
             <div class="col-md-4">
                 <div class="well">
