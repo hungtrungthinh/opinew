@@ -1,13 +1,14 @@
 import os
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, session
+    current_app, make_response, abort
 from flask.ext.security import login_required, login_user, current_user, roles_required
 from flask.ext.security.utils import encrypt_password
 from providers.shopify_api import API
 from webapp import db, review_photos
 from webapp.client import client
-from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, ShopProductReview, Role
-from webapp.common import param_required, get_post_payload, catch_exceptions
+from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, ShopProductReview, \
+    Role
+from webapp.common import param_required, get_post_payload, catch_exceptions, generate_temp_password
 from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, ExtendedRegisterForm, ReviewForm, ReviewPhotoForm
 from config import Constants, basedir
@@ -30,7 +31,7 @@ def install():
 
 
 def install_internal_step_one():
-    return render_template('install/internal.html')
+    return redirect(url_for('client.user_setup', ref='internal'))
 
 
 def install_shopify_step_one():
@@ -43,7 +44,7 @@ def install_shopify_step_one():
         raise ParamException('incorrect shop name', 400)
     shop = Shop.get_by_shop_domain(shop_domain)
     if shop and shop.access_token:
-        return redirect(url_for('.user_setup'))
+        return redirect(url_for('client.user_setup'))
 
     client_id = g.config.get('SHOPIFY_APP_API_KEY')
     scopes = g.config.get('SHOPIFY_APP_SCOPES')
@@ -89,32 +90,43 @@ def shopify_plugin_callback():
 
     # Create webhooks
     shopify_api.create_webhook("products/create",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_product')))
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
+                                         url_for('api.platform_shopify_create_product')))
     shopify_api.create_webhook("products/update",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.update_product')))
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
+                                         url_for('api.platform_shopify_update_product')))
     shopify_api.create_webhook("products/delete",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.delete_product')))
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
+                                         url_for('api.platform_shopify_delete_product')))
     shopify_api.create_webhook("orders/create",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.create_order')))
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
+                                         url_for('api.platform_shopify_create_order')))
     shopify_api.create_webhook("fulfillments/create",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'), url_for('api.fulfill_order')))
+                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
+                                         url_for('api.platform_shopify_fulfill_order')))
 
     # Create db records
     # Create shop user, generate pass
-    shop_owner = User(email=shopify_shop.get('email', ''),
-                      name=shopify_shop.get('shop_owner', ''),
-                      role=Constants.SHOP_OWNER_ROLE)
+    shopify_email = shopify_shop.get('email', '')
+    shop_owner = User.get_by_email_no_exception(shopify_email)
+    shop_owner_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
+    if not shop_owner:
+        shop_owner = User(email=shopify_shop.get('email', ''),
+                          temp_password=generate_temp_password(),
+                          name=shopify_shop.get('shop_owner', ''))
+    shop_owner.roles.append(shop_owner_role)
     db.session.add(shop_owner)
 
     # Create shop with owner = shop_user
     shopify_platform = Platform.get_by_name('shopify')
-    shop = Shop(label=shop_name, domain=shop_domain, platform=shopify_platform, access_token=shopify_api.access_token,
+    shop = Shop(name=shop_name, domain=shop_domain, platform=shopify_platform, access_token=shopify_api.access_token,
                 owner=shop_owner)
+    shop_owner.shops.append(shop)
     db.session.add(shop)
 
     # Import shop products
     for product_j in shopify_products:
-        product = Product(label=product_j.get('title', ''))
+        product = Product(name=product_j.get('title', ''))
         product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
         shop_product = ShopProduct(product=product,
                                    shop=shop,
@@ -132,7 +144,18 @@ def shopify_plugin_callback():
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def user_setup():
-    return render_template('shopify/user_setup.html')
+    #TODO: What if many shops?
+    ref = request.args.get('ref')
+    shops = current_user.shops
+    if len(shops) == 1:
+        code = render_template('user_setup/code.html', shop=shops[0])
+    if ref == 'internal':
+        return render_template('user_setup/internal.html', code=code)
+    elif ref == 'shopify':
+        return render_template('user_setup/shopify.html', code=code)
+    else:
+        return render_template('user_setup/internal.html', code=code)
+
 
 
 @client.route('/')
@@ -185,39 +208,43 @@ def reviews():
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def shop_admin():
-    shop = current_user.shop
-    return render_template('shop_admin/home.html', shop=shop)
+    shops = current_user.shops
+    if len(shops) == 1:
+        return redirect(url_for('client.shop_admin_id', shop_id=shops[0].id))
+    return render_template('shop_admin/choose_shop.html', shops=shops)
+
+
+@client.route('/shop_admin/<int:shop_id>')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def shop_admin_id(shop_id):
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_admin'))
+    orders = shop.shop_product.orders
+    return render_template('shop_admin/home.html', shop=shop, orders=orders)
 
 
 @client.route('/plugin')
 def get_plugin():
-    # TODO: Graceful degradation - try js first
-    # <div id="opinew-reviews"></div>
-    # <script src="http://opinew_api.local:5000/widgets/widget.js"></script>
-    # <noscript>
-    #     <iframe style="border:0; width:100%; height:600px;"
-    #             src="http://opinew_api.local:5000/plugin?platform_product_id={{ product.id }}">
-    #     </iframe>
-    #     <p><a href="http://opinew_api.local:5000/">This widget provided by example.com</a></p>
-    # </noscript>
     try:
         review_form = ReviewForm()
         review_photo_form = ReviewPhotoForm()
         signup_form = ExtendedRegisterForm()
         login_form = LoginForm()
         shop_id = param_required('shop_id', request.args)
-        platform_product_id = param_required('platform_product_id', request.args)
-        shop_product = ShopProduct.get_by_shop_and_platform_product_id(shop_id, platform_product_id)
-        product = shop_product.product
-        shop = shop_product.shop
-        reviews = Review.get_for_product_approved_by_shop(product.id, shop.id)
-        own_reviews = current_user.get_own_reviews_about_product_in_shop(product, shop) if current_user and current_user.is_authenticated() else []
+        product_location = param_required('product_location', request.args)
+        shop_product = ShopProduct.get_by_shop_and_product_location(shop_id, product_location)
+        reviews = Review.get_for_product_approved_by_shop(shop_product.product.id, shop_product.shop.id)
+        own_reviews = current_user.get_own_reviews_about_product_in_shop(shop_product.product,
+                                                                         shop_product.shop) if current_user and current_user.is_authenticated() else []
         next_arg = request.url
     except (ParamException, DbException) as e:
         return '', 500
-    return render_template('plugin/plugin.html', product=product, reviews=reviews,
+    return render_template('plugin/plugin.html', shop_product=shop_product, reviews=reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
-                           review_photo_form=review_photo_form, shop=shop, next_arg=next_arg,
+                           review_photo_form=review_photo_form, next_arg=next_arg,
                            own_reviews=own_reviews)
 
 
@@ -273,23 +300,23 @@ def read_notification():
 @catch_exceptions
 def web_review():
     order_id = request.args.get('order_id')
-    product_id = request.args.get('product_id')
-    order, product, products = None, None, None
-    if product_id:
-        product = Product.get_by_id(product_id)
-    if not product:
-        products = Product.query.all()
+    shop_product_id = request.args.get('shop_product_id')
+    order, shop_product, shop_products = None, None, None
+    if shop_product_id:
+        shop_product = ShopProduct.query.filter_by(id=shop_product_id).first()
+    if not shop_product:
+        shop_products = ShopProduct.query.all()
     if order_id:
-        order = Order.get_by_id(order_id)
+        order = Order.query.filter_by(id=order_id).first()
         if not order:
             flash('Not such order.')
-            return redirect(url_for('.home'))
-    if order_id and product not in order.products:
+            return redirect(url_for('client.index'))
+    if order_id and shop_product not in order.shop_products:
         flash('Product not in orders.')
-        return redirect(url_for('.home'))
+        return redirect(url_for('client.index'))
     if order_id and not order.user == current_user:
         flash('Not your order to review.')
-        return redirect(url_for('.home'))
+        return redirect(url_for('client.index'))
     review_form = ReviewForm()
     review_photo_form = ReviewPhotoForm()
     if request.method == 'POST' and review_form.validate_on_submit():
@@ -307,16 +334,17 @@ def web_review():
             flash(e.message)
             return redirect(url_for('.home'))
 
-        product.add_review(order=order, body=body, photo_url=photo_url, shop_id=shop_id)
+        shop_product.product.add_review(order=order, body=body, photo_url=photo_url, shop_id=shop_id)
 
         flash('Review submitted')
         if not order_id:
             return redirect(request.referrer)
         return redirect(request.args.get('next') or url_for('.reviews'))
-    return render_template('web_review/main.html', order=order, product=product, products=products,
+    return render_template('web_review/main.html', order=order, shop_product=shop_product, shop_products=shop_products,
                            review_form=review_form, review_photo_form=review_photo_form)
 
-@client.route('/product', defaults={'review_id': 0})
+
+@client.route('/review', defaults={'review_id': 0})
 @client.route('/review/<int:review_id>')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
@@ -387,7 +415,7 @@ def sitemapxml():
     pages = []
     # static pages
     for rule in current_app.url_map.iter_rules():
-        if "GET" in rule.methods and len(rule.arguments) == 0\
+        if "GET" in rule.methods and len(rule.arguments) == 0 \
                 and '/admin/' not in rule.rule:
             pages.append([rule.rule])
     sitemap_xml = render_template('sitemap.xml', pages=pages)

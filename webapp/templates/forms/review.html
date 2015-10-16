@@ -1,20 +1,37 @@
 {% import "_macros.html" as macros %}
+{% if order %}
+    <span class="label label-success">
+                  <span class="glyphicon glyphicon-ok"></span> Verified purchase
+              </span>
+{% endif %}
+{% if shop_product and shop_product.shop.owner == current_user %}
+    <span class="label label-info">
+                  <span class="glyphicon glyphicon-user"></span> By shop owner
+              </span>
+{% endif %}
+<br>
 <form class="action" method="post" action="{{ url_for('media.upload_review_photo') }}">
-    <img src="" class="img-responsive" style="max-height:200px; max-width:500px;" hidden id="review-photo-img"/>
+    <img src="" class="img-thumbnail img-responsive" style="max-height:200px; max-width:500px; margin: 20px 0 20px 0;"
+         hidden id="review-photo-img"/>
+    <br>
   {{ review_photo_form.hidden_tag() }}
   {{ review_photo_form.photo(class="form-control") }}<br>
 </form>
 <form class="action" method="post" action="{{ g.constants.API_V1_URL_PREFIX }}/review" id="review-form">
     <input type="hidden" name="next" value="{{ request.args.next }}"/>
   {{ review_form.hidden_tag() }}
-  {% if product %}
-      <input type="hidden" class="form-serialize" name="shop_product_id" value="{{ product.shop_product.id }}">
+  {% if order %}
+      <input type="hidden" class="form-serialize" name="order_id" value="{{ order.id }}">
+      <input type="hidden" class="form-serialize" name="order_token" value="{{ order.token }}">
+  {% endif %}
+  {% if shop_product %}
+      <input type="hidden" class="form-serialize" name="shop_product_id" value="{{ shop_product.id }}">
   {% else %}
       <div class="form-group">
           <label for="sel_product">Select product</label>
           <select class="form-control form-serialize" name="shop_product_id" id="sel_product">
-            {% for product in products %}
-                <option value="{{ product.shop_product.id }}">{{ product.name }}</option>
+            {% for shop_product in shop_products %}
+                <option value="{{ shop_product.id }}">{{ shop_product.product.name }}</option>
             {% endfor %}
           </select>
       </div>

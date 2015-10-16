@@ -151,3 +151,20 @@ footer .nav > li > a:hover {
   color: #ffffff;
   padding-bottom: 20px
 }
+
+.star-rating {
+  font-size: 2em;
+}
+
+.star-active:before {
+  content: "\2605";
+  position: absolute;
+}
+
+.star-active:before {
+  color: #fb8c2d;
+}
+
+.badges {
+  margin: 0 0 0 70px;
+}

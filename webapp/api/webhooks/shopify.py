@@ -32,7 +32,7 @@ def platform_shopify_create_product():
 @api.route('/platform/shopify/products/update', methods=['POST'])
 @verify_webhook
 @catch_exceptions
-def update_product():
+def platform_shopify_update_product():
     """
     Currently this works with the Shopify API
     From Webhook - update product
@@ -55,7 +55,7 @@ def update_product():
 @api.route('/platform/shopify/products/delete', methods=['POST'])
 @verify_webhook
 @catch_exceptions
-def delete_product():
+def platform_shopify_delete_product():
     """
     Currently this works with the Shopify API
     From Webhook - update product
@@ -74,7 +74,7 @@ def delete_product():
 @api.route('/orders/create', methods=['POST'])
 @verify_webhook
 @catch_exceptions
-def create_order():
+def platform_shopify_create_order():
     payload = get_post_payload()
 
     shop_domain = request.headers.get('X-Shopify-Shop-Domain')
@@ -102,7 +102,7 @@ def create_order():
 @api.route('/orders/fulfill', methods=['POST'])
 @verify_webhook
 @catch_exceptions
-def fulfill_order():
+def platform_shopify_fulfill_order():
     payload = get_post_payload()
     platform_order_id = payload.get('order_id')
 

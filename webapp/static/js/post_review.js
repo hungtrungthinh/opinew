@@ -20,10 +20,10 @@ $('#review-form').bind('submit', function (e) {
         .html('<p>Thank you for posting review</p>')
         .slideDown();
   }).fail(function (r) {
-    var errors = JSON.stringify(r.responseJSON.validation_errors);
+    var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
     $('#product-post-status')
         .addClass('alert-danger')
-        .html('<p>Something went wrong: ' + errors + '</p>')
+        .html('<p><strong>Something went wrong</strong>: ' + errors + '</p>')
         .slideDown();
 
   });

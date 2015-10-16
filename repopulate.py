@@ -12,11 +12,25 @@ class Repopulate(object):
         self.ADMIN_PASSWORD = sensitive.ADMIN_PASSWORD
         self.REVIEWER_PASSWORD = 'password'
         self.OWNER_PASSWORD = 'owner_password'
-        self.SHOP_URL = 'http://shop.opinew.com'
+        self.SHOP_URL = 'http://opinew_shop.local:5001'
 
         self.admin_role, self.shop_owner_role, self.reviewer_role, self.shopify_platform, self.custom_platform, self.null_shop, self.shop_owner, self.opinew_shop = None, None,None, None,None,None, None, None
 
     def populate_dev(self):
+        ###############################
+        # CREATE SUBSRTIPTION PLANS
+        ###############################
+        with open(os.path.join(basedir, 'install', 'init_db', 'SubscriptionPlan.csv'), 'r') as csvfile:
+            spreader = csv.reader(csvfile)
+            csvfile.readline()  # skip first line
+            for row in spreader:
+                plan = models.SubscriptionPlan(name=row[1],
+                                               description=row[2],
+                                               price=row[3],
+                                               payment_frequency=row[4],
+                                               active=row[5])
+                db.session.add(plan)
+
         ###############################
         # CREATE USERS
         ###############################
@@ -28,6 +42,23 @@ class Repopulate(object):
                 role = models.Role.query.filter_by(name=row[5]).first()
                 user.roles.append(role)
                 db.session.add(user)
+
+        # create shop owner USER
+        self.shop_owner = models.User(name="Shop Owner", email='owner@opinew.com', password=encrypt_password(self.OWNER_PASSWORD))
+        self.shop_owner.roles.append(self.shop_owner_role)
+        db.session.add(self.shop_owner)
+
+        # create shop owner CUSTOMER
+        shop_owner_customer = models.Customer(user=self.shop_owner, current_subscription_plan_id=6)
+        switch = models.CustomerSubscriptionPlanChange(customer=shop_owner_customer, new_subscription_plan_id=6)
+        db.session.add(shop_owner_customer)
+        db.session.add(switch)
+
+        # Create opinew shop
+        SHOP_URL = 'http://opinew_shop.local:5001/'
+        self.opinew_shop = models.Shop(name='Opinew shop', domain=SHOP_URL, platform=self.custom_platform)
+        self.opinew_shop.owner = self.shop_owner
+        db.session.add(self.opinew_shop)
 
         ###############################
         # CREATE PRODUCTS
@@ -45,11 +76,9 @@ class Repopulate(object):
         ###############################
         # CREATE ORDERS
         ###############################
-        order_1 = models.Order(user=models.User.query.filter_by(id=3).first(),
-                               shop=self.opinew_shop,
-                               )
-        order_1.products.append(models.Product.query.filter_by(id=1).first())
-        order_1.products.append(models.Product.query.filter_by(id=2).first())
+        order_1 = models.Order(user_id=3, shop_id=2)
+        order_1.shop_products.append(models.ShopProduct.query.filter_by(id=1).first())
+        order_1.shop_products.append(models.ShopProduct.query.filter_by(id=2).first())
         db.session.add(order_1)
 
         ###############################
@@ -63,20 +92,32 @@ class Repopulate(object):
                 product = models.Product.query.filter_by(id=row[5]).first()
                 shop_product = models.ShopProduct.query.filter_by(shop=self.opinew_shop, product=product).first()
                 review = models.Review.create_from_repopulate(user=user, shop_product_id=shop_product.id,
-                                       body=unicode(row[1]), photo_url=unicode(row[3]), star_rating=row[2])
+                                       body=unicode(row[1]), photo_url=unicode(row[3]), star_rating=row[2],
+                                                              verified_review=row[6])
                 shop_review = models.ShopProductReview(shop_product=shop_product, review=review)
                 shop_review.approved_by_shop = True
                 shop_review.approval_pending = False
                 db.session.add(shop_review)
 
     def populate_test(self):
+        admin = models.User(name="Admin", email='danieltcv@opinew.com', password=self.ADMIN_PASSWORD)
+        admin.roles.append(self.admin_role)
+        db.session.add(admin)
+
         reviewer = models.User(name="Reviewer", email='reviewer@opinew.com', password=self.REVIEWER_PASSWORD)
         reviewer.roles.append(self.reviewer_role)
         db.session.add(reviewer)
 
-        admin = models.User(name="Admin", email='danieltcv@opinew.com', password=self.ADMIN_PASSWORD)
-        admin.roles.append(self.admin_role)
-        db.session.add(admin)
+        # create shop owner USER
+        self.shop_owner = models.User(name="Shop Owner", email='owner@opinew.com', password=encrypt_password(self.OWNER_PASSWORD))
+        self.shop_owner.roles.append(self.shop_owner_role)
+        db.session.add(self.shop_owner)
+
+        # Create opinew shop
+        SHOP_URL = 'http://opinew_shop.local:5001/'
+        self.opinew_shop = models.Shop(name='Opinew shop', domain=SHOP_URL, platform=self.custom_platform)
+        self.opinew_shop.owner = self.shop_owner
+        db.session.add(self.opinew_shop)
 
         product = models.Product(name='Ear rings')
         shop_product = models.ShopProduct(shop=self.opinew_shop,
@@ -116,18 +157,8 @@ class Repopulate(object):
         # CREATE SHOPS
         ###############################
         # Create null shop
-        self.null_shop = models.Shop()
+        self.null_shop = models.Shop(name="NULL_SHOP")
         db.session.add(self.null_shop)
-
-        # Create opinew shop
-        SHOP_URL = 'http://shop.opinew.com'
-        self.shop_owner = models.User(name="Shop Owner", email='owner@opinew.com', password=self.OWNER_PASSWORD)
-        self.shop_owner.roles.append(self.shop_owner_role)
-        db.session.add(self.shop_owner)
-
-        self.opinew_shop = models.Shop(name='Opinew shop', domain=SHOP_URL, platform=self.custom_platform)
-        self.opinew_shop.owner = self.shop_owner
-        db.session.add(self.opinew_shop)
 
         if option == 'test':
             self.populate_test()

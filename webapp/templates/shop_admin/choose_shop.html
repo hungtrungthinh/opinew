@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                <h2>Please choose a shop to administrate:</h2>
+              {% for shop in shops %}
+                      <a href="{{ url_for('client.shop_admin_id', shop_id=shop.id) }}">
+                          <div class="well">
+                              <h3>{{ shop.name }}</h3>
+                          </div>
+                      </a>
+              {% endfor %}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

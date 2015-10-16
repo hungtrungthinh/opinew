@@ -1,4 +1,13 @@
 <p style="font-size: 1.2em; margin: 10px;">
 
-  {{ review.body }}
+<div class="rating">
+    <span class="star-rating {% if review.star_rating >= 1 %}star-active{% endif %}">☆</span>
+    <span class="star-rating {% if review.star_rating >= 2 %}star-active{% endif %}">☆</span>
+    <span class="star-rating {% if review.star_rating >= 3 %}star-active{% endif %}">☆</span>
+    <span class="star-rating {% if review.star_rating >= 4 %}star-active{% endif %}">☆</span>
+    <span class="star-rating {% if review.star_rating == 5 %}star-actives{% endif %}">☆</span>
+</div>
+<br>
+<br>
+{{ review.body }}
 </p>

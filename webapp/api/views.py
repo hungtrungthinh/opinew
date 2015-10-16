@@ -20,7 +20,35 @@ def req_shop_owner(*args, **kwargs):
     return True
 
 
-def create_review(result, *args, **kwargs):
+def pre_create_review(data, *args, **kwargs):
+    shop_id = data.get('shop_id')
+    if shop_id:
+        shop = models.Shop.query.filter_by(id=shop_id).first()
+        if shop.owner == current_user:
+            data['by_shop_owner'] = True
+    order_id = data.get('order_id')
+    order_token = data.get('order_token')
+    if order_id and order_token:
+        order = models.Order.query.filter_by(id=order_id).first()
+        if not order:
+            raise ProcessingException(description='No such order', code=401)
+        if not order.user == current_user:
+            raise ProcessingException(description='Not your order to review', code=401)
+        shop_product_id = data.get('shop_product_id')
+        if not shop_product_id:
+            raise ProcessingException(description='Posting an order needs to have product id as well', code=401)
+        shop_product = models.ShopProduct.query.filter_by(id=shop_product_id).first()
+        if shop_product not in order.shop_products:
+            raise ProcessingException(description='Product not in order', code=401)
+        if not order.token == order_token:
+            raise ProcessingException(description='Wrong order token', code=401)
+        data['verified_review'] = True
+        del data['order_id']
+        del data['order_token']
+    return data
+
+
+def post_create_review(result, *args, **kwargs):
     shop_product_id = result.get('shop_product_id')
     review_id = result.get('id')
     review = models.Review.query.filter_by(id=review_id).first()
@@ -44,10 +72,10 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [auth_func]
+                           'POST': [auth_func, pre_create_review]
                        },
                        postprocessors={
-                           'POST': [create_review]
+                           'POST': [post_create_review]
                        },
                        exclude_columns=models.User.exclude_fields(),
                        validation_exceptions=[DbException])

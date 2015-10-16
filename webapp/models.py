@@ -3,15 +3,15 @@ from sqlalchemy import and_
 from sqlalchemy.orm import validates
 from webapp import db, admin
 from webapp.exceptions import DbException
+from webapp.common import random_pwd
 from flask import url_for, g, abort, redirect, request
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
-from async import email_sender
 
-order_products_table = db.Table('order_products',
+order_shop_products_table = db.Table('order_shop_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
-                                db.Column('product_id', db.Integer, db.ForeignKey('product.id'))
+                                db.Column('shop_product_id', db.Integer, db.ForeignKey('shop_product.id'))
                                 )
 
 roles_users = db.Table('roles_users',
@@ -38,7 +38,6 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String)
     name = db.Column(db.String)
     profile_picture_url = db.Column(db.String)
-    stripe_token = db.Column(db.String)
 
     active = db.Column(db.Boolean, default=True)
     confirmed_at = db.Column(db.DateTime)
@@ -92,6 +91,72 @@ class User(db.Model, UserMixin):
         return '<User %r>' % self.email
 
 
+class Customer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("customer"), uselist=False)
+
+    current_subscription_plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'))
+    current_subscription_plan = db.relationship("SubscriptionPlan", backref=db.backref("customer"), uselist=False)
+
+    stripe_token = db.Column(db.String)
+    active = db.Column(db.Boolean, default=True)
+
+    def __repr__(self):
+        return '<Customer %r>' % self.user
+
+
+class SubscriptionPlan(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(db.String)
+    description = db.Column(db.String)
+    price = db.Column(db.Integer)
+    payment_frequency = db.Column(db.String)
+    active = db.Column(db.Boolean, default=False)
+
+    def __repr__(self):
+        return '<SubscriptionPlan %r>' % self.name
+
+
+class CustomerSubscriptionPlanChange(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
+    customer = db.relationship("Customer", backref=db.backref("subscription_plan"), uselist=False)
+
+    old_subscription_plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'))
+    old_subscription_plan = db.relationship("SubscriptionPlan",
+                                            primaryjoin="CustomerSubscriptionPlanChange.old_subscription_plan_id==SubscriptionPlan.id",
+                                            backref=db.backref("plan_change_old", uselist=False),
+                                            uselist=False)
+
+    new_subscription_plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'))
+    new_subscription_plan = db.relationship("SubscriptionPlan",
+                                            primaryjoin="CustomerSubscriptionPlanChange.new_subscription_plan_id==SubscriptionPlan.id",
+                                            backref=db.backref("plan_change_new", uselist=False),
+                                            uselist=False)
+
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow())
+
+    def __repr__(self):
+        return '<PlanChange of %r from %r to %r>' % (self.customer, self.old_subscription_plan, self.new_subscription_plan)
+
+
+class UserLikesReview(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    like_action = db.Column(db.Integer)
+    timestamp = db.Column(db.DateTime)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("user_likes_review"), uselist=False)
+
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship("Review", backref=db.backref("user_likes_review", uselist=False))
+
+
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -134,8 +199,8 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("orders"))
 
-    products = db.relationship("Product", secondary=order_products_table,
-                               backref=db.backref("orders", lazy="dynamic"))
+    shop_products = db.relationship("ShopProduct", secondary=order_shop_products_table,
+                                    backref=db.backref("orders", lazy="dynamic"))
 
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship("Shop", backref=db.backref("orders"))
@@ -151,6 +216,8 @@ class Order(db.Model):
     to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
 
+    token = db.Column(db.String, default=random_pwd())
+
     def is_for_user(self, user):
         if not self.shop.user == user:
             raise DbException(message="This order is not for this user", status_code=403)
@@ -159,15 +226,6 @@ class Order(db.Model):
     @classmethod
     def get_by_id(cls, order_id):
         order = cls.query.filter_by(id=order_id).first()
-        if not order:
-            raise DbException(message='Order doesn\'t exist', status_code=404)
-        return order
-
-    @classmethod
-    def get_by_shop_product_user(cls, shop_id, product_id, user_id):
-        order = Order.query.filter(and_(Order.shop_id == shop_id,
-                                        Order.product_id == product_id,
-                                        Order.user_id == user_id)).first()
         if not order:
             raise DbException(message='Order doesn\'t exist', status_code=404)
         return order
@@ -206,11 +264,14 @@ class Comment(db.Model):
     photo_url = db.Column(db.String)
     by_customer_support = db.Column(db.Boolean, default=False)
 
-    for_review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    for_review = db.relationship('Review', backref=db.backref('comments'))
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship('Review', backref=db.backref('comments'))
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("comments"))
 
     def __repr__(self):
-        return '<Comment %r... for %r>' % (self.body[:10], self.for_review)
+        return '<Comment %r... for %r by %r>' % (self.body[:10], self.review, self.user)
 
 
 class Review(db.Model):
@@ -219,6 +280,7 @@ class Review(db.Model):
     created_ts = db.Column(db.DateTime, default=datetime.utcnow())
     photo_url = db.Column(db.UnicodeText, default=u'')
     verified_review = db.Column(db.Boolean, default=False)
+    by_shop_owner = db.Column(db.Boolean, default=False)
     star_rating = db.Column(db.Integer, default=0)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -231,17 +293,22 @@ class Review(db.Model):
     amending_review = db.relationship('Review', uselist=False, remote_side=[id],
                                       backref=db.backref('amended_review', uselist=False))
 
-    def __init__(self, body=None, photo_url=None, shop_product_id=None, star_rating=None, **kwargs):
+    def __init__(self, body=None, photo_url=None, shop_product_id=None, star_rating=None,
+                 verified_review=None, by_shop_owner=None, **kwargs):
         self.body = body
         self.photo_url = photo_url
         self.shop_product_id = shop_product_id
         self.star_rating = star_rating
+        self.verified_review = verified_review
+        self.by_shop_owner = by_shop_owner
 
         self.user_id = current_user.id if current_user else 0
 
     @classmethod
-    def create_from_repopulate(cls, user=None, shop_product_id=None, body=None, photo_url=None, star_rating=None):
-        review = cls(body=body, photo_url=photo_url, shop_product_id=shop_product_id, star_rating=star_rating)
+    def create_from_repopulate(cls, user=None, shop_product_id=None, body=None, photo_url=None, star_rating=None,
+                               verified_review=None):
+        review = cls(body=body, photo_url=photo_url, shop_product_id=shop_product_id, star_rating=star_rating,
+                     verified_review=verified_review)
         review.user = user
         return review
 
@@ -252,7 +319,6 @@ class Review(db.Model):
             if rating >= 0 and rating <= 5:
                 return rating
         raise DbException(message="[star_rating: Rating needs to be between 0 and 5 stars]", status_code=400)
-
 
     def __repr__(self):
         return '<Review %r... by %r>' % (self.body[:10], self.user)
@@ -308,7 +374,7 @@ class Shop(db.Model):
     products_imported = db.Column(db.Boolean, default=False)
 
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    owner = db.relationship("User", backref=db.backref("shop", uselist=False))
+    owner = db.relationship("User", backref=db.backref("shops"))
 
     platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
     platform = db.relationship("Platform", backref=db.backref("platform", uselist=False))
@@ -380,7 +446,8 @@ class ShopProductReview(db.Model):
 
     @classmethod
     def get_by_shop_and_review_id(cls, shop_product_id, review_id):
-        shop_product_review = cls.query.filter(and_(cls.shop_product_id == shop_product_id, cls.review_id == review_id)).first()
+        shop_product_review = cls.query.filter(
+            and_(cls.shop_product_id == shop_product_id, cls.review_id == review_id)).first()
         if not shop_product_review:
             raise DbException(message='Shop %s does not have review %s' % (shop_product_id, review_id), status_code=400)
         return shop_product_review
@@ -415,8 +482,8 @@ class ShopProduct(db.Model):
     product = db.relationship("Product", backref=db.backref("shop_product", uselist=False))
 
     @classmethod
-    def get_by_shop_and_platform_product_id(cls, shop_id, platform_product_id):
-        sp = cls.query.filter_by(shop_id=shop_id, platform_product_id=platform_product_id).first()
+    def get_by_shop_and_product_location(cls, shop_id, product_location):
+        sp = cls.query.filter_by(shop_id=shop_id, url=product_location).first()
         if not sp or not sp.product:
             raise DbException(message='Shop_Product doesn\'t exist', status_code=404)
         return sp
@@ -490,9 +557,15 @@ class AdminModelView(ModelView):
                 return redirect(url_for('security.login', next=request.url))
 
 # Setup Flask-Admin
+admin.add_view(AdminModelView(Role, db.session))
 admin.add_view(AdminModelView(User, db.session))
+admin.add_view(AdminModelView(Customer, db.session))
+admin.add_view(AdminModelView(SubscriptionPlan, db.session))
+admin.add_view(AdminModelView(CustomerSubscriptionPlanChange, db.session))
+admin.add_view(AdminModelView(UserLikesReview, db.session))
 admin.add_view(AdminModelView(Notification, db.session))
 admin.add_view(AdminModelView(Order, db.session))
+admin.add_view(AdminModelView(Comment, db.session))
 admin.add_view(AdminModelView(Review, db.session))
 admin.add_view(AdminModelView(Shop, db.session))
 admin.add_view(AdminModelView(Platform, db.session))
