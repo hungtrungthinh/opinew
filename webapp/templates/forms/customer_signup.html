@@ -3,10 +3,6 @@
     <div class="payment-errors alert alert-danger" hidden></div>
     <input type="hidden" name="next" value="{{ request.args.next }}"/>
   {{ customer_signup_form.hidden_tag() }}
-  {{ macros.form_field(customer_signup_form, customer_signup_form.name, class="form-control") }}<br>
-  {{ macros.form_field(customer_signup_form, customer_signup_form.email, class="form-control") }}<br>
-  {{ macros.form_field(customer_signup_form, customer_signup_form.password, class="form-control") }}<br>
-  {{ macros.form_field(customer_signup_form, customer_signup_form.password_confirm, class="form-control") }}<br>
 
     <b>Card Number</b>
   <input type="text" class="form-control" size="20" data-stripe="number" /><br>

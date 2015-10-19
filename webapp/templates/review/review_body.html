@@ -1,13 +1,26 @@
-<p style="font-size: 1.2em; margin: 10px;">
-
 <div class="rating">
     <span class="star-rating {% if review.star_rating >= 1 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating >= 2 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating >= 3 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating >= 4 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating == 5 %}star-actives{% endif %}">☆</span>
+
 </div>
 <br>
 <br>
-{{ review.body }}
+<p style="font-size: 1.2em; margin: 10px;">
+  {{ review.body }}
 </p>
+<p style="font-size: 1.5em; margin: 10px;">
+<form class="review-like-form"
+      action="{{ g.constants.API_V1_URL_PREFIX }}/review_like{% if review.liked_by_current_user %}/{{ review.liked_by_current_user.id }}{% endif %}"
+      method="{% if review.liked_by_current_user %}patch{% else %}post{% endif %}">
+    <input type="hidden" name="review_id" class="form-serialize" value="{{ review.id }}"/>
+    <input type="hidden" name="action" class="form-serialize like-action-input" value="{{ review.next_like_action }}"/>
+    <button class="btn {% if review.liked_by_current_user and review.liked_by_current_user.action %}btn-success{% else %}btn-default{% endif %}"
+            type="submit">
+        <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
+    </button>
+</form>
+</p>
+

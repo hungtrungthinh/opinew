@@ -1,5 +1,0 @@
-<div style="padding: 10px; margin: 10px; {% if not notification.read_status %}background-color: #9d9;{% endif %}">
-    <a href="{{ url_for('.follow_notification', notification_id=notification.id) }}">
-        Do you like your new {{ notification.meta.product.label }} from {{ notification.meta.shop.label }}?
-    </a>
-</div>

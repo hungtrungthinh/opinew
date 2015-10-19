@@ -1,5 +1,6 @@
 from flask import jsonify, url_for
 from flask.ext.security import login_user, current_user
+from flask.ext.security.utils import verify_password
 from flask.ext.restless import ProcessingException
 from webapp import api_manager, models, db
 from webapp.api import api
@@ -11,14 +12,23 @@ from config import Constants
 def auth_func(*args, **kwargs):
     if not current_user.is_authenticated():
         raise ProcessingException(description='Not authenticated!', code=401)
-    return True
 
 
 def req_shop_owner(*args, **kwargs):
     if not current_user.is_authenticated() or not current_user.has_role(Constants.SHOP_OWNER_ROLE):
         raise ProcessingException(description='Not authenticated!', code=401)
-    return True
 
+
+def pre_review_like_post(data, *args, **kwargs):
+    review_id = data.get('review_id')
+    if not review_id:
+        raise ProcessingException(description='Review id requried!', code=401)
+    review = models.Review.query.filter_by(id=review_id).first()
+    if not review:
+        raise ProcessingException(description='Review doesnt exist', code=401)
+    review_like = models.ReviewLike.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+    if review_like:
+        raise ProcessingException(description='Review already liked', code=401)
 
 def pre_create_review(data, *args, **kwargs):
     shop_id = data.get('shop_id')
@@ -64,6 +74,18 @@ def post_create_review(result, *args, **kwargs):
     db.session.commit()
 
 
+def read_notification(notification_id, *args, **kwargs):
+    notification = models.Notification.get_by_id(notification_id)
+    if not notification or not notification.user == current_user:
+        raise ProcessingException(description='Not your notification', code=401)
+
+
+def is_shop_owned_by_user(shop_id, *args, **kwargs):
+    shop = models.Shop.query.filter(id=shop_id).first()
+    if not shop or not shop.owner == current_user:
+        raise ProcessingException(description='Not your shop', code=401)
+
+
 api_manager.create_api(models.Product,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET'])
@@ -72,10 +94,21 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [auth_func, pre_create_review]
+                           'POST': [auth_func, pre_create_review],
+                           'PATCH_SINGLE': [auth_func]
                        },
                        postprocessors={
                            'POST': [post_create_review]
+                       },
+                       exclude_columns=models.User.exclude_fields(),
+                       validation_exceptions=[DbException])
+
+api_manager.create_api(models.ReviewLike,
+                       url_prefix=Constants.API_V1_URL_PREFIX,
+                       methods=['POST', 'PATCH'],
+                       preprocessors={
+                           'POST': [auth_func, pre_review_like_post],
+                           'PATCH_SINGLE': [auth_func]
                        },
                        exclude_columns=models.User.exclude_fields(),
                        validation_exceptions=[DbException])
@@ -93,8 +126,17 @@ api_manager.create_api(models.Notification,
                        methods=['GET'],
                        preprocessors={
                            'GET_SINGLE': [auth_func],
-                           'GET_MANY': [auth_func]
+                           'GET_MANY': [auth_func],
+                           'PATCH_SINGLE': [auth_func, read_notification]
                        }, )
+
+api_manager.create_api(models.Shop,
+                       url_prefix=Constants.API_V1_URL_PREFIX,
+                       methods=['PATCH'],
+                       preprocessors={
+                           'PATCH_SINGLE': [req_shop_owner, is_shop_owned_by_user]
+                       },
+                       validation_exceptions=[DbException])
 
 
 @api.route('/auth', methods=['POST'])
@@ -109,7 +151,7 @@ def authenticate():
     email = param_required('email', payload)
     password = param_required('password', payload)
     user = models.User.get_by_email(email)
-    user.validate_password(password)
+    verify_password(password, user.password)
     login_user(user)
     return jsonify({}), 200
 

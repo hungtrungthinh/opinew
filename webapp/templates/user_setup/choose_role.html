@@ -4,10 +4,6 @@
     <div class="container">
         <div class="row">
             <div class="col-md-6">
-                <h2>Tell us a bit more about your shop</h2>
-
-                <div class="alert" id="product-post-status" hidden></div>
-
                 <form action="{{ g.constants.API_V1_URL_PREFIX }}/shop/{{ shop.id }}" id="shop-form">
                     <input type="hidden" name="next" value="{{ request.args.next }}"/>
                   {{ shop_form.hidden_tag() }}
@@ -24,14 +20,6 @@
                     </div>
                   {{ shop_form.submit(class="form-control") }}<br>
                 </form>
-                <h2>Import reviews</h2>
-
-                <p>TODO: Import form...</p>
-
-                <h2>Plugin code</h2>
-
-                <p>Copy the following code below the last line on your product page:</p>
-                <textarea disabled style="margin: 0; width: 800px; height: 150px;">{{ code }}</textarea>
             </div>
         </div>
     </div>

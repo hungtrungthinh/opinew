@@ -6,11 +6,11 @@ from flask.ext.security.utils import encrypt_password
 from providers.shopify_api import API
 from webapp import db, review_photos
 from webapp.client import client
-from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Notification, Order, ShopProductReview, \
-    Role
+from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Order, ShopProductReview, \
+    Role, Customer, Notification
 from webapp.common import param_required, get_post_payload, catch_exceptions, generate_temp_password
 from webapp.exceptions import ParamException, DbException
-from webapp.forms import LoginForm, ExtendedRegisterForm, ReviewForm, ReviewPhotoForm
+from webapp.forms import LoginForm, ReviewForm, ReviewPhotoForm
 from config import Constants, basedir
 
 
@@ -22,16 +22,9 @@ def install():
     :return:
     """
     ref = request.args.get('ref')
-    if ref == 'internal':
-        return install_internal_step_one()
-    elif ref == 'shopify':
+    if ref == 'shopify':
         return install_shopify_step_one()
-    else:
-        return install_internal_step_one()
-
-
-def install_internal_step_one():
-    return redirect(url_for('client.user_setup', ref='internal'))
+    return redirect(url_for('client.user_setup', **request.args))
 
 
 def install_shopify_step_one():
@@ -141,21 +134,20 @@ def shopify_plugin_callback():
 
 
 @client.route('/user_setup')
-@roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def user_setup():
-    #TODO: What if many shops?
-    ref = request.args.get('ref')
-    shops = current_user.shops
-    if len(shops) == 1:
-        code = render_template('user_setup/code.html', shop=shops[0])
-    if ref == 'internal':
-        return render_template('user_setup/internal.html', code=code)
-    elif ref == 'shopify':
-        return render_template('user_setup/shopify.html', code=code)
-    else:
-        return render_template('user_setup/internal.html', code=code)
-
+    return render_template('user_setup/choose_role.html')
+    # ref = request.args.get('ref')
+    # shop_id = request.args.get('shop_id')
+    # shop = Shop.query.filter_by(id=shop_id).first()
+    # if not shop or not shop.owner == current_user:
+    #     flash('not your shop')
+    #     return redirect(url_for('client.index'))
+    # code = render_template('user_setup/code.html', shop=shop)
+    # if ref == 'shopify':
+    #     return render_template('user_setup/shopify.html', code=code)
+    # platforms = Platform.query.all()
+    # return render_template('user_setup/internal.html', code=code, shop=shop, platforms=platforms)
 
 
 @client.route('/')
@@ -165,32 +157,38 @@ def index():
             return redirect('/admin')
         elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
             return redirect(url_for('.shop_admin'))
-        if current_user.has_role(Constants.REVIEWER_ROLE):
+        elif current_user.has_role(Constants.REVIEWER_ROLE):
             return redirect(url_for('.reviews'))
+        else:
+            return redirect(url_for('.user_setup'))
     return render_template('index.html')
 
 
 @client.route('/customer_signup', methods=['GET', 'POST'])
+@login_required
 def customer_signup():
-    customer_signup_form = ExtendedRegisterForm()
-    if customer_signup_form.validate_on_submit():
-        # Stripe already has validated the card
-        shop_owner = User.get_by_email_no_exception(email=customer_signup_form.email.data)
-        if shop_owner:
-            flash('User with email %s already exists. <a href="/reset">Forgot password?</a>')
-            return render_template('customer_signup.html', customer_signup_form=customer_signup_form)
-        shop_owner = User(email=customer_signup_form.email.data,
-                          password=encrypt_password(customer_signup_form.password.data))
+    shop_form = ShopForm()
+    if shop_form.validate_on_submit():
+        # create shop owner user
+        shop_owner = current_user
         shop_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
         shop_owner.roles.append(shop_role)
-        shop_owner.stripe_token = param_required('stripe_token', request.form)
-        shop = Shop()
+
+        # create a customer from user
+        customer = Customer(user=shop_owner)
+        # Stripe already has validated the card
+        customer.stripe_token = param_required('stripe_token', request.form)
+        db.session.add(customer)
+
+        # create a shop
+        shop = Shop(name=shop_form.name,
+                    domain=shop_form.domain)
         shop.owner = shop_owner
         db.session.add(shop)
+
         db.session.commit()
-        login_user(shop_owner)
-        return redirect(url_for('.install', ref='internal'))
-    return render_template('customer_signup.html', customer_signup_form=customer_signup_form)
+        return redirect(url_for('client.install', ref='internal', shop_id=shop.id))
+    return render_template('customer_signup.html', shop_form=shop_form)
 
 
 @client.route('/reviews')
@@ -222,7 +220,7 @@ def shop_admin_id(shop_id):
     if not shop:
         flash('Not your shop')
         return redirect(url_for('client.shop_admin'))
-    orders = shop.shop_product.orders
+    orders = shop.shop_product.orders if shop.shop_product else []
     return render_template('shop_admin/home.html', shop=shop, orders=orders)
 
 
@@ -274,14 +272,6 @@ def clickthrough_product():
         flash(e.message)
         return redirect(request.referrer)
     return redirect(url)
-
-
-@client.route('/notifications')
-@login_required
-@catch_exceptions
-def get_notifications():
-    notifications = Notification.get_for_user(current_user)
-    return render_template('client/notifications.html', notifications=notifications)
 
 
 @client.route('/read_notification')

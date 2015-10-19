@@ -97,7 +97,7 @@ class Customer(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("customer"), uselist=False)
 
-    current_subscription_plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'))
+    current_subscription_plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'), default=1)
     current_subscription_plan = db.relationship("SubscriptionPlan", backref=db.backref("customer"), uselist=False)
 
     stripe_token = db.Column(db.String)
@@ -144,13 +144,13 @@ class CustomerSubscriptionPlanChange(db.Model):
         return '<PlanChange of %r from %r to %r>' % (self.customer, self.old_subscription_plan, self.new_subscription_plan)
 
 
-class UserLikesReview(db.Model):
+class ReviewLike(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    like_action = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime)
+    action = db.Column(db.Integer, default=1)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow())
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), default=current_user.id if current_user and current_user.is_authenticated() else 0)
     user = db.relationship("User", backref=db.backref("user_likes_review"), uselist=False)
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
@@ -304,6 +304,24 @@ class Review(db.Model):
 
         self.user_id = current_user.id if current_user else 0
 
+    @property
+    def likes(self):
+        return sum([rl.action for rl in ReviewLike.query.filter_by(review_id=self.id).all()])
+
+    @property
+    def liked_by_current_user(self):
+        if current_user and current_user.is_authenticated():
+            rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            return rl
+        return False
+
+    @property
+    def next_like_action(self):
+        if current_user and current_user.is_authenticated():
+            rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            return (1 if rl.action == 0 else 0) if rl else 1
+        return 1
+
     @classmethod
     def create_from_repopulate(cls, user=None, shop_product_id=None, body=None, photo_url=None, star_rating=None,
                                verified_review=None):
@@ -322,6 +340,8 @@ class Review(db.Model):
 
     def __repr__(self):
         return '<Review %r... by %r>' % (self.body[:10], self.user)
+
+
 
     def is_for_shop(self, shop):
         if not self.order.shop == shop:
@@ -562,7 +582,7 @@ admin.add_view(AdminModelView(User, db.session))
 admin.add_view(AdminModelView(Customer, db.session))
 admin.add_view(AdminModelView(SubscriptionPlan, db.session))
 admin.add_view(AdminModelView(CustomerSubscriptionPlanChange, db.session))
-admin.add_view(AdminModelView(UserLikesReview, db.session))
+admin.add_view(AdminModelView(ReviewLike, db.session))
 admin.add_view(AdminModelView(Notification, db.session))
 admin.add_view(AdminModelView(Order, db.session))
 admin.add_view(AdminModelView(Comment, db.session))
