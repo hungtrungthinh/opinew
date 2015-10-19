@@ -23,6 +23,7 @@
             float: right !important;
         }
     </style>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
 {% if current_user.is_authenticated() %}
@@ -34,9 +35,9 @@
 <div class="container">
     <div class="row">
         <div class="col-xs-12 col-md-8 col-md-offset-2">
-            <a href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=shop_product.product.id) }}"
+            <a href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=product.id) }}"
                target="_blank">
-                <h2>{{ shop_product.product.name }} Reviews</h2>
+                <h2>{{ product.name }} Reviews</h2>
             </a>
           {% if not reviews %}
               <h3>No reviews yet</h3>
@@ -47,7 +48,7 @@
                 {% if review.is_approved_by_shop() %}
                     <div class="alert alert-success">
                     <p>Approved by the shop!</p>
-                    {% else %}
+                {% else %}
                     <div class="alert alert-warning">
                     <p>Not approved by the shop yet...</p>
                 {% endif %}
@@ -60,11 +61,22 @@
               {% include "plugin/review.html" %}
             {% endfor %}
           {% endif %}
+            </div>
         </div>
     </div>
-</div>
-<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-<script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script>
+        var csrftoken = $('meta[name=csrf-token]').attr('content');
+
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken)
+                }
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
 </body>
 </html>

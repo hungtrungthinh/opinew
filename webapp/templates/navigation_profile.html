@@ -1,9 +1,9 @@
 {% if  current_user.profile_picture_url %}
-    {% set user_photo_url = url_for('media.get_user_photo', filename='%s' % current_user.profile_picture_url) %}
+  {% set user_photo_url = url_for('media.get_user_photo', filename='%s' % current_user.profile_picture_url) %}
 {% elif current_user.email | gravatar %}
-    {% set user_photo_url = current_user.email | gravatar %}
+  {% set user_photo_url = current_user.email | gravatar %}
 {% else %}
-    {% set user_photo_url = url_for('media.get_user_photo', filename='%s' % g.constants.DEFAULT_PROFILE_PICTURE) %}
+  {% set user_photo_url = url_for('media.get_user_photo', filename='%s' % g.constants.DEFAULT_PROFILE_PICTURE) %}
 {% endif %}
 <li role="presentation" class="dropdown"
     style="margin-top: 10px; margin-left: 10px;  margin-right: 10px">
@@ -20,6 +20,10 @@
                           </span>
                       </span>
     <ul class="dropdown-menu pull-right">
-        <li><a href="{{ url_for('security.logout') }}">Log out</a></li>
+      {% if in_plugin %}
+          <li><a href="{{ url_for('client.plugin_logout') }}">Log out</a></li>
+      {% else %}
+          <li><a href="{{ url_for('security.logout') }}">Log out</a></li>
+      {% endif %}
     </ul>
 </li>

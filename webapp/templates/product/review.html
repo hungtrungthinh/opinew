@@ -1,7 +1,4 @@
 <div class="review-container">
-<h3>From <a href="{{ review.shop_product.url }}" target="_blank"><b>{{ review.shop_product.shop.name }}</b></a></h3>
-
-    <hr>
   {% include "review/review_author.html" %}
   {% if review.tags %}
     {% for tag in review.tags %}

@@ -1,0 +1,18 @@
+{% import "_macros.html" as macros %}
+<form action="{{ g.constants.API_V1_URL_PREFIX }}/shop{% if shop %}/{{ shop.id }}{% endif %}" method="{% if shop %}patch{% else %}post{% endif %}" id="shop-form">
+    <input type="hidden" name="next" value="{{ url_for('client.shop_dashboard') }}"/>
+  <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
+  {{ macros.form_field(shop_form, shop_form.name, class="form-control form-serialize", placeholder='Name of your shop') }}<br>
+  {{ macros.form_field(shop_form, shop_form.domain, class="form-control form-serialize", placeholder='http://') }}<br>
+  {{ macros.form_field(shop_form, shop_form.description, class="form-control form-serialize", placeholder='What is your shop mission?') }}<br>
+
+    <div class="form-group">
+        <label for="sel_product">Platform</label>
+        <select class="form-control form-serialize" name="platform_id" id="sel_product">
+          {% for platform in platforms %}
+              <option value="{{ platform.id }}">{{ platform.name }}</option>
+          {% endfor %}
+        </select>
+    </div>
+  {{ shop_form.submit(class="form-control") }}<br>
+</form>

@@ -48,16 +48,16 @@ def next_is_valid(next_url):
     return False
 
 
-def random_pwd():
+def random_pwd(length):
     return ''.join(
-            random.choice(string.ascii_uppercase + string.digits) for _ in range(Constants.TEMP_PWD_LEN))
+            random.choice(string.ascii_uppercase + string.digits) for _ in range(length))
 
 def generate_temp_password():
     from webapp.models import User
 
     users = User.query.all()
     while True:
-        temp_password = random_pwd()
+        temp_password = random_pwd(Constants.TEMP_PWD_LEN)
         for user in users:
             if user.temp_password == temp_password:
                 break
@@ -144,6 +144,8 @@ def create_jinja_filters(app):
         Returns string representing "time since" e.g.
         3 days ago, 5 hours ago etc.
         """
+        if not dt:
+            return ''
 
         now = datetime.datetime.utcnow()
         diff = now - dt

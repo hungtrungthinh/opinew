@@ -1,16 +1,16 @@
 import os
+from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort
-from flask.ext.security import login_required, login_user, current_user, roles_required
-from flask.ext.security.utils import encrypt_password
+from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from providers.shopify_api import API
 from webapp import db, review_photos
 from webapp.client import client
-from webapp.models import ShopProduct, Review, Shop, Platform, User, Product, Order, ShopProductReview, \
+from webapp.models import Review, Shop, Platform, User, Product, Order, ProductReview, \
     Role, Customer, Notification
 from webapp.common import param_required, get_post_payload, catch_exceptions, generate_temp_password
 from webapp.exceptions import ParamException, DbException
-from webapp.forms import LoginForm, ReviewForm, ReviewPhotoForm
+from webapp.forms import LoginForm, ReviewForm, ReviewPhotoForm, ShopForm, ExtendedRegisterForm
 from config import Constants, basedir
 
 
@@ -119,13 +119,12 @@ def shopify_plugin_callback():
 
     # Import shop products
     for product_j in shopify_products:
-        product = Product(name=product_j.get('title', ''))
         product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
-        shop_product = ShopProduct(product=product,
-                                   shop=shop,
-                                   url=product_url,
-                                   platform_product_id=product_j.get('id', ''))
-        db.session.add(shop_product)
+        product = Product(name=product_j.get('title', ''),
+                          shop=shop,
+                          url=product_url,
+                          platform_product_id=product_j.get('id', ''))
+        db.session.add(product)
     db.session.commit()
 
     # Login shop_user
@@ -153,15 +152,25 @@ def user_setup():
 @client.route('/')
 def index():
     if current_user.is_authenticated():
+        if not current_user.roles:
+            shop_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
+            current_user.roles.append(shop_role)
+            db.session.commit()
         if current_user.has_role(Constants.ADMIN_ROLE):
             return redirect('/admin')
         elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
-            return redirect(url_for('.shop_admin'))
+            return redirect(url_for('.shop_dashboard'))
         elif current_user.has_role(Constants.REVIEWER_ROLE):
             return redirect(url_for('.reviews'))
-        else:
-            return redirect(url_for('.user_setup'))
     return render_template('index.html')
+
+
+@client.route('/<order_token>')
+def get_by_order_token(order_token):
+    order = Order.query.filter_by(token=order_token).first()
+    if order:
+        return redirect(url_for('client.add_review', order_id=order.id, order_token=order_token, **request.args))
+    return redirect(url_for('client.index'))
 
 
 @client.route('/customer_signup', methods=['GET', 'POST'])
@@ -202,26 +211,36 @@ def reviews():
                            reviews=reviews, page=page)
 
 
-@client.route('/shop_admin')
+@client.route('/dashboard')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
-def shop_admin():
+def shop_dashboard():
+    shop_form, platforms = None, None
     shops = current_user.shops
+    if not shops:
+        shop_form = ShopForm()
+        platforms = Platform.query.all()
     if len(shops) == 1:
-        return redirect(url_for('client.shop_admin_id', shop_id=shops[0].id))
-    return render_template('shop_admin/choose_shop.html', shops=shops)
+        return redirect(url_for('client.shop_dashboard_id', shop_id=shops[0].id))
+    return render_template('shop_admin/choose_shop.html', shops=shops, shop_form=shop_form, platforms=platforms)
 
 
-@client.route('/shop_admin/<int:shop_id>')
+@client.route('/dashboard/<int:shop_id>')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
-def shop_admin_id(shop_id):
+def shop_dashboard_id(shop_id):
     shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
     if not shop:
         flash('Not your shop')
         return redirect(url_for('client.shop_admin'))
-    orders = shop.shop_product.orders if shop.shop_product else []
-    return render_template('shop_admin/home.html', shop=shop, orders=orders)
+    orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
+    products = Product.query.filter_by(shop_id=shop_id).all()
+    reviews = Review.query.filter(Review.product_id.in_([p.id for p in products])).all()
+    code = render_template('user_setup/code.html', shop=shop)
+    shop_form = ShopForm(MultiDict(shop.__dict__))
+    platforms = Platform.query.all()
+    return render_template('shop_admin/home.html', shop=shop, orders=orders, products=products, code=code,
+                           reviews=reviews, shop_form=shop_form, platforms=platforms)
 
 
 @client.route('/plugin')
@@ -233,17 +252,19 @@ def get_plugin():
         login_form = LoginForm()
         shop_id = param_required('shop_id', request.args)
         product_location = param_required('product_location', request.args)
-        shop_product = ShopProduct.get_by_shop_and_product_location(shop_id, product_location)
-        reviews = Review.get_for_product_approved_by_shop(shop_product.product.id, shop_product.shop.id)
-        own_reviews = current_user.get_own_reviews_about_product_in_shop(shop_product.product,
-                                                                         shop_product.shop) if current_user and current_user.is_authenticated() else []
+        product = Product.get_by_shop_and_product_location(shop_id, product_location)
+        reviews = Review.get_for_product_approved_by_shop(product.id, product.shop.id)
+        own_reviews = current_user.get_own_reviews_about_product_in_shop(product,
+                                                                         product.shop) if current_user and current_user.is_authenticated() else []
         next_arg = request.url
+        product.plugin_views += 1
+        db.session.commit()
     except (ParamException, DbException) as e:
         return '', 500
-    return render_template('plugin/plugin.html', shop_product=shop_product, reviews=reviews,
+    return render_template('plugin/plugin.html', product=product, reviews=reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
                            review_photo_form=review_photo_form, next_arg=next_arg,
-                           own_reviews=own_reviews)
+                           own_reviews=own_reviews, no_buy=True)
 
 
 @client.route('/product', defaults={'product_id': 0})
@@ -251,27 +272,12 @@ def get_plugin():
 def get_product(product_id):
     try:
         product = Product.get_by_id(product_id)
-        reviews = Review.get_for_product(product_id)
+        reviews = Review.query.filter_by(product_id=product_id).all()
     except (ParamException, DbException) as e:
         flash(e.message)
         return redirect(request.referrer)
     return render_template('product/product.html', page_title="%s Reviews - " % product.name,
                            product=product, reviews=reviews)
-
-
-@client.route('/product/clickthrough')
-def clickthrough_product():
-    """
-    Create a clickthrough record
-    """
-    try:
-        platform_product_id = param_required('platform_product_id', request.args)
-        shop_product = ShopProduct.get_by_platform_product_id(platform_product_id)
-        url = shop_product.url
-    except (ParamException, DbException) as e:
-        flash(e.message)
-        return redirect(request.referrer)
-    return redirect(url)
 
 
 @client.route('/read_notification')
@@ -286,51 +292,36 @@ def read_notification():
 
 
 @client.route('/add_review', methods=['GET', 'POST'])
-@login_required
 @catch_exceptions
-def web_review():
+def add_review():
     order_id = request.args.get('order_id')
-    shop_product_id = request.args.get('shop_product_id')
-    order, shop_product, shop_products = None, None, None
-    if shop_product_id:
-        shop_product = ShopProduct.query.filter_by(id=shop_product_id).first()
-    if not shop_product:
-        shop_products = ShopProduct.query.all()
+    product_id = request.args.get('product_id')
+    order, product, products = None, None, None
+    if product_id:
+        product = Product.query.filter_by(id=product_id).first()
+    if not product:
+        products = Product.query.all()
     if order_id:
+        order_token = request.args.get('order_token')
+        if not order_token:
+            flash('Order token required')
+            return redirect(url_for('client.index'))
         order = Order.query.filter_by(id=order_id).first()
         if not order:
             flash('Not such order.')
             return redirect(url_for('client.index'))
-    if order_id and shop_product not in order.shop_products:
+        if not order.token == order_token:
+            flash('Invalid order token.')
+            return redirect(url_for('client.index'))
+        if current_user.is_authenticated() and order.user and not order.user == current_user:
+            flash('Not your order to review.')
+            return redirect(url_for('client.index'))
+    if (order_id and product_id) and not product == order.product:
         flash('Product not in orders.')
-        return redirect(url_for('client.index'))
-    if order_id and not order.user == current_user:
-        flash('Not your order to review.')
         return redirect(url_for('client.index'))
     review_form = ReviewForm()
     review_photo_form = ReviewPhotoForm()
-    if request.method == 'POST' and review_form.validate_on_submit():
-        try:
-            payload = get_post_payload()
-            body = payload.get('body', None)
-            shop_id = param_required('shop_id', payload)
-            photo_url = ''
-            if 'photo' in request.files:
-                photo_url = review_photos.save(request.files['photo'])
-
-            if not body and not photo_url:
-                raise ParamException('At least one of body or photo need to be provided.', 400)
-        except ParamException as e:
-            flash(e.message)
-            return redirect(url_for('.home'))
-
-        shop_product.product.add_review(order=order, body=body, photo_url=photo_url, shop_id=shop_id)
-
-        flash('Review submitted')
-        if not order_id:
-            return redirect(request.referrer)
-        return redirect(request.args.get('next') or url_for('.reviews'))
-    return render_template('web_review/main.html', order=order, shop_product=shop_product, shop_products=shop_products,
+    return render_template('web_review/main.html', order=order, product=product, products=products,
                            review_form=review_form, review_photo_form=review_photo_form)
 
 
@@ -349,13 +340,20 @@ def view_review(review_id):
 @catch_exceptions
 def approve_review(review_id, vote):
     review = Review.get_by_id(review_id)
-    shop_review = ShopProductReview.get_by_shop_and_review_id(review.shop_product.shop.id, review_id)
+    shop_review = ProductReview.get_by_shop_and_review_id(review.shop_product.shop.id, review_id)
     if vote == 1:
         shop_review.approve()
         flash('review approved')
     elif vote == 0:
         shop_review.disapprove()
         flash('review disapproved')
+    return redirect(request.referrer)
+
+
+@client.route('/plugin_logout')
+@login_required
+def plugin_logout():
+    logout_user()
     return redirect(request.referrer)
 
 
@@ -412,6 +410,14 @@ def sitemapxml():
     response = make_response(sitemap_xml)
     response.headers["Content-Type"] = "application/xml"
     return response
+
+
+@client.route('/render_review_email/<int:order_id>')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def render_review_email(order_id):
+    order = Order.query.filter_by(id=order_id).first()
+    return render_template('email/review_order.html', order=order)
 
 
 @client.route('/render_email', defaults={'filename': None})

@@ -1,3 +1,30 @@
-<div class="alert alert-info" role="alert">
-    Feature coming soon...
-</div>
+<h2>Products</h2>
+{% if not products %}
+    <p>No products yet</p>
+{% else %}
+    <table class="table">
+        <tr>
+            <th>Product name</th>
+            <th>Url</th>
+            <th>Opinew product page</th>
+            <th>Reviews</th>
+        </tr>
+      {% for product in products %}
+          <tr>
+              <td>{{ product.name }}</td>
+              <td>
+                  <a href="{{ product.url }}"
+                     target="_blank"><span class="glyphicon glyphicon-link"></span> {{ product.name }}</a>
+              </td>
+              <td>
+                  <a href="{{ url_for('client.get_product', product_id=product.id) }}"
+                     target="_blank">{{ product.name }}</a>
+              </td>
+          <td>
+              {{ product.reviews | length }}
+          </td>
+
+          </tr>
+      {% endfor %}
+    </table>
+{% endif %}

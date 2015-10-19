@@ -1,45 +1,105 @@
+<div class="well">
+    <h3>Generate new order</h3>
+
+    <div class="alert alert-danger" id="product-post-status" hidden>
+
+    </div>
+    <form id="update-product-form" action="{{ g.constants.API_V1_URL_PREFIX }}/product" method="post">
+        <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
+        <input type="hidden" class="form-serialize" name="shop_id" value="{{ shop.id }}"/>
+
+        <div class="row">
+            <div class="col-md-12">
+                <label>Product URL*</label>
+                <input type="text" id='product-url-input' name="url" class="form-control form-serialize"
+                       placeholder="Url of product page" style="font-size: 2em; height: 2em;"/>
+            </div>
+        </div>
+        <br><br>
+        <div class="row">
+
+
+            <div class="col-md-5">
+                <label>Product name*</label>
+                <input type="text" id="product-name-input" name="name" class="form-control form-serialize"
+                       placeholder="Product name"/>
+            </div>
+            <div class="col-md-5">
+                <label>Product type</label>
+                <input type="text" id="product-type-input" name="product_type" class="form-control form-serialize"
+                       placeholder="Product type"/>
+            </div>
+        </div>
+        <br>
+
+        <div class="row">
+            <div class="col-md-offset-2"></div>
+            <div class="col-md-10">
+                <label>Review hints</label>
+            <textarea id="product-review-help-input" name="review_help" class="form-control form-serialize"
+                      placeholder="Write some hints as to what to review about this product..."></textarea>
+            </div>
+            <div class="col-md-2">
+                <input type="submit" value="Generate token" class="btn btn-primary"/>
+            </div>
+        </div>
+    </form>
+    <br>
+    <form>
+        <label>Email of recipient</label>
+        <input type="text" class="form-control" name="email" placeholder="for_who@example.com"/>
+    </form>
+    <br>
+    <form id="generate-order-form" action="{{ g.constants.API_V1_URL_PREFIX }}/order" method="post">
+        <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
+        <input type="hidden" id="product-id-input" class="form-serialize" name="product_id"/>
+        <input type="hidden" class="form-serialize" name="shop_id" value="{{ shop.id }}"/>
+        <input type="hidden" class="form-serialize" name="user_id" value=""/>
+        <label>Discounts with this order</label>
+        <textarea name="discounts" class="form-control form-serialize"
+                  placeholder="Any discounts?"></textarea>
+        <input type="submit" hidden/>
+    </form>
+
+    <br>
+    <br>
+
+    <div id="order-token" class="alert alert-success" hidden>
+
+    </div>
+</div>
 <h2>Orders</h2>
 {% if not orders %}
     <p>No orders yet</p>
 {% else %}
     <table class="table">
         <tr>
-            <th>User name</th>
-            <th>Products</th>
-            <th>Status</th>
-            <th>Purchase TS</th>
-            <th>Shipment TS</th>
-            <th>Delivery TS</th>
-            <th>Delivery estimate</th>
-            <th>Delivery estimate accuracy</th>
-            <th>Notify for review</th>
+            <th>Order Token</th>
+            <th>Generated</th>
+            <th>User</th>
+            <th>Product URL</th>
+            <th>Product reviews</th>
+            <th>Reviewed?</th>
         </tr>
-      {% for order in shop.orders %}
+      {% for order in orders %}
           <tr>
-              <td>{{ order.user.name }}</td>
+              <td>{{ order.token }}</td>
+              <td>{{ order.purchase_timestamp | timesince }}</td>
+              <td>{{ order.user }}</td>
               <td>
-                  <ul>
-                    {% for product in order.products %}
-                        <li><a href="{{ url_for('client.get_product', product_id=product.id) }}"
-                               target="_blank">{{ product.label }}</a></li>
-                    {% endfor %}
-                  </ul>
+                  <a href="{{ order.product.url }}"
+                     target="_blank"><span class="glyphicon glyphicon-link"></span> {{ order.product.name }}</a>
               </td>
-              <td>{{ order.status }}</td>
-              <td>{{ order.purchase_timestamp }}</td>
-              <td>{{ order.shipment_timestamp }}</td>
-              <td>{{ order.delivery_timestamp }}</td>
-              <td>{{ order.delivery_estimation_timestamp }}</td>
-              <td>{{ order.delivery_estimation_accuracy }}</td>
               <td>
-                {% if order.notification_timestamp %}
-                  {{ order.notification_timestamp }}
-                {% elif order.delivery_timestamp %}
-                    <form action="{{ url_for('.notify_for_review', order_id=order.id) }}">
-                        <input type="submit" value="Notify review"/>
-                    </form>
+                  <a href="{{ url_for('client.get_product', product_id=order.product.id) }}"
+                     target="_blank">{{ order.product.name }}</a>
+              </td>
+              <td>
+                {% if not order.review %}
+                    No review yet
                 {% else %}
-
+                    <a href="{{ url_for('client.view_review', review_id=order.review.id) }}"
+                       target="_blank">View review</a>
                 {% endif %}
               </td>
           </tr>

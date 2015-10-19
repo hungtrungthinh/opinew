@@ -7,6 +7,7 @@ from config import Constants, basedir
 from flask.ext.security.utils import encrypt_password
 import sensitive
 
+
 class Repopulate(object):
     def __init__(self):
         self.ADMIN_PASSWORD = sensitive.ADMIN_PASSWORD
@@ -14,7 +15,7 @@ class Repopulate(object):
         self.OWNER_PASSWORD = 'owner_password'
         self.SHOP_URL = 'http://opinew_shop.local:5001'
 
-        self.admin_role, self.shop_owner_role, self.reviewer_role, self.shopify_platform, self.custom_platform, self.null_shop, self.shop_owner, self.opinew_shop = None, None,None, None,None,None, None, None
+        self.admin_role, self.shop_owner_role, self.reviewer_role, self.shopify_platform, self.custom_platform, self.null_shop, self.shop_owner, self.opinew_shop = None, None, None, None, None, None, None, None
 
     def populate_dev(self):
         ###############################
@@ -38,13 +39,15 @@ class Repopulate(object):
             userreader = csv.reader(csvfile)
             csvfile.readline()  # skip first line
             for row in userreader:
-                user = models.User(email=row[1], password=encrypt_password(row[2]), name=row[3], profile_picture_url=row[4])
+                user = models.User(email=row[1], password=encrypt_password(row[2]), name=row[3],
+                                   profile_picture_url=row[4])
                 role = models.Role.query.filter_by(name=row[5]).first()
                 user.roles.append(role)
                 db.session.add(user)
 
         # create shop owner USER
-        self.shop_owner = models.User(name="Shop Owner", email='owner@opinew.com', password=encrypt_password(self.OWNER_PASSWORD))
+        self.shop_owner = models.User(name="Shop Owner", email='owner@opinew.com',
+                                      password=encrypt_password(self.OWNER_PASSWORD))
         self.shop_owner.roles.append(self.shop_owner_role)
         db.session.add(self.shop_owner)
 
@@ -56,7 +59,8 @@ class Repopulate(object):
 
         # Create opinew shop
         SHOP_URL = 'http://opinew_shop.local:5001/'
-        self.opinew_shop = models.Shop(name='Opinew shop', domain=SHOP_URL, platform=self.custom_platform)
+        self.opinew_shop = models.Shop(name='Opinew shop', domain=SHOP_URL, platform=self.custom_platform,
+                                       description="Opinew is a contemporary fashion brand for the rebellious street fashion enthusiast. Each collection has an artistic story behind them and are designed in Scotland. We believe in unique clothing that you wont find on the high street!")
         self.opinew_shop.owner = self.shop_owner
         db.session.add(self.opinew_shop)
 
@@ -67,18 +71,17 @@ class Repopulate(object):
             productreader = csv.reader(csvfile)
             csvfile.readline()  # skip first line
             for row in productreader:
-                product = models.Product(name=row[1])
-                shop_product = models.ShopProduct(shop=self.opinew_shop, product=product,
-                                                  url="%s/product/%s" % (self.SHOP_URL, row[0]),
-                                                  platform_product_id=row[0])
-                db.session.add(shop_product)
+                product = models.Product(name=row[1],
+                                         shop=self.opinew_shop,
+                                         url="%s/product/%s" % (self.SHOP_URL, row[0]),
+                                         platform_product_id=row[0])
+                db.session.add(product)
+        db.session.commit()
 
         ###############################
         # CREATE ORDERS
         ###############################
-        order_1 = models.Order(user_id=3, shop_id=2)
-        order_1.shop_products.append(models.ShopProduct.query.filter_by(id=1).first())
-        order_1.shop_products.append(models.ShopProduct.query.filter_by(id=2).first())
+        order_1 = models.Order(user_id=3, shop_id=2, product_id=1)
         db.session.add(order_1)
 
         ###############################
@@ -88,16 +91,12 @@ class Repopulate(object):
             reviewreader = csv.reader(csvfile)
             csvfile.readline()  # skip first line
             for row in reviewreader:
-                user = models.User.query.filter_by(id=row[4]).first()
-                product = models.Product.query.filter_by(id=row[5]).first()
-                shop_product = models.ShopProduct.query.filter_by(shop=self.opinew_shop, product=product).first()
-                review = models.Review.create_from_repopulate(user=user, shop_product_id=shop_product.id,
-                                       body=unicode(row[1]), photo_url=unicode(row[3]), star_rating=row[2],
+                review = models.Review.create_from_repopulate(user_id=row[4], product_id=row[5],
+                                                              body=unicode(row[1]), photo_url=unicode(row[3]),
+                                                              star_rating=row[2],
                                                               verified_review=row[6])
-                shop_review = models.ShopProductReview(shop_product=shop_product, review=review)
-                shop_review.approved_by_shop = True
-                shop_review.approval_pending = False
-                db.session.add(shop_review)
+                review.product_review.approved_by_shop = True
+                review.product_review.approval_pending = False
 
     def populate_test(self):
         admin = models.User(name="Admin", email='danieltcv@opinew.com', password=self.ADMIN_PASSWORD)
@@ -109,7 +108,8 @@ class Repopulate(object):
         db.session.add(reviewer)
 
         # create shop owner USER
-        self.shop_owner = models.User(name="Shop Owner", email='owner@opinew.com', password=encrypt_password(self.OWNER_PASSWORD))
+        self.shop_owner = models.User(name="Shop Owner", email='owner@opinew.com',
+                                      password=encrypt_password(self.OWNER_PASSWORD))
         self.shop_owner.roles.append(self.shop_owner_role)
         db.session.add(self.shop_owner)
 
@@ -119,17 +119,15 @@ class Repopulate(object):
         self.opinew_shop.owner = self.shop_owner
         db.session.add(self.opinew_shop)
 
-        product = models.Product(name='Ear rings')
-        shop_product = models.ShopProduct(shop=self.opinew_shop,
-                                          product=product,
-                                          url="%s/product/%s" % (self.SHOP_URL, 1),
-                                          platform_product_id=1)
-        db.session.add(shop_product)
+        product = models.Product(name='Ear rings',
+                                 url="%s/product/%s" % (self.SHOP_URL, 1),
+                                 platform_product_id=1)
+        db.session.add(product)
 
-        review = models.Review.create_from_repopulate(user=reviewer, shop_product_id=1,
+        review = models.Review.create_from_repopulate(user=reviewer, product_id=1,
                                                       body=unicode("Nice"), photo_url=unicode("/test.png"),
                                                       star_rating=5)
-        shop_review = models.ShopProductReview(shop_product=shop_product, review=review)
+        shop_review = models.ProductReview(product=product, review=review)
         shop_review.approved_by_shop = True
         shop_review.approval_pending = False
         db.session.add(shop_review)

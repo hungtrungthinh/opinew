@@ -1,6 +1,6 @@
 <div class="review-container">
-    <h3><a href="{{ url_for('client.get_product', product_id=review.shop_product.product.id) }}"><b>{{ review.shop_product.product.name }}</b></a> from
-        <a href="{{ review.shop_product.url }}" target="_blank"><b>{{ review.shop_product.shop.name }}</b></a></h3>
+    <h3><a href="{{ url_for('client.get_product', product_id=review.product.id) }}"><b>{{ review.product.name }}</b></a> from
+        <a href="{{ review.product.url }}" target="_blank"><b>{{ review.product.shop.name }}</b></a></h3>
 
     <hr>
   {% include "review/review_author.html" %}

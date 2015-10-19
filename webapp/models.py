@@ -9,9 +9,9 @@ from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
 
-order_shop_products_table = db.Table('order_shop_products',
+order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
-                                db.Column('shop_product_id', db.Integer, db.ForeignKey('shop_product.id'))
+                                db.Column('product_id', db.Integer, db.ForeignKey('product.id'))
                                 )
 
 roles_users = db.Table('roles_users',
@@ -60,9 +60,15 @@ class User(db.Model, UserMixin):
                 'user.last_login_ip',
                 'user.login_count']
 
+    @classmethod
+    def include_own_fields(cls):
+        return ['id',
+                'email',
+                'name',
+                'profile_picture_url']
+
     def get_own_reviews_about_product_in_shop(self, product, shop):
-        shop_product = ShopProduct.query.filter_by(shop=shop, product=product).first()
-        return Review.query.filter_by(user=self, shop_product=shop_product).all()
+        return Review.query.filter_by(user=self, product=product).all()
 
     def get_notifications(self, start=0, stop=Constants.NOTIFICATIONS_INITIAL):
         return Notification.query.filter_by(user=self).order_by(Notification.id.desc()).all()[start:stop]
@@ -141,7 +147,8 @@ class CustomerSubscriptionPlanChange(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow())
 
     def __repr__(self):
-        return '<PlanChange of %r from %r to %r>' % (self.customer, self.old_subscription_plan, self.new_subscription_plan)
+        return '<PlanChange of %r from %r to %r>' % (
+            self.customer, self.old_subscription_plan, self.new_subscription_plan)
 
 
 class ReviewLike(db.Model):
@@ -150,11 +157,12 @@ class ReviewLike(db.Model):
     action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow())
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), default=current_user.id if current_user and current_user.is_authenticated() else 0)
-    user = db.relationship("User", backref=db.backref("user_likes_review"), uselist=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
+                        default=current_user.id if current_user and current_user.is_authenticated() else 0)
+    user = db.relationship("User", backref=db.backref("review_likes"))
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("user_likes_review", uselist=False))
+    review = db.relationship("Review", backref=db.backref("review_likes"))
 
 
 class Notification(db.Model):
@@ -199,24 +207,28 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("orders"))
 
-    shop_products = db.relationship("ShopProduct", secondary=order_shop_products_table,
-                                    backref=db.backref("orders", lazy="dynamic"))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("orders"))
+
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship("Review", backref=db.backref("order"))
 
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship("Shop", backref=db.backref("orders"))
 
     delivery_tracking_number = db.Column(db.String)
+    discount = db.Column(db.String)
 
     status = db.Column(db.String, default='PURCHASED')  # ['PURCHASED', 'SHIPPED', 'DELIVERED', 'NOTIFIED', 'REVIEWED']
 
-    purchase_timestamp = db.Column(db.DateTime, default=datetime.utcnow())
+    purchase_timestamp = db.Column(db.DateTime)
     shipment_timestamp = db.Column(db.DateTime)
     delivery_timestamp = db.Column(db.DateTime)
 
     to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
 
-    token = db.Column(db.String, default=random_pwd())
+    token = db.Column(db.String)
 
     def is_for_user(self, user):
         if not self.shop.user == user:
@@ -276,33 +288,53 @@ class Comment(db.Model):
 
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    body = db.Column(db.UnicodeText, default=u'')
     created_ts = db.Column(db.DateTime, default=datetime.utcnow())
+
+    body = db.Column(db.UnicodeText, default=u'')
     photo_url = db.Column(db.UnicodeText, default=u'')
+    star_rating = db.Column(db.Integer, default=0)
+
     verified_review = db.Column(db.Boolean, default=False)
     by_shop_owner = db.Column(db.Boolean, default=False)
-    star_rating = db.Column(db.Integer, default=0)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref=db.backref('reviews'))
 
-    shop_product_id = db.Column(db.Integer, db.ForeignKey('shop_product.id'))
-    shop_product = db.relationship('ShopProduct', backref=db.backref('reviews'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship('Product', backref=db.backref('reviews'))
 
     amending_review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     amending_review = db.relationship('Review', uselist=False, remote_side=[id],
                                       backref=db.backref('amended_review', uselist=False))
 
-    def __init__(self, body=None, photo_url=None, shop_product_id=None, star_rating=None,
+    def __init__(self, body=None, photo_url=None, product_id=None, star_rating=None,
                  verified_review=None, by_shop_owner=None, **kwargs):
         self.body = body
         self.photo_url = photo_url
-        self.shop_product_id = shop_product_id
+        self.product_id = product_id
         self.star_rating = star_rating
         self.verified_review = verified_review
         self.by_shop_owner = by_shop_owner
 
         self.user_id = current_user.id if current_user else 0
+
+        db.session.add(self)
+        db.session.commit()
+
+        if self.user_id:
+            user_like = ReviewLike(user_id=self.user_id, review_id=self.id)
+            db.session.add(user_like)
+
+        product_review = ProductReview(product_id=product_id, review_id=self.id)
+        db.session.add(product_review)
+
+        shop_owner = self.product.shop.owner
+        notification = Notification(user=shop_owner,
+                                    content='You received a new review about <b>%s</b>. <br>'
+                                            'Click here to allow or deny display on plugin' % self.product.name,
+                                    url='/review/%s' % self.id)
+        db.session.add(notification)
+        db.session.commit()
 
     @property
     def likes(self):
@@ -319,15 +351,17 @@ class Review(db.Model):
     def next_like_action(self):
         if current_user and current_user.is_authenticated():
             rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return (1 if rl.action == 0 else 0) if rl else 1
+            return (0 if rl.action == 1 else 1) if rl else 1
         return 1
 
     @classmethod
-    def create_from_repopulate(cls, user=None, shop_product_id=None, body=None, photo_url=None, star_rating=None,
+    def create_from_repopulate(cls, user_id=None, product_id=None, body=None, photo_url=None, star_rating=None,
                                verified_review=None):
-        review = cls(body=body, photo_url=photo_url, shop_product_id=shop_product_id, star_rating=star_rating,
+        review = cls(body=body, photo_url=photo_url, product_id=product_id, star_rating=star_rating,
                      verified_review=verified_review)
-        review.user = user
+        review.user_id = user_id
+        user_like = ReviewLike(user_id=user_id, review_id=review.id)
+        db.session.add(user_like)
         return review
 
     @validates('star_rating')
@@ -341,16 +375,14 @@ class Review(db.Model):
     def __repr__(self):
         return '<Review %r... by %r>' % (self.body[:10], self.user)
 
-
-
     def is_for_shop(self, shop):
         if not self.order.shop == shop:
             raise DbException(message="This review is not for this shop", status_code=404)
         return True
 
     def is_approved_by_shop(self):
-        shop_product_review = ShopProductReview.get_by_shop_and_review_id(self.shop_product.id, self.id)
-        return shop_product_review.approved_by_shop
+        product_review = ProductReview.get_by_shop_and_review_id(self.product.id, self.id)
+        return product_review.approved_by_shop
 
     @classmethod
     def get_by_id(cls, review_id):
@@ -372,28 +404,26 @@ class Review(db.Model):
         return reviews
 
     @classmethod
-    def get_for_product(cls, product_id):
-        shop_products = ShopProduct.query.filter(ShopProduct.product_id == product_id).all()
-        return Review.query.filter(Review.shop_product_id.in_([sp.id for sp in shop_products])).order_by(
-            Review.created_ts.desc()).all()
-
-    @classmethod
     def get_for_product_approved_by_shop(cls, product_id, shop_id):
-        shop_product = ShopProduct.query.filter(
-            and_(ShopProduct.product_id == product_id, ShopProduct.shop_id == shop_id)).first()
-        reviews = Review.query.filter_by(shop_product=shop_product).order_by(Review.created_ts.desc()).all()
-        return [r for r in reviews if r.shop_product_review and r.shop_product_review.approved_by_shop]
+        shop_product = Product.query.filter(
+            and_(Product.id == product_id, Product.shop_id == shop_id)).first()
+        reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
+        return [r for r in reviews if r.product_review and r.product_review.approved_by_shop]
 
 
 class Shop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+    description = db.Column(db.String)
     domain = db.Column(db.String)
+
+    automatically_approve_reviews = db.Column(db.Boolean, default=True)
 
     access_token = db.Column(db.String)
     products_imported = db.Column(db.Boolean, default=False)
 
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'),
+                         default=current_user.id if current_user and current_user.is_authenticated() else None)
     owner = db.relationship("User", backref=db.backref("shops"))
 
     platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
@@ -452,25 +482,25 @@ class Platform(db.Model):
         return "<Platform %r>" % self.name
 
 
-class ShopProductReview(db.Model):
+class ProductReview(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    shop_product_id = db.Column(db.Integer, db.ForeignKey('shop_product.id'))
-    shop_product = db.relationship("ShopProduct", backref=db.backref("shop_product_review", uselist=False))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("product_review", uselist=False))
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("shop_product_review", uselist=False))
+    review = db.relationship("Review", backref=db.backref("product_review", uselist=False))
 
     approved_by_shop = db.Column(db.Boolean, default=False)
     approval_pending = db.Column(db.Boolean, default=True)
 
     @classmethod
-    def get_by_shop_and_review_id(cls, shop_product_id, review_id):
-        shop_product_review = cls.query.filter(
-            and_(cls.shop_product_id == shop_product_id, cls.review_id == review_id)).first()
-        if not shop_product_review:
-            raise DbException(message='Shop %s does not have review %s' % (shop_product_id, review_id), status_code=400)
-        return shop_product_review
+    def get_by_shop_and_review_id(cls, product_id, review_id):
+        product_review = cls.query.filter(
+            and_(cls.product_id == product_id, cls.review_id == review_id)).first()
+        if not product_review:
+            raise DbException(message='Product %s does not have review %s' % (product_id, review_id), status_code=400)
+        return product_review
 
     def approve(self):
         self.approved_by_shop = True
@@ -490,64 +520,31 @@ class ShopProductReview(db.Model):
         db.session.commit()
 
 
-class ShopProduct(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String)
-    platform_product_id = db.Column(db.Integer)
-
-    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
-    shop = db.relationship("Shop", backref=db.backref("shop_product", uselist=False))
-
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    product = db.relationship("Product", backref=db.backref("shop_product", uselist=False))
-
-    @classmethod
-    def get_by_shop_and_product_location(cls, shop_id, product_location):
-        sp = cls.query.filter_by(shop_id=shop_id, url=product_location).first()
-        if not sp or not sp.product:
-            raise DbException(message='Shop_Product doesn\'t exist', status_code=404)
-        return sp
-
-    def __repr__(self):
-        return '<%r - %r>' % (self.shop, self.product)
-
-
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+    product_type = db.Column(db.String)
+    url = db.Column(db.String)
+    platform_product_id = db.Column(db.Integer)
+    plugin_views = db.Column(db.Integer, default=0)
+    review_help = db.Column(db.String)
+
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    shop = db.relationship("Shop", backref=db.backref("products"))
 
     def __repr__(self):
         return '<Product %r>' % self.name
 
-    def add_review(self, order, body, photo_url, shop_id):
-        if order:
-            user = User.get_by_email(order.user.email)
-            shop_id = order.shop.id
-        elif current_user.is_authenticated():
-            user = current_user
-            shop_id = shop_id
-        else:
-            user = None
-            shop_id = None
-        shop = Shop.get_by_id(shop_id)
-        shop_product = ShopProduct.query.filter_by(product_id=self.id, shop_id=shop_id).first()
-        review = Review(order=order, user=user, shop_product=shop_product,
-                        photo_url=photo_url, body=body)
-        shop_product_review = ShopProductReview(review=review, shop=shop)
-        db.session.add(review)
-        db.session.add(shop_product_review)
-        db.session.commit()
-        notification = Notification(user=shop.owner,
-                                    content='You received a new review about <b>%s</b>. <br>'
-                                            'Click here to allow or deny display on plugin' % review.shop_product.product.name,
-                                    url=url_for('.view_review', review_id=review.id))
-        db.session.add(notification)
-        db.session.commit()
-        return review
-
     @classmethod
     def get_by_id(cls, product_id):
         product = cls.query.filter(Product.id == product_id).first()
+        if not product:
+            raise DbException(message='Product doesn\'t exist', status_code=404)
+        return product
+
+    @classmethod
+    def get_by_shop_and_product_location(cls, shop_id, product_location):
+        product = cls.query.filter_by(shop_id=shop_id, url=product_location).first()
         if not product:
             raise DbException(message='Product doesn\'t exist', status_code=404)
         return product
@@ -589,6 +586,5 @@ admin.add_view(AdminModelView(Comment, db.session))
 admin.add_view(AdminModelView(Review, db.session))
 admin.add_view(AdminModelView(Shop, db.session))
 admin.add_view(AdminModelView(Platform, db.session))
-admin.add_view(AdminModelView(ShopProductReview, db.session))
-admin.add_view(AdminModelView(ShopProduct, db.session))
+admin.add_view(AdminModelView(ProductReview, db.session))
 admin.add_view(AdminModelView(Product, db.session))

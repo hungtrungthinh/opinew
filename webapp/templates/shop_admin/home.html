@@ -8,7 +8,7 @@
                 <div class="row">
                     <div class="col-sm-3">
                         <ul class="nav nav-pills nav-stacked" role="tablist">
-                            <li role="presentation">
+                            <li role="presentation"  class="active">
                                 <a href="#tab-general-settings" aria-controls="tab-general-settings" role="tab"
                                    data-toggle="tab">General settings</a>
                             </li>
@@ -16,7 +16,7 @@
                                 <a href="#tab-products" aria-controls="tab-products" role="tab"
                                    data-toggle="tab">Products</a>
                             </li>
-                            <li role="presentation" class="active">
+                            <li role="presentation">
                                 <a href="#tab-orders" aria-controls="tab-orders" role="tab"
                                    data-toggle="tab">Orders</a>
                             </li>
@@ -28,17 +28,17 @@
                     </div>
                     <div class="col-sm-9">
                         <div class="tab-content">
-                            <div role="tabpanel" class="tab-pane" id="tab-general-settings">
-                                {% include "shop_admin/general_settings.html" %}
+                            <div role="tabpanel" class="tab-pane active" id="tab-general-settings">
+                              {% include "shop_admin/general_settings.html" %}
                             </div>
                             <div role="tabpanel" class="tab-pane" id="tab-products">
-                                {% include "shop_admin/products.html" %}
+                              {% include "shop_admin/products.html" %}
                             </div>
-                            <div role="tabpanel" class="tab-pane active" id="tab-orders">
-                                {% include "shop_admin/orders.html" %}
+                            <div role="tabpanel" class="tab-pane" id="tab-orders">
+                              {% include "shop_admin/orders.html" %}
                             </div>
                             <div role="tabpanel" class="tab-pane" id="tab-reviews">
-                                {% include "shop_admin/reviews.html" %}
+                              {% include "shop_admin/reviews.html" %}
                             </div>
                         </div>
                     </div>
@@ -48,5 +48,12 @@
             </div>
         </div>
     </div>
+
+{% endblock %}
+
+
+{% block script %}
+    <script type="text/javascript" src="{{ url_for('static', filename='js/shop_form.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/generate_order.js') }}"></script>
 
 {% endblock %}

@@ -1,5 +1,6 @@
-from flask import Flask, g
+from flask import Flask, g, request, abort, session
 from flask_admin import Admin
+from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required, roles_required
@@ -19,7 +20,7 @@ class MyHomeView(AdminIndexView):
     def index(self):
         return self.render('admin/index.html')
 
-
+csrf = CsrfProtect()
 db = SQLAlchemy()
 mail = Mail()
 admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
@@ -36,7 +37,7 @@ def create_app(option):
     app = Flask(__name__)
     config = config_factory.get(option)
     app.config.from_object(config)
-    from common import create_jinja_filters
+    from common import create_jinja_filters, random_pwd
 
     create_jinja_filters(app)
     from webapp.auth import auth
@@ -49,6 +50,7 @@ def create_app(option):
     app.register_blueprint(api, url_prefix=Constants.API_V1_URL_PREFIX)
     app.register_blueprint(media, url_prefix=Constants.MEDIA_URL_PREFIX)
 
+    csrf.init_app(app)
     compress.init_app(app)
     gravatar.init_app(app)
     db.init_app(app)

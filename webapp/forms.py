@@ -14,8 +14,12 @@ class LoginForm(Form):
 
 class ExtendedRegisterForm(RegisterForm):
     name = StringField('Name', [DataRequired()])
-    shop_name = StringField('Shop name', validators=[])
-    shop_domain = StringField('Shop Domain', validators=[])
+
+class ShopForm(Form):
+    name = StringField('Shop name', validators=[])
+    domain = StringField('Shop Domain', validators=[])
+    description = TextAreaField('Description', validators=[])
+    submit = SubmitField('Go')
 
 
 class ReviewPhotoForm(Form):

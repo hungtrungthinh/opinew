@@ -31,7 +31,7 @@
                   </li>
               {% endif %}
               {% if current_user.has_role(g.constants.SHOP_OWNER_ROLE) %}
-                {% set link = url_for('client.shop_admin') %}
+                {% set link = url_for('client.shop_dashboard') %}
                   <li {% if request.path == link %}class="active"{% endif %}>
                       <a href="{{ link }}">Shop Admin</a>
                   </li>
