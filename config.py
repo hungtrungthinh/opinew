@@ -17,14 +17,10 @@ class Constants(object):
     ADMIN_ROLE = 'ADMIN'
     REVIEWS_PER_PAGE = 10
     NOTIFICATIONS_INITIAL = 20
+    CURRENCY = "gbp"
 
 
 class Config(object):
-    # TODO: when we completely decouple with flask-mail remove these three
-    SMTP_SERVER = "smtpout.europe.secureserver.net"
-    EMAIL_ADDRESS = "team@opinew.com"
-    EMAIL_PASSWORD = sensitive.EMAIL_PASSWORD
-
     MAIL_SERVER = "smtpout.europe.secureserver.net"
     MAIL_PORT = 465
     MAIL_USE_SSL = True
@@ -52,6 +48,8 @@ class Config(object):
     SECURITY_RECOVERABLE  = True
     SECURITY_CHANGEABLE = True
 
+    STRIPE_API_KEY = sensitive.STRIPE_TEST_API_KEY
+
 
 class ConfigTest(Config):
     MODE = 'testing'
@@ -74,6 +72,7 @@ class ConfigDev(Config):
 class ConfigProd(Config):
     MODE = 'production'
     SQLALCHEMY_DATABASE_URI = 'sqlite:////home/opinew_server/db/ecommerce_api.db'
+    STRIPE_API_KEY = sensitive.STRIPE_API_KEY
 
 
 config_factory = {

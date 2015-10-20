@@ -3,7 +3,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import validates
 from webapp import db, admin
 from webapp.exceptions import DbException
-from webapp.common import random_pwd
+from async import stripe_payment
 from flask import url_for, g, abort, redirect, request
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
@@ -103,52 +103,67 @@ class Customer(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("customer"), uselist=False)
 
-    current_subscription_plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'), default=1)
-    current_subscription_plan = db.relationship("SubscriptionPlan", backref=db.backref("customer"), uselist=False)
-
-    stripe_token = db.Column(db.String)
+    stripe_customer_id = db.Column(db.String)
     active = db.Column(db.Boolean, default=True)
+
+    def __init__(self, stripe_token=None, **kwargs):
+        super(Customer, self).__init__(**kwargs)
+        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
+        assert stripe_token is not None
+        stripe_opinew_adapter.create_customer(self, stripe_token)
 
     def __repr__(self):
         return '<Customer %r>' % self.user
 
 
-class SubscriptionPlan(db.Model):
+class Plan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     name = db.Column(db.String)
     description = db.Column(db.String)
-    price = db.Column(db.Integer)
-    payment_frequency = db.Column(db.String)
+    amount = db.Column(db.Integer)
+    interval = db.Column(db.String)  # day, week, month or year
+    trial_period_days = db.Column(db.Integer, default=0)
     active = db.Column(db.Boolean, default=False)
 
+    stripe_plan_id = db.Column(db.String)
+
+    def __init__(self, **kwargs):
+        super(Plan, self).__init__(**kwargs)
+        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
+        stripe_opinew_adapter.create_plan(self)
+
     def __repr__(self):
-        return '<SubscriptionPlan %r>' % self.name
+        return '<Plan %r>' % self.name
 
 
-class CustomerSubscriptionPlanChange(db.Model):
+class Subscription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
-    customer = db.relationship("Customer", backref=db.backref("subscription_plan"), uselist=False)
+    customer = db.relationship("Customer", backref=db.backref("subscription"), uselist=False)
 
-    old_subscription_plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'))
-    old_subscription_plan = db.relationship("SubscriptionPlan",
-                                            primaryjoin="CustomerSubscriptionPlanChange.old_subscription_plan_id==SubscriptionPlan.id",
-                                            backref=db.backref("plan_change_old", uselist=False),
-                                            uselist=False)
-
-    new_subscription_plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'))
-    new_subscription_plan = db.relationship("SubscriptionPlan",
-                                            primaryjoin="CustomerSubscriptionPlanChange.new_subscription_plan_id==SubscriptionPlan.id",
-                                            backref=db.backref("plan_change_new", uselist=False),
-                                            uselist=False)
+    plan_id = db.Column(db.Integer, db.ForeignKey('plan.id'))
+    plan = db.relationship("Plan", backref=db.backref("subscription"), uselist=False)
 
     timestamp = db.Column(db.DateTime, default=datetime.utcnow())
 
+    stripe_subscription_id = db.Column(db.String)
+
+    def __init__(self, **kwargs):
+        super(Subscription, self).__init__(**kwargs)
+        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
+        stripe_opinew_adapter.create_subscription(self)
+
+    @classmethod
+    def update(cls, instance, plan):
+        assert instance is not None
+        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
+        instance = stripe_opinew_adapter.update_subscription(instance, plan)
+        return instance
+
     def __repr__(self):
-        return '<PlanChange of %r from %r to %r>' % (
-            self.customer, self.old_subscription_plan, self.new_subscription_plan)
+        return '<Subscription of %r by %r>' % (self.plan, self.customer)
 
 
 class ReviewLike(db.Model):
@@ -577,8 +592,8 @@ class AdminModelView(ModelView):
 admin.add_view(AdminModelView(Role, db.session))
 admin.add_view(AdminModelView(User, db.session))
 admin.add_view(AdminModelView(Customer, db.session))
-admin.add_view(AdminModelView(SubscriptionPlan, db.session))
-admin.add_view(AdminModelView(CustomerSubscriptionPlanChange, db.session))
+admin.add_view(AdminModelView(Plan, db.session))
+admin.add_view(AdminModelView(Subscription, db.session))
 admin.add_view(AdminModelView(ReviewLike, db.session))
 admin.add_view(AdminModelView(Notification, db.session))
 admin.add_view(AdminModelView(Order, db.session))

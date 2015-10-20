@@ -5,7 +5,9 @@ import csv
 from webapp import models, db, create_app
 from config import Constants, basedir
 from flask.ext.security.utils import encrypt_password
+from flask import current_app
 import sensitive
+from async import stripe_payment
 
 
 class Repopulate(object):
@@ -21,15 +23,16 @@ class Repopulate(object):
         ###############################
         # CREATE SUBSRTIPTION PLANS
         ###############################
-        with open(os.path.join(basedir, 'install', 'init_db', 'SubscriptionPlan.csv'), 'r') as csvfile:
+        with open(os.path.join(basedir, 'install', 'init_db', 'Plan.csv'), 'r') as csvfile:
             spreader = csv.reader(csvfile)
             csvfile.readline()  # skip first line
             for row in spreader:
-                plan = models.SubscriptionPlan(name=row[1],
-                                               description=row[2],
-                                               price=row[3],
-                                               payment_frequency=row[4],
-                                               active=row[5])
+                plan = models.Plan(name=row[1],
+                                   description=row[2],
+                                   amount=row[3],
+                                   interval=row[4],
+                                   trial_period_days=row[5],
+                                   active=row[6])
                 db.session.add(plan)
 
         ###############################
@@ -51,11 +54,19 @@ class Repopulate(object):
         self.shop_owner.roles.append(self.shop_owner_role)
         db.session.add(self.shop_owner)
 
+        # NEEDED SO THAT THE PLANS ARE IN SYNC
+        db.session.commit()
+        pro_plan = models.Plan.query.filter_by(id=3).first()
         # create shop owner CUSTOMER
-        shop_owner_customer = models.Customer(user=self.shop_owner, current_subscription_plan_id=6)
-        switch = models.CustomerSubscriptionPlanChange(customer=shop_owner_customer, new_subscription_plan_id=6)
+        # 1. Get credit card token
+        stripe_api = stripe_payment.StripeAPI(current_app.config.get('STRIPE_API_KEY'))
+        stripe_token = stripe_api.create_token('4242424242424242', '123', 12, 2020).id
+        # 2. Create Customer object
+        shop_owner_customer = models.Customer(stripe_token=stripe_token, user=self.shop_owner)
+        # 3. Subscribe him to one of our plans (Pro)
+        subscription = models.Subscription(customer=shop_owner_customer, plan=pro_plan)
         db.session.add(shop_owner_customer)
-        db.session.add(switch)
+        db.session.add(subscription)
 
         # Create opinew shop
         SHOP_URL = 'http://opinew_shop.local:5001/'
