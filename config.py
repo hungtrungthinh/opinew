@@ -22,6 +22,7 @@ class Constants(object):
 
 class Config(object):
     MAIL_SERVER = "smtpout.europe.secureserver.net"
+    MAIL_DEFAULT_SENDER = 'noreply@opinew.com'
     MAIL_PORT = 465
     MAIL_USE_SSL = True
     MAIL_USERNAME = "team@opinew.com"
@@ -47,6 +48,9 @@ class Config(object):
     SECURITY_REGISTERABLE = True
     SECURITY_RECOVERABLE  = True
     SECURITY_CHANGEABLE = True
+
+    CELERY_BROKER_URL='amqp://guest:guest@localhost:5672//'
+    CELERY_RESULT_BACKEND = 'amqp://guest:guest@localhost:5672//'
 
     STRIPE_API_KEY = sensitive.STRIPE_TEST_API_KEY
 
