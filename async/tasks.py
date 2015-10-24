@@ -23,3 +23,8 @@ celery = make_celery(app)
 @celery.task()
 def add_together(a, b):
     return a + b
+
+@celery.task()
+def send_email(*args, **kwargs):
+    from async.email_sender import send_email
+    send_email(*args, **kwargs)

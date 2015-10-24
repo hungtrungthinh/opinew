@@ -8,6 +8,7 @@ from flask.ext.security.utils import encrypt_password
 from flask import current_app
 import sensitive
 from async import stripe_payment
+from importers import magento
 
 
 class Repopulate(object):
@@ -54,19 +55,25 @@ class Repopulate(object):
         self.shop_owner.roles.append(self.shop_owner_role)
         db.session.add(self.shop_owner)
 
+        # BEAUTY KITCHEN USER
+        self.beauty_kitchen_owner = models.User(name="Beauty Kitchen", email='info@fake_beautykitchen.co.uk',
+                                      password=encrypt_password(self.OWNER_PASSWORD))
+        self.beauty_kitchen_owner.roles.append(self.shop_owner_role)
+        db.session.add(self.beauty_kitchen_owner)
+
         # NEEDED SO THAT THE PLANS ARE IN SYNC
         db.session.commit()
         pro_plan = models.Plan.query.filter_by(id=3).first()
-        # create shop owner CUSTOMER
+        # TODO: Temporary disabled but works create shop owner CUSTOMER
         # 1. Get credit card token
-        stripe_api = stripe_payment.StripeAPI(current_app.config.get('STRIPE_API_KEY'))
-        stripe_token = stripe_api.create_token('4242424242424242', '123', 12, 2020).id
+        # stripe_api = stripe_payment.StripeAPI(current_app.config.get('STRIPE_API_KEY'))
+        # stripe_token = stripe_api.create_token('4242424242424242', '123', 12, 2020).id
         # 2. Create Customer object
-        shop_owner_customer = models.Customer(stripe_token=stripe_token, user=self.shop_owner)
+        # shop_owner_customer = models.Customer(stripe_token=stripe_token, user=self.shop_owner)
         # 3. Subscribe him to one of our plans (Pro)
-        subscription = models.Subscription(customer=shop_owner_customer, plan=pro_plan)
-        db.session.add(shop_owner_customer)
-        db.session.add(subscription)
+        # subscription = models.Subscription(customer=shop_owner_customer, plan=pro_plan)
+        # db.session.add(shop_owner_customer)
+        # db.session.add(subscription)
 
         # Create opinew shop
         SHOP_URL = 'http://opinew_shop.local:5001/'
@@ -74,6 +81,13 @@ class Repopulate(object):
                                        description="Opinew is a contemporary fashion brand for the rebellious street fashion enthusiast. Each collection has an artistic story behind them and are designed in Scotland. We believe in unique clothing that you wont find on the high street!")
         self.opinew_shop.owner = self.shop_owner
         db.session.add(self.opinew_shop)
+
+        # Create beauty kitchen shop
+        BK_SHOP_URL = 'http://www.beautykitchen.co.uk/'
+        self.beauty_kitchen_shop = models.Shop(name='Beauty Kitchen', domain=BK_SHOP_URL, platform=self.magento_platform,
+                                       description="")
+        self.beauty_kitchen_shop.owner = self.beauty_kitchen_owner
+        db.session.add(self.beauty_kitchen_shop)
 
         ###############################
         # CREATE PRODUCTS
@@ -83,11 +97,28 @@ class Repopulate(object):
             csvfile.readline()  # skip first line
             for row in productreader:
                 product = models.Product(name=row[1],
+                                         active=True,
                                          shop=self.opinew_shop,
                                          url="%s/product/%s" % (self.SHOP_URL, row[0]),
                                          platform_product_id=row[0])
                 db.session.add(product)
         db.session.commit()
+
+        magento_products = magento.products_import(os.path.join(basedir, 'tests', 'test_files', 'beauty_kitchen.csv'))
+        BK_IMAGE_BASE = 'http://www.beautykitchen.co.uk/media/catalog/product/cache/1/image/363x/040ec09b1e35df139433887a97daa66f'
+        for p in magento_products:
+            if not p.get('name', None):
+                continue
+            product = models.Product(name=p.get('name'),
+                                     active=True if p.get('status', 0) == u'1' else False,
+                                     short_description=p.get('short_description'),
+                                     product_type='Beauty Products',
+                                     category=p.get('_category'),
+                                     image_url="%s%s" % (BK_IMAGE_BASE, p.get('image')),
+                                     shop=self.beauty_kitchen_shop,
+                                     url="%s%s" % (BK_SHOP_URL, p.get('url_path')),
+                                     platform_product_id=p.get('sku'))
+            db.session.add(product)
 
         ###############################
         # CREATE ORDERS
@@ -158,8 +189,12 @@ class Repopulate(object):
         # CREATE PLATFORMS
         ###############################
         self.shopify_platform = models.Platform(name='shopify')
+        self.magento_platform = models.Platform(name='magento')
+        self.woocommerce_platform = models.Platform(name='woocommerce')
         self.custom_platform = models.Platform(name='custom')
         db.session.add(self.shopify_platform)
+        db.session.add(self.magento_platform)
+        db.session.add(self.woocommerce_platform)
         db.session.add(self.custom_platform)
 
         ###############################

@@ -538,7 +538,11 @@ class ProductReview(db.Model):
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+    active = db.Column(db.Boolean, default=False)
+    short_description = db.Column(db.String)
     product_type = db.Column(db.String)
+    category = db.Column(db.String)
+    image_url = db.Column(db.String)
     url = db.Column(db.String)
     platform_product_id = db.Column(db.Integer)
     plugin_views = db.Column(db.Integer, default=0)

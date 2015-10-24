@@ -10,12 +10,11 @@
     <title>{{ subject }}</title>
 </head>
 <body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
-<h1>Welcome to Opinew</h1>
-<p>Opinew is a mobile app for showing of things you have that you think are awesome or suck.</p>
+<h1>{{ user_name }}, welcome to Opinew</h1>
+<p>We just registered your online shop on opinew. You can now go to <a href="http://opinew.com/login?email={{ user_email }}">http://opinew.com</a> and login to manage your reviews.</p>
 
-<p>You recently placed an order with a shop and we created an account for you.</p>
-
+Email: {{ user_email }}
 <p>Your password is:</p>
-    <h2 style="padding: 10px; background-color: yellow;">{{ user_password }}</h2>
+    <h2 style="padding: 10px; background-color: yellow;">{{ user_temp_password }}</h2>
 </body>
 </html>

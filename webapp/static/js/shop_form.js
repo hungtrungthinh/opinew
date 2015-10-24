@@ -12,7 +12,7 @@ $('#shop-form').bind('submit', function (e) {
     data: JSON.stringify(formData),
     contentType: 'application/json'
   }).done(function (r) {
-    window.location.href = "{{ url_for('client.shop_dashboard') }}";
+    window.location.href = "/dashboard";
   }).fail(function (r) {
     var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
     $('#product-post-status')

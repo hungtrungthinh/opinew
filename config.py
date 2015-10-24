@@ -8,7 +8,6 @@ class Constants(object):
     DEFAULT_PROFILE_PICTURE = 'default_user.png'
     MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
     API_V1_URL_PREFIX = '/api/v1'
-    AUTH_URL_PREFIX = '/auth'
     MEDIA_URL_PREFIX = '/media'
     NOTIFICATION_AFTER_DELIVERY_SECONDS = 2 * 24 * 60 * 60  # 2 days
     TEMP_PWD_LEN = 5

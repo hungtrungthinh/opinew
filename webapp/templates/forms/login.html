@@ -2,7 +2,7 @@
 <form action="/login" method="post">
     <input type="hidden" name="next" value="{{ next_arg or request.args.next }}"/>
   {{ login_form.csrf_token() }}
-  {{ macros.form_field(login_form, login_form.email, class="form-control") }}<br>
+  {{ macros.form_field(login_form, login_form.email, class="form-control", value=request.args.email) }}<br>
   {{ macros.form_field(login_form, login_form.password, class="form-control") }}<br>
   {{ login_form.remember() }} {{ login_form.remember.label() }}<br>
   {{ login_form.submit(class="tn-primary form-control") }}<br>

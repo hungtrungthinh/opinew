@@ -16,6 +16,10 @@ database with some initial data for dev purposes.
 ## Run
 
     ./run.py
+    
+## Run celery manager
+
+    ./run_celery.sh
 
 ## Test
 

@@ -4,11 +4,11 @@ from flask import request, redirect, url_for, render_template, flash, g, send_fr
     current_app, make_response, abort
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from providers.shopify_api import API
-from webapp import db, review_photos
+from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, ProductReview, \
     Role, Customer, Notification
-from webapp.common import param_required, get_post_payload, catch_exceptions, generate_temp_password
+from webapp.common import param_required, catch_exceptions, generate_temp_password
 from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, ReviewForm, ReviewPhotoForm, ShopForm, ExtendedRegisterForm
 from config import Constants, basedir
@@ -104,58 +104,60 @@ def shopify_plugin_callback():
     shop_owner = User.get_by_email_no_exception(shopify_email)
     shop_owner_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
     if not shop_owner:
-        shop_owner = User(email=shopify_shop.get('email', ''),
-                          temp_password=generate_temp_password(),
-                          name=shopify_shop.get('shop_owner', ''))
-    shop_owner.roles.append(shop_owner_role)
-    db.session.add(shop_owner)
+        shop_owner_name = shopify_shop.get('shop_owner', '')
+        shop_owner_email = shopify_shop.get('email', '')
+        temp_password = generate_temp_password()
+        shop_owner = User(email=shop_owner_email,
+                          temp_password=temp_password,
+                          name=shop_owner_name)
+        from async import tasks
+        tasks.send_email(recipients=[shop_owner_email],
+                         template='email/new_user.html',
+                         template_ctx={'user_email': shop_owner_email,
+                                       'user_temp_password': temp_password,
+                                       'user_name': shop_owner_name
+                                       },
+                         subject="Welcome to Opinew!")
+        shop_owner.roles.append(shop_owner_role)
+        db.session.add(shop_owner)
 
-    # Create shop with owner = shop_user
-    shopify_platform = Platform.get_by_name('shopify')
-    shop = Shop(name=shop_name, domain=shop_domain, platform=shopify_platform, access_token=shopify_api.access_token,
-                owner=shop_owner)
-    shop_owner.shops.append(shop)
-    db.session.add(shop)
+        # Create shop with owner = shop_user
+        shopify_platform = Platform.get_by_name('shopify')
+        shop = Shop(name=shop_name,
+                    domain=shop_domain,
+                    platform=shopify_platform,
+                    access_token=shopify_api.access_token,
+                    owner=shop_owner)
+        shop_owner.shops.append(shop)
+        db.session.add(shop)
 
-    # Import shop products
-    for product_j in shopify_products:
-        product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
-        product = Product(name=product_j.get('title', ''),
-                          shop=shop,
-                          url=product_url,
-                          platform_product_id=product_j.get('id', ''))
-        db.session.add(product)
+        # Import shop products
+        for product_j in shopify_products:
+            product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
+            product = Product(name=product_j.get('title', ''),
+                              shop=shop,
+                              url=product_url,
+                              platform_product_id=product_j.get('id', ''))
+            db.session.add(product)
+        db.session.commit()
+
+        # Login shop_user
+        login_user(shop_owner)
+        return redirect(url_for('.dashboard'))
+
+# Signals
+from flask.ext.security import user_registered
+
+def capture_registration(app, user=None, confirm_token=None):
+    shop_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
+    user.roles.append(shop_role)
     db.session.commit()
 
-    # Login shop_user
-    login_user(shop_owner)
-    return redirect(url_for('.user_setup'))
-
-
-@client.route('/user_setup')
-@login_required
-def user_setup():
-    return render_template('user_setup/choose_role.html')
-    # ref = request.args.get('ref')
-    # shop_id = request.args.get('shop_id')
-    # shop = Shop.query.filter_by(id=shop_id).first()
-    # if not shop or not shop.owner == current_user:
-    #     flash('not your shop')
-    #     return redirect(url_for('client.index'))
-    # code = render_template('user_setup/code.html', shop=shop)
-    # if ref == 'shopify':
-    #     return render_template('user_setup/shopify.html', code=code)
-    # platforms = Platform.query.all()
-    # return render_template('user_setup/internal.html', code=code, shop=shop, platforms=platforms)
-
+user_registered.connect(capture_registration)
 
 @client.route('/')
 def index():
     if current_user.is_authenticated():
-        if not current_user.roles:
-            shop_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
-            current_user.roles.append(shop_role)
-            db.session.commit()
         if current_user.has_role(Constants.ADMIN_ROLE):
             return redirect('/admin')
         elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
@@ -164,14 +166,12 @@ def index():
             return redirect(url_for('.reviews'))
     return render_template('index.html')
 
-
 @client.route('/<order_token>')
 def get_by_order_token(order_token):
     order = Order.query.filter_by(token=order_token).first()
     if order:
         return redirect(url_for('client.add_review', order_id=order.id, order_token=order_token, **request.args))
     return redirect(url_for('client.index'))
-
 
 @client.route('/customer_signup', methods=['GET', 'POST'])
 @login_required
@@ -199,7 +199,6 @@ def customer_signup():
         return redirect(url_for('client.install', ref='internal', shop_id=shop.id))
     return render_template('customer_signup.html', shop_form=shop_form)
 
-
 @client.route('/reviews')
 def reviews():
     page = request.args.get('page', '1')
@@ -209,7 +208,6 @@ def reviews():
     reviews = Review.get_latest(start, end)
     return render_template('reviewer/home.html', page_title="Reviews - ",
                            reviews=reviews, page=page)
-
 
 @client.route('/dashboard')
 @roles_required(Constants.SHOP_OWNER_ROLE)
@@ -223,7 +221,6 @@ def shop_dashboard():
     if len(shops) == 1:
         return redirect(url_for('client.shop_dashboard_id', shop_id=shops[0].id))
     return render_template('shop_admin/choose_shop.html', shops=shops, shop_form=shop_form, platforms=platforms)
-
 
 @client.route('/dashboard/<int:shop_id>')
 @roles_required(Constants.SHOP_OWNER_ROLE)
@@ -241,7 +238,6 @@ def shop_dashboard_id(shop_id):
     platforms = Platform.query.all()
     return render_template('shop_admin/home.html', shop=shop, orders=orders, products=products, code=code,
                            reviews=reviews, shop_form=shop_form, platforms=platforms)
-
 
 @client.route('/plugin')
 def get_plugin():
@@ -266,7 +262,6 @@ def get_plugin():
                            review_photo_form=review_photo_form, next_arg=next_arg,
                            own_reviews=own_reviews, no_buy=True)
 
-
 @client.route('/product', defaults={'product_id': 0})
 @client.route('/product/<int:product_id>')
 def get_product(product_id):
@@ -279,7 +274,6 @@ def get_product(product_id):
     return render_template('product/product.html', page_title="%s Reviews - " % product.name,
                            product=product, reviews=reviews)
 
-
 @client.route('/read_notification')
 @login_required
 @catch_exceptions
@@ -289,7 +283,6 @@ def read_notification():
     notification = Notification.get_by_id(notification_id)
     notification.read()
     return redirect(next)
-
 
 @client.route('/add_review', methods=['GET', 'POST'])
 @catch_exceptions
@@ -324,7 +317,6 @@ def add_review():
     return render_template('web_review/main.html', order=order, product=product, products=products,
                            review_form=review_form, review_photo_form=review_photo_form)
 
-
 @client.route('/review', defaults={'review_id': 0})
 @client.route('/review/<int:review_id>')
 @roles_required(Constants.SHOP_OWNER_ROLE)
@@ -332,7 +324,6 @@ def add_review():
 def view_review(review_id):
     review = Review.get_by_id(review_id)
     return render_template('shop_admin/view_review.html', review=review)
-
 
 @client.route('/approve_review/<int:review_id>/<int:vote>', methods=['POST'])
 @roles_required(Constants.SHOP_OWNER_ROLE)
@@ -349,53 +340,43 @@ def approve_review(review_id, vote):
         flash('review disapproved')
     return redirect(request.referrer)
 
-
 @client.route('/plugin_logout')
 @login_required
 def plugin_logout():
     logout_user()
     return redirect(request.referrer)
 
-
 @client.route('/faq')
 def faq():
     return render_template('faq.html')
-
 
 @client.route('/about_us')
 def about_us():
     return render_template('about_us.html', page_title="About us - ")
 
-
 @client.route('/support')
 def support():
     return render_template('support.html', page_title="Support - ")
-
 
 @client.route('/terms')
 def terms_of_use():
     return render_template('terms_of_use.html', page_title="Terms of Use - ")
 
-
 @client.route('/privacy')
 def privacy_policy():
     return render_template('privacy_policy.html', page_title="Privacy Policy - ")
-
 
 @client.route('/robots.txt')
 def robotstxt():
     return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'txt'), 'robots.txt')
 
-
 @client.route('/humans.txt')
 def humanstxt():
     return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'txt'), 'humans.txt')
 
-
 @client.route('/favicon.ico')
 def faviconico():
     return send_from_directory(os.path.join(basedir, 'webapp', 'static', 'icons'), 'opinew32.ico')
-
 
 @client.route('/sitemap.xml')
 def sitemapxml():
@@ -411,14 +392,12 @@ def sitemapxml():
     response.headers["Content-Type"] = "application/xml"
     return response
 
-
 @client.route('/render_review_email/<int:order_id>')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def render_review_email(order_id):
     order = Order.query.filter_by(id=order_id).first()
     return render_template('email/review_order.html', order=order)
-
 
 @client.route('/render_email', defaults={'filename': None})
 @client.route('/render_email/<path:filename>')
@@ -427,3 +406,7 @@ def render_email(filename):
         abort(404)
     return render_template('email/%s' % filename,
                            **{k: (w[0] if len(w) else w) for k, w in dict(request.args).iteritems()})
+
+@client.route('/kudobuzz')
+def kudobuzz():
+    return render_template('fake/kudobuzz.html')

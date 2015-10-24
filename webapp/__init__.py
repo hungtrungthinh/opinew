@@ -40,13 +40,11 @@ def create_app(option):
     from common import create_jinja_filters, random_pwd
 
     create_jinja_filters(app)
-    from webapp.auth import auth
     from webapp.api import api
     from webapp.client import client
     from webapp.media import media
 
     app.register_blueprint(client)
-    app.register_blueprint(auth, url_prefix=Constants.AUTH_URL_PREFIX)
     app.register_blueprint(api, url_prefix=Constants.API_V1_URL_PREFIX)
     app.register_blueprint(media, url_prefix=Constants.MEDIA_URL_PREFIX)
 

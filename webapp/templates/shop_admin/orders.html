@@ -16,6 +16,7 @@
             </div>
         </div>
         <br><br>
+
         <div class="row">
 
 
@@ -29,35 +30,26 @@
                 <input type="text" id="product-type-input" name="product_type" class="form-control form-serialize"
                        placeholder="Product type"/>
             </div>
-        </div>
-        <br>
-
-        <div class="row">
-            <div class="col-md-offset-2"></div>
-            <div class="col-md-10">
-                <label>Review hints</label>
-            <textarea id="product-review-help-input" name="review_help" class="form-control form-serialize"
-                      placeholder="Write some hints as to what to review about this product..."></textarea>
-            </div>
             <div class="col-md-2">
                 <input type="submit" value="Generate token" class="btn btn-primary"/>
             </div>
         </div>
+
+
     </form>
     <br>
+
     <form>
         <label>Email of recipient</label>
         <input type="text" class="form-control" name="email" placeholder="for_who@example.com"/>
     </form>
     <br>
+
     <form id="generate-order-form" action="{{ g.constants.API_V1_URL_PREFIX }}/order" method="post">
         <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
         <input type="hidden" id="product-id-input" class="form-serialize" name="product_id"/>
         <input type="hidden" class="form-serialize" name="shop_id" value="{{ shop.id }}"/>
         <input type="hidden" class="form-serialize" name="user_id" value=""/>
-        <label>Discounts with this order</label>
-        <textarea name="discounts" class="form-control form-serialize"
-                  placeholder="Any discounts?"></textarea>
         <input type="submit" hidden/>
     </form>
 
