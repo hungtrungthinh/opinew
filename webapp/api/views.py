@@ -1,9 +1,10 @@
 import datetime
-from flask import jsonify, url_for
-from flask.ext.security import login_user, current_user
+from flask import jsonify, session
+from flask_wtf.csrf import generate_csrf
+from flask.ext.security import login_user, current_user, login_required
 from flask.ext.security.utils import verify_password
 from flask.ext.restless import ProcessingException
-from webapp import api_manager, models, db
+from webapp import api_manager, models, db, csrf
 from webapp.api import api
 from webapp.common import get_post_payload, param_required, catch_exceptions, random_pwd
 from webapp.exceptions import DbException
@@ -11,8 +12,8 @@ from config import Constants
 
 
 def del_csrf(data, *args, **kwargs):
-    del data['_csrf_token']
-
+    if '_csrf_token' in data:
+        del data['_csrf_token']
 
 def auth_func(*args, **kwargs):
     if not current_user.is_authenticated():
@@ -182,8 +183,14 @@ api_manager.create_api(models.Shop,
                        },
                        validation_exceptions=[DbException])
 
+@login_required
+@api.route('/token')
+def token():
+    return jsonify({'token': generate_csrf()})
+
 
 @api.route('/auth', methods=['POST'])
+@csrf.exempt
 @catch_exceptions
 def authenticate():
     """
@@ -194,10 +201,14 @@ def authenticate():
     payload = get_post_payload()
     email = param_required('email', payload)
     password = param_required('password', payload)
-    user = models.User.get_by_email(email)
-    verify_password(password, user.password)
+    user = models.User.query.filter_by(email=email).first()
+    if not user:
+        raise DbException('unknown user', 400)
+    if not verify_password(password, user.password):
+        raise DbException('invalid password', 400)
     login_user(user)
-    return jsonify({}), 200
+    return jsonify({})
+
 
 
 from webapp.api.webhooks import shopify

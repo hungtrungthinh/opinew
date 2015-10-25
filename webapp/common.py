@@ -11,6 +11,7 @@ from flask.ext.login import current_user
 from werkzeug.exceptions import HTTPException
 from webapp.exceptions import ParamException, ApiException, DbException
 from config import Constants, Config
+from sqlalchemy.exc import InvalidRequestError
 
 
 
@@ -101,13 +102,11 @@ def patch_with_auth(client, url, username, password, **kwargs):
 def catch_exceptions(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if 'mode' in g and g.mode == 'development':
+        try:
             return f(*args, **kwargs)
-        else:
-            try:
-                return f(*args, **kwargs)
-            except (ApiException, ParamException, DbException) as e:
-                return jsonify({"error": e.message}), e.status_code
+        except (ApiException, ParamException, DbException, InvalidRequestError) as e:
+            status_code = e.status_code if hasattr(e, 'status_code') else 400
+            return jsonify({"error": e.message}), status_code
     return wrapper
 
 def role_required(f):

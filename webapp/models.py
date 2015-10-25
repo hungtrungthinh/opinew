@@ -8,16 +8,17 @@ from flask import url_for, g, abort, redirect, request
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
+from sqlalchemy.ext.declarative import declarative_base
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
                                 db.Column('product_id', db.Integer, db.ForeignKey('product.id'))
                                 )
 
-roles_users = db.Table('roles_users',
-                       db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
-                       db.Column('role_id', db.Integer(), db.ForeignKey('role.id'))
-                       )
+roles_users_table = db.Table('roles_users',
+                             db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
+                             db.Column('role_id', db.Integer(), db.ForeignKey('role.id'))
+                             )
 
 
 class Role(db.Model, RoleMixin):
@@ -32,8 +33,7 @@ class Role(db.Model, RoleMixin):
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String)
-    roles = db.relationship('Role', secondary=roles_users,
-                            backref=db.backref('users', lazy='dynamic'))
+    roles = db.relationship("Role", secondary=lambda: roles_users_table)
     temp_password = db.Column(db.String)
     password = db.Column(db.String)
     name = db.Column(db.String)
@@ -66,9 +66,6 @@ class User(db.Model, UserMixin):
                 'email',
                 'name',
                 'profile_picture_url']
-
-    def get_own_reviews_about_product_in_shop(self, product, shop):
-        return Review.query.filter_by(user=self, product=product).all()
 
     def get_notifications(self, start=0, stop=Constants.NOTIFICATIONS_INITIAL):
         return Notification.query.filter_by(user=self).order_by(Notification.id.desc()).all()[start:stop]
@@ -106,10 +103,8 @@ class Customer(db.Model):
     stripe_customer_id = db.Column(db.String)
     active = db.Column(db.Boolean, default=True)
 
-    def __init__(self, stripe_token=None, **kwargs):
-        super(Customer, self).__init__(**kwargs)
+    def create(self, stripe_token=None, **kwargs):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        assert stripe_token is not None
         stripe_opinew_adapter.create_customer(self, stripe_token)
 
     def __repr__(self):
@@ -128,8 +123,7 @@ class Plan(db.Model):
 
     stripe_plan_id = db.Column(db.String)
 
-    def __init__(self, **kwargs):
-        super(Plan, self).__init__(**kwargs)
+    def create(self):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
         stripe_opinew_adapter.create_plan(self)
 
@@ -150,8 +144,7 @@ class Subscription(db.Model):
 
     stripe_subscription_id = db.Column(db.String)
 
-    def __init__(self, **kwargs):
-        super(Subscription, self).__init__(**kwargs)
+    def create(self):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
         stripe_opinew_adapter.create_subscription(self)
 
@@ -222,11 +215,8 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("orders"))
 
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    product = db.relationship("Product", backref=db.backref("orders"))
-
-    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("order"))
+    products = db.relationship('Product', secondary=order_products_table,
+                               backref=db.backref('orders', lazy='dynamic'))
 
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship("Shop", backref=db.backref("orders"))
@@ -301,6 +291,14 @@ class Comment(db.Model):
         return '<Comment %r... for %r by %r>' % (self.body[:10], self.review, self.user)
 
 
+class Source(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+
+    def __repr__(self):
+        return '<Source %r>' % self.name
+
+
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_ts = db.Column(db.DateTime, default=datetime.utcnow())
@@ -318,37 +316,40 @@ class Review(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     product = db.relationship('Product', backref=db.backref('reviews'))
 
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    shop = db.relationship('Shop', backref=db.backref('reviews'))
+
+    source_id = db.Column(db.Integer, db.ForeignKey('source.id'))
+    source = db.relationship('Source', backref=db.backref('reviews'))
+
     amending_review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     amending_review = db.relationship('Review', uselist=False, remote_side=[id],
                                       backref=db.backref('amended_review', uselist=False))
 
-    def __init__(self, body=None, photo_url=None, product_id=None, star_rating=None,
+    def __init__(self, user_id=None, body=None, photo_url=None, product_id=None, shop_id=None, star_rating=None,
                  verified_review=None, by_shop_owner=None, **kwargs):
+        self.user_id = user_id
         self.body = body
         self.photo_url = photo_url
         self.product_id = product_id
+        self.shop_id = shop_id
         self.star_rating = star_rating
         self.verified_review = verified_review
         self.by_shop_owner = by_shop_owner
-
-        self.user_id = current_user.id if current_user else 0
-
         db.session.add(self)
-        db.session.commit()
 
-        if self.user_id:
-            user_like = ReviewLike(user_id=self.user_id, review_id=self.id)
-            db.session.add(user_like)
+        user_like = ReviewLike(user_id=self.user_id, review=self)
+        db.session.add(user_like)
 
-        product_review = ProductReview(product_id=product_id, review_id=self.id)
+        product_review = ProductReview(product_id=product_id, review=self)
         db.session.add(product_review)
 
-        shop_owner = self.product.shop.owner
-        notification = Notification(user=shop_owner,
-                                    content='You received a new review about <b>%s</b>. <br>'
-                                            'Click here to allow or deny display on plugin' % self.product.name,
-                                    url='/review/%s' % self.id)
-        db.session.add(notification)
+        # shop_owner = self.product.shop.owner
+        # notification = Notification(user=shop_owner,
+        #                             content='You received a new review about <b>%s</b>. <br>'
+        #                                     'Click here to allow or deny display on plugin' % self.product.name,
+        #                             url='/review/%s' % self.id)
+        # db.session.add(notification)
         db.session.commit()
 
     @property
@@ -368,16 +369,6 @@ class Review(db.Model):
             rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
             return (0 if rl.action == 1 else 1) if rl else 1
         return 1
-
-    @classmethod
-    def create_from_repopulate(cls, user_id=None, product_id=None, body=None, photo_url=None, star_rating=None,
-                               verified_review=None):
-        review = cls(body=body, photo_url=photo_url, product_id=product_id, star_rating=star_rating,
-                     verified_review=verified_review)
-        review.user_id = user_id
-        user_like = ReviewLike(user_id=user_id, review_id=review.id)
-        db.session.add(user_like)
-        return review
 
     @validates('star_rating')
     def validate_star_rating(self, key, rating):
@@ -434,6 +425,7 @@ class Shop(db.Model):
 
     automatically_approve_reviews = db.Column(db.Boolean, default=True)
 
+    # TODO: DEPRECATE
     access_token = db.Column(db.String)
     products_imported = db.Column(db.Boolean, default=False)
 
@@ -506,8 +498,8 @@ class ProductReview(db.Model):
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     review = db.relationship("Review", backref=db.backref("product_review", uselist=False))
 
-    approved_by_shop = db.Column(db.Boolean, default=False)
-    approval_pending = db.Column(db.Boolean, default=True)
+    approved_by_shop = db.Column(db.Boolean, default=True)
+    approval_pending = db.Column(db.Boolean, default=False)
 
     @classmethod
     def get_by_shop_and_review_id(cls, product_id, review_id):
@@ -557,13 +549,6 @@ class Product(db.Model):
     @classmethod
     def get_by_id(cls, product_id):
         product = cls.query.filter(Product.id == product_id).first()
-        if not product:
-            raise DbException(message='Product doesn\'t exist', status_code=404)
-        return product
-
-    @classmethod
-    def get_by_shop_and_product_location(cls, shop_id, product_location):
-        product = cls.query.filter_by(shop_id=shop_id, url=product_location).first()
         if not product:
             raise DbException(message='Product doesn\'t exist', status_code=404)
         return product

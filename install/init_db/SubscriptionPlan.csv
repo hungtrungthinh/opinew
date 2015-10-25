@@ -1,7 +1,0 @@
-id,name,description,price,payment_frequency,active
-1,trial,,0,WEEK,1
-2,micro,,900,MONTHLY,1
-3,pro,,1900,MONTHLY,1
-4,premium,,3900,MONTHLY,1
-5,alpha_free,Free for our initial alpha testers,0,,1
-6,testing,For testing purposes,0,MONTHLY,1

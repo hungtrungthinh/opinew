@@ -1,4 +1,4 @@
-var OPINEW_PLUGIN_URL = "http://localhost:5000/plugin";
+var OPINEW_PLUGIN_URL = "https://opinew.com/plugin";
 
 var pluginElement = window.document.getElementById("opinew-plugin");
 var opinewShopId = pluginElement.getAttribute('data-opinew-shop-id');
@@ -12,7 +12,7 @@ function insertPlugin(url) {
 }
 
 function loadPlugin() {
-  insertPlugin(OPINEW_PLUGIN_URL + '?shop_id=' + opinewShopId + '&product_location=' + productLocation);
+  insertPlugin(OPINEW_PLUGIN_URL + '?shop_id=' + opinewShopId + '&get_by=loc&product_location=' + productLocation);
 }
 
 loadPlugin();

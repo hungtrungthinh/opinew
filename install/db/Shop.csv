@@ -1,0 +1,4 @@
+id,name,domain,description,access_token,owner_id,platform_id
+1,NULL_SHOP,,,,,
+2,Opinew shop,http://shop.opinew.com/,Just a test shop,,20,1
+3,Beauty Kitchen,http://www.beautykitchen.co.uk/,,,21,3

@@ -71,7 +71,7 @@ def platform_shopify_delete_product():
     return jsonify({}), 200
 
 
-@api.route('/orders/create', methods=['POST'])
+@api.route('/platform/shopify/orders/create', methods=['POST'])
 @verify_webhook
 @catch_exceptions
 def platform_shopify_create_order():
@@ -99,7 +99,7 @@ def platform_shopify_create_order():
     return build_created_response('.get_order', order_id=order.id)
 
 
-@api.route('/orders/fulfill', methods=['POST'])
+@api.route('/platform/shopify/orders/fulfill', methods=['POST'])
 @verify_webhook
 @catch_exceptions
 def platform_shopify_fulfill_order():

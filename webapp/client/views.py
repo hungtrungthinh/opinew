@@ -3,6 +3,7 @@ from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
+from flask.ext.security.utils import encrypt_password
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
@@ -109,6 +110,7 @@ def shopify_plugin_callback():
         temp_password = generate_temp_password()
         shop_owner = User(email=shop_owner_email,
                           temp_password=temp_password,
+                          password=encrypt_password(temp_password),
                           name=shop_owner_name)
         from async import tasks
         tasks.send_email(recipients=[shop_owner_email],
@@ -143,7 +145,7 @@ def shopify_plugin_callback():
 
         # Login shop_user
         login_user(shop_owner)
-        return redirect(url_for('.dashboard'))
+        return redirect(url_for('client.shop_dashboard'))
 
 # Signals
 from flask.ext.security import user_registered
@@ -183,10 +185,10 @@ def customer_signup():
         shop_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
         shop_owner.roles.append(shop_role)
 
-        # create a customer from user
-        customer = Customer(user=shop_owner)
         # Stripe already has validated the card
-        customer.stripe_token = param_required('stripe_token', request.form)
+        stripe_token = param_required('stripe_token', request.form)
+        # create a customer from user
+        customer = Customer(stripe_token=stripe_token, user=shop_owner)
         db.session.add(customer)
 
         # create a shop
@@ -233,7 +235,10 @@ def shop_dashboard_id(shop_id):
     orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
     products = Product.query.filter_by(shop_id=shop_id).all()
     reviews = Review.query.filter(Review.product_id.in_([p.id for p in products])).all()
-    code = render_template('user_setup/code.html', shop=shop)
+    if shop.platform.name == 'shopify':
+        code = render_template('user_setup/shopify_code.html', shop=shop)
+    else:
+        code = render_template('user_setup/code.html', shop=shop)
     shop_form = ShopForm(MultiDict(shop.__dict__))
     platforms = Platform.query.all()
     return render_template('shop_admin/home.html', shop=shop, orders=orders, products=products, code=code,
@@ -247,16 +252,24 @@ def get_plugin():
         signup_form = ExtendedRegisterForm()
         login_form = LoginForm()
         shop_id = param_required('shop_id', request.args)
-        product_location = param_required('product_location', request.args)
-        product = Product.get_by_shop_and_product_location(shop_id, product_location)
+        get_by = param_required('get_by', request.args)
+        if get_by == 'loc':
+            product_location = param_required('product_location', request.args)
+            product = Product.query.filter_by(shop_id=shop_id, url=product_location).first()
+        elif get_by == 'platform_id':
+            platform_product_id = param_required('platform_product_id', request.args)
+            product = Product.query.filter_by(shop_id=shop_id, platform_product_id=platform_product_id).first()
+        else:
+            product = None
+        if not product:
+            return '', 404
         reviews = Review.get_for_product_approved_by_shop(product.id, product.shop.id)
-        own_reviews = current_user.get_own_reviews_about_product_in_shop(product,
-                                                                         product.shop) if current_user and current_user.is_authenticated() else []
+        own_reviews = Review.query.filter_by(user=current_user, product=product).all() if current_user.is_authenticated() else []
         next_arg = request.url
         product.plugin_views += 1
         db.session.commit()
     except (ParamException, DbException) as e:
-        return '', 500
+        return '', 400
     return render_template('plugin/plugin.html', product=product, reviews=reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
                            review_photo_form=review_photo_form, next_arg=next_arg,

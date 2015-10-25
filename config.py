@@ -53,6 +53,13 @@ class Config(object):
 
     STRIPE_API_KEY = sensitive.STRIPE_TEST_API_KEY
 
+    FB_APP_ID = '1636982329849520'
+    FB_APP_SECRET = sensitive.FB_APP_SECRET
+
+    TWITTER_API_KEY = 'EeuhsnB1e4uwC6MSN5YIF7eGZ'
+    TWITTER_API_SECRET = sensitive.TWITTER_API_SECRET
+    TWITTER_APP_ACCESS_TOKEN = '3013280003-rZBNIbqXigzTaJyhb9u0I46VzwpKeY4cheFDsXs'
+    TWITTER_APP_ACCESS_SECRET = sensitive.TWITTER_APP_ACCESS_SECRET
 
 class ConfigTest(Config):
     MODE = 'testing'

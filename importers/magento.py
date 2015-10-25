@@ -1,4 +1,3 @@
-import operator
 from csv_utf_support import CSVUnicodeReader
 
 def products_import(file_path):
