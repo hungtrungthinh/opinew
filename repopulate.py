@@ -2,9 +2,45 @@
 import os
 import sys
 import csv
+from flask import current_app
 from webapp import models, db, create_app
-from config import Constants, basedir
-from flask.ext.security.utils import encrypt_password
+from config import basedir
+
+def import_tables(db_instance, db_dir):
+    for filename in os.listdir(db_dir):
+        if not filename.endswith(".csv"):
+            continue
+        filepath = os.path.join(db_dir, filename)
+        with open(filepath, 'r') as csvfile:
+            csv_reader = csv.reader(csvfile)
+            model_name = filename.split('.')[0]
+            headers = csv_reader.next()
+            for row in csv_reader:
+                record = {}
+                for i, column in enumerate(headers):
+                    record[column] = row[i]
+                model_class = getattr(models, model_name)
+                model_instance = model_class(**record)
+                db.session.add(model_instance)
+    db_instance.session.commit()
+
+    # Import many-to-many relationships
+    for filename in os.listdir(os.path.join(db_dir, 'm_n')):
+        filepath = os.path.join(db_dir, 'm_n', filename)
+        with open(filepath, 'r') as csvfile:
+            csv_reader = csv.reader(csvfile)
+            fname = filename.split('.')[0]
+            model_one_name, model_two_name = fname.split('_')
+            headers = csv_reader.next()
+            for row in csv_reader:
+                model_one_class = getattr(models, model_one_name)
+                model_two_class = getattr(models, model_two_name)
+                model_one_instance = model_one_class.query.filter_by(id=row[0]).first()
+                model_two_instance = model_two_class.query.filter_by(id=row[1]).first()
+                getattr(model_one_instance, headers[1]).append(model_two_instance)
+                db_instance.session.add(model_one_instance)
+    db_instance.session.commit()
+
 
 if __name__ == '__main__':
     arguments = sys.argv
@@ -17,8 +53,7 @@ if __name__ == '__main__':
     db.init_app(app)
 
     try:
-        os.remove('/tmp/ecommerce_api.db')
-        os.remove('/home/opinew_server/db/ecommerce_api.db')
+        os.remove(app.config.get('DATABASE_LOCATION'))
     except OSError:
         pass
 
@@ -28,35 +63,5 @@ if __name__ == '__main__':
     app.app_context().push()
     db.create_all()
 
-    for filename in os.listdir(os.path.join(basedir, 'install', 'db')):
-        if not filename.endswith(".csv"):
-            continue
-        filepath = os.path.join(basedir, 'install', 'db', filename)
-        with open(filepath, 'r') as csvfile:
-            csv_reader = csv.reader(csvfile)
-            model_name = filename.split('.')[0]
-            headers = csv_reader.next()
-            for row in csv_reader:
-                record = {}
-                for i, column in enumerate(headers):
-                    record[column] = row[i]
-                model_class = getattr(models, model_name)
-                model_instance = model_class(**record)
-                db.session.add(model_instance)
-    db.session.commit()
-
-    for filename in os.listdir(os.path.join(basedir, 'install', 'db', 'm_n')):
-        filepath = os.path.join(basedir, 'install', 'db', 'm_n', filename)
-        with open(filepath, 'r') as csvfile:
-            csv_reader = csv.reader(csvfile)
-            fname = filename.split('.')[0]
-            model_one_name, model_two_name = fname.split('_')
-            headers = csv_reader.next()
-            for row in csv_reader:
-                model_one_class = getattr(models, model_one_name)
-                model_two_class = getattr(models, model_two_name)
-                model_one_instance = model_one_class.query.filter_by(id=row[0]).first()
-                model_two_instance = model_two_class.query.filter_by(id=row[1]).first()
-                getattr(model_one_instance, headers[1]).append(model_two_instance)
-                db.session.add(model_one_instance)
-    db.session.commit()
+    db_dir = os.path.join(basedir, 'install', 'db', current_app.config.get('MODE'))
+    import_tables(db, db_dir)

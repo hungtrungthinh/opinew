@@ -1,35 +1,3 @@
-$('#review-form').bind('submit', function (e) {
-  e.preventDefault();
-  var $form = $(this);
-  var formData = {};
-
-  $form.find(".form-serialize").each(function () {
-    formData[this.name] = $(this).val();
-  });
-  formData['star_rating'] = $('input:radio[name=star_rating]:checked').val();
-  $.ajax({
-    type: $form.attr('method'),
-    url: $form.attr('action'),
-    data: JSON.stringify(formData),
-    contentType: 'application/json'
-  }).done(function (r) {
-    $('#product-review').hide();
-    $('#product-post-status')
-        .removeClass('alert-danger')
-        .addClass('alert-success')
-        .html('<p>Thank you for posting review</p>')
-        .slideDown();
-  }).fail(function (r) {
-    var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
-    $('#product-post-status')
-        .addClass('alert-danger')
-        .html('<p><strong>Something went wrong</strong>: ' + errors + '</p>')
-        .slideDown();
-
-  });
-  return false;
-});
-
 $('input[type=file]').change(function (e) {
   $('#review-photo-img').attr('src', "/static/img/ajax-loader.gif");
   e.preventDefault(); // Prevent the form from submitting via the browser.

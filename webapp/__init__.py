@@ -1,4 +1,4 @@
-from flask import Flask, g, request, abort, session
+from flask import Flask, g, request, redirect
 from flask_admin import Admin
 from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
@@ -67,6 +67,13 @@ def create_app(option):
             g.constants = Constants
             g.config = app.config
             g.mode = app.config.get('MODE')
+
+        @app.after_request
+        def redirect_if_next(response_class):
+            payload = request.args if request.method == 'GET' else request.form
+            if 'api_next' in payload:
+                return redirect(payload.get('api_next') or request.referrer)
+            return response_class
 
     patch_request_class(app, Constants.MAX_FILE_SIZE)
 

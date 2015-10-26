@@ -1,7 +1,6 @@
 from flask.ext.wtf import Form
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, FileField, \
-    HiddenField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, FileField, HiddenField
+from wtforms.validators import DataRequired, Email, Length
 from flask_security.forms import RegisterForm
 
 
@@ -14,6 +13,8 @@ class LoginForm(Form):
 
 class ExtendedRegisterForm(RegisterForm):
     name = StringField('Name', [DataRequired()])
+    is_shop_owner = BooleanField('I am a shop owner')
+
 
 class ShopForm(Form):
     name = StringField('Shop name', validators=[])
@@ -30,3 +31,10 @@ class ReviewForm(Form):
     body = TextAreaField('', validators=[Length(max=260)])
     photo_url = StringField()
     submit = SubmitField('Post')
+
+
+class ReviewRequestForm(Form):
+    from_customer_id = HiddenField()
+    to_user_id = HiddenField()
+    for_product_id = HiddenField()
+    for_shop_id = HiddenField()

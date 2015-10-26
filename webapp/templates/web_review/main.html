@@ -2,20 +2,20 @@
 {% block content %}
     <div class="container">
         <div class="row">
-          {% if order.product %}
-              <h1>Review {{ order.product.name }} from {{ order.product.shop.name }}</h1>
+          {% if product %}
+              <h1>Review {{ product.name }} from {{ product.shop.name }}</h1>
           {% endif %}
           {% if request.args.get('like') == '1' %}
               <div class="alert alert-success">
-                  <p><strong>Superb!</strong> We are glad you enjoyed your new <b>{{ order.product.name }}</b>.<br>
-                      Help 5000 other people that are in the market for <b>{{ order.product.product_type }}</b> to chose
+                  <p><strong>Superb!</strong> We are glad you enjoyed your new <b>{{ product.name }}</b>.<br>
+                      Help 5000 other people that are in the market for <b>{{ product.product_type }}</b> to chose
                       the right one!
                   </p>
               </div>
           {% elif request.args.get('like') == '0' %}
               <div class="alert alert-warning">
                   <p><strong>Bummer! :(</strong> We are sorry to hear that you don't like your new
-                      <b>{{ order.product.name }}</b>.<br>
+                      <b>{{ product.name }}</b>.<br>
                       Let us help you resolve any issues you had...
                   </p>
               </div>
@@ -23,35 +23,12 @@
 
             <br>
 
-            <div class="alert" id="product-post-status" hidden></div>
             <div id="product-review">
-                <div class="col-md-5">
-                  {% if order and order.shop.description %}
-                      <h3>About {{ order.shop.name }}</h3>
-                      <em style="font-size: 1.2em;">
-                        {{ order.shop.description }}
-                      </em>
-                  {% endif %}
-                  {% if order and order.discount %}
-                      <h3>Get this discount!</h3>
-                      <p>{{ order.discount }}</p>
-                  {% endif %}
-                </div>
                 <div class="col-md-6 col-md-offset-1">
                     <div class="row">
                       {% include "forms/review.html" %}
                     </div>
-                  {% if order %}
-                      <div class="row">
-
-                          <h3>Some reviews about <b>{{ order.product.name }}</b></h3>
-                        {% for review in order.product.reviews[:3] %}
-                          {% include "product/review.html" %}
-                        {% endfor %}
-                      </div>
-                  {% endif %}
                 </div>
-
             </div>
         </div>
     </div>
@@ -59,59 +36,4 @@
 
 {% block script %}
     <script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
-    <script>
-        var initialLoginAction = $('#review-login-form').attr('action');
-        $('#review-login-email-input').on('change', function () {
-            var $form = $('#review-login-form');
-            var filters = [{"name": "email", "op": "==", "val": $(this).val()}];
-            $.ajax({
-                type: 'get',
-                url: initialLoginAction,
-                data: {"q": JSON.stringify({"filters": filters})},
-                dataType: "json",
-                contentType: "application/json"
-            }).done(function (r) {
-                if (r.num_results == 1) {
-                    var userId = r.objects[0].id;
-                    var userName = r.objects[0].name;
-                    var userPhotoUrl = '/media/user/' + r.objects[0].profile_picture_url;
-
-                    $('#review-login-form').attr('method', 'post').attr('action', '/login');
-                    $('#review-login-profile-picture').attr('src', userPhotoUrl).slideDown();
-                    $('#review-login-name').html(userName).slideDown();
-                    $('#review-login-password').slideDown().focus();
-                    $('#review-login-submit').slideDown();
-                } else {
-
-                }
-            }).fail(function (r) {
-                var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
-                $('#product-post-status')
-                        .addClass('alert-danger')
-                        .html('<p><strong>Something went wrong</strong>: ' + errors + '</p>')
-                        .slideDown();
-
-            });
-        });
-
-        $('#review-login-form').bind('submit', function (e) {
-            e.preventDefault();
-            var $form = $(this);
-            $.ajax({
-                type: $form.attr('method'),
-                url: $form.attr('action'),
-                data: $form.serialize()
-            }).done(function (r) {
-                location.reload();
-            }).fail(function (r) {
-                var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
-                $('#user-signup-status')
-                        .addClass('alert-danger')
-                        .html('<p><strong>Something went wrong</strong>: ' + errors + '</p>')
-                        .slideDown();
-
-            });
-            return false;
-        });
-    </script>
 {% endblock %}

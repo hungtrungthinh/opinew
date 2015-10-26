@@ -6,18 +6,12 @@ import hmac
 import hashlib
 import datetime
 from functools import wraps
-from flask import jsonify, abort, request, url_for, g
+from flask import jsonify, abort, request, url_for
 from flask.ext.login import current_user
 from werkzeug.exceptions import HTTPException
 from webapp.exceptions import ParamException, ApiException, DbException
 from config import Constants, Config
 from sqlalchemy.exc import InvalidRequestError
-
-
-
-def validate_user_role(role):
-    if not current_user.role == role:
-        abort(403)
 
 
 # Make json error handlers
@@ -41,17 +35,10 @@ def get_post_payload():
     return {}
 
 
-def next_is_valid(next_url):
-    if current_user.is_authenticated() and current_user.role:
-        for access in current_user.role.access_whitelist:
-            if next_url == access.url:
-                return True
-    return False
-
-
 def random_pwd(length):
     return ''.join(
-            random.choice(string.ascii_uppercase + string.digits) for _ in range(length))
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(length))
+
 
 def generate_temp_password():
     from webapp.models import User
@@ -80,25 +67,6 @@ def build_created_response(url_for_name, **kwargs):
     return response
 
 
-def open_with_auth(client, url, method, username, password, **kwargs):
-    return client.open(url,
-                       method=method,
-                       headers={
-                           'Authorization': 'Basic ' + base64.b64encode("%s:%s" % (username, password))
-                       }, **kwargs)
-
-
-def get_with_auth(client, url, username, password, **kwargs):
-    return open_with_auth(client, url, 'get', username, password, **kwargs)
-
-
-def post_with_auth(client, url, username, password, **kwargs):
-    return open_with_auth(client, url, 'post', username, password, **kwargs)
-
-
-def patch_with_auth(client, url, username, password, **kwargs):
-    return open_with_auth(client, url, 'patch', username, password, **kwargs)
-
 def catch_exceptions(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -107,7 +75,9 @@ def catch_exceptions(f):
         except (ApiException, ParamException, DbException, InvalidRequestError) as e:
             status_code = e.status_code if hasattr(e, 'status_code') else 400
             return jsonify({"error": e.message}), status_code
+
     return wrapper
+
 
 def role_required(f):
     @wraps(f)
@@ -115,7 +85,9 @@ def role_required(f):
         if not current_user.is_authenticated() or not current_user.role == Constants.SHOP_OWNER_ROLE:
             abort(401)
         return f(*args, **kwargs)
+
     return wrapper
+
 
 def reviewer_required(f):
     @wraps(f)
@@ -123,7 +95,9 @@ def reviewer_required(f):
         if not current_user.is_authenticated() or not current_user.role == Constants.REVIEWER_ROLE:
             abort(401)
         return f(*args, **kwargs)
+
     return wrapper
+
 
 def verify_webhook(f):
     @wraps(f)
@@ -134,7 +108,9 @@ def verify_webhook(f):
         if not calculated_hmac == request_hmac:
             raise ParamException("Invalid signature.", 403)
         return f(*args, **kwargs)
+
     return wrapper
+
 
 def create_jinja_filters(app):
     @app.template_filter('timesince')

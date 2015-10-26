@@ -1,5 +1,5 @@
 import datetime
-from flask import jsonify, session
+from flask import jsonify, request, redirect
 from flask_wtf.csrf import generate_csrf
 from flask.ext.security import login_user, current_user, login_required
 from flask.ext.security.utils import verify_password
@@ -36,36 +36,6 @@ def pre_review_like_post(data, *args, **kwargs):
     if review_like:
         raise ProcessingException(description='Review already liked', code=401)
     data['user_id'] = current_user.id
-    return data
-
-
-def pre_create_review(data, *args, **kwargs):
-    shop_id = data.get('shop_id')
-    if shop_id:
-        shop = models.Shop.query.filter_by(id=shop_id).first()
-        if shop.owner == current_user:
-            data['by_shop_owner'] = True
-    order_id = data.get('order_id')
-    if order_id:
-        order_token = data.get('order_token')
-        if not order_token:
-            raise ProcessingException(description='Order token required', code=401)
-        order = models.Order.query.filter_by(id=order_id).first()
-        if not order:
-            raise ProcessingException(description='No such order', code=401)
-        if order.user and not order.user == current_user:
-            raise ProcessingException(description='Not your order to review', code=401)
-        if order.token == order_token:
-            raise ProcessingException(description='Wrong order token', code=401)
-        product_id = data.get('product_id')
-        if not product_id:
-            raise ProcessingException(description='Posting an order needs to have product id as well', code=401)
-        product = models.Product.query.filter_by(id=product_id).first()
-        if order and not product == order.product:
-            raise ProcessingException(description='Product not in order', code=401)
-        data['verified_review'] = True
-        del data['order_id']
-        del data['order_token']
     return data
 
 
@@ -134,7 +104,7 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [del_csrf, auth_func, pre_create_review],
+                           'POST': [del_csrf, auth_func, models.Review.preprocess],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.User.exclude_fields(),
@@ -155,7 +125,7 @@ api_manager.create_api(models.Order,
                        methods=['GET', 'POST'],
                        preprocessors={
                            'GET_SINGLE': [auth_func, req_shop_owner],
-                           'GET_MANY': [del_csrf, auth_func, req_shop_owner],
+                           'GET_MANY': [auth_func, req_shop_owner],
                            'POST': [del_csrf, req_shop_owner, pre_create_order],
                        }, )
 

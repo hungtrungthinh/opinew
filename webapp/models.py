@@ -8,7 +8,6 @@ from flask import url_for, g, abort, redirect, request
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
-from sqlalchemy.ext.declarative import declarative_base
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
@@ -33,7 +32,9 @@ class Role(db.Model, RoleMixin):
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String)
-    roles = db.relationship("Role", secondary=lambda: roles_users_table)
+    roles = db.relationship("Role", secondary=roles_users_table,
+                               backref=db.backref('users', lazy='dynamic'))
+    is_shop_owner = db.Column(db.Boolean, default=False)
     temp_password = db.Column(db.String)
     password = db.Column(db.String)
     name = db.Column(db.String)
@@ -106,6 +107,7 @@ class Customer(db.Model):
     def create(self, stripe_token=None, **kwargs):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
         stripe_opinew_adapter.create_customer(self, stripe_token)
+        return self
 
     def __repr__(self):
         return '<Customer %r>' % self.user
@@ -126,6 +128,7 @@ class Plan(db.Model):
     def create(self):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
         stripe_opinew_adapter.create_plan(self)
+        return self
 
     def __repr__(self):
         return '<Plan %r>' % self.name
@@ -147,6 +150,7 @@ class Subscription(db.Model):
     def create(self):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
         stripe_opinew_adapter.create_subscription(self)
+        return self
 
     @classmethod
     def update(cls, instance, plan):
@@ -233,8 +237,6 @@ class Order(db.Model):
     to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
 
-    token = db.Column(db.String)
-
     def is_for_user(self, user):
         if not self.shop.user == user:
             raise DbException(message="This order is not for this user", status_code=403)
@@ -299,12 +301,34 @@ class Source(db.Model):
         return '<Source %r>' % self.name
 
 
+class ReviewRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    created_ts = db.Column(db.DateTime, default=datetime.utcnow())
+
+    token = db.Column(db.String)
+
+    from_customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
+    from_customer = db.relationship('Customer', backref=db.backref('review_requests'))
+
+    to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    to_user = db.relationship('User', backref=db.backref('review_requests'))
+
+    for_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    for_product = db.relationship('Product', backref=db.backref('review_requests'))
+
+    for_shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    for_shop = db.relationship('Shop', backref=db.backref('reviews_requests'))
+
+    received = db.Column(db.Boolean)
+    completed = db.Column(db.Boolean)
+
+
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_ts = db.Column(db.DateTime, default=datetime.utcnow())
 
     body = db.Column(db.UnicodeText, default=u'')
-    photo_url = db.Column(db.UnicodeText, default=u'')
+    photo_url = db.Column(db.String)
     star_rating = db.Column(db.Integer, default=0)
 
     verified_review = db.Column(db.Boolean, default=False)
@@ -322,6 +346,10 @@ class Review(db.Model):
     source_id = db.Column(db.Integer, db.ForeignKey('source.id'))
     source = db.relationship('Source', backref=db.backref('reviews'))
 
+    source_url = db.Column(db.String)
+    source_user_name = db.Column(db.String)
+    source_user_profile_picture_url = db.Column(db.String)
+
     amending_review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     amending_review = db.relationship('Review', uselist=False, remote_side=[id],
                                       backref=db.backref('amended_review', uselist=False))
@@ -329,28 +357,69 @@ class Review(db.Model):
     def __init__(self, user_id=None, body=None, photo_url=None, product_id=None, shop_id=None, star_rating=None,
                  verified_review=None, by_shop_owner=None, **kwargs):
         self.user_id = user_id
-        self.body = body
+        self.body = unicode(body)
         self.photo_url = photo_url
         self.product_id = product_id
         self.shop_id = shop_id
         self.star_rating = star_rating
         self.verified_review = verified_review
         self.by_shop_owner = by_shop_owner
-        db.session.add(self)
 
+    @validates('star_rating')
+    def validate_star_rating(self, key, rating):
+        if rating:
+            rating = int(rating)
+            if rating >= 0 and rating <= 5:
+                return rating
+        raise DbException(message="[star_rating: Rating needs to be between 0 and 5 stars]", status_code=400)
+
+    @classmethod
+    def preprocess(cls, data):
+        data['user_id'] = current_user.id
+        review_request_id = data.get('review_request_id')
+        if review_request_id and cls.verify_review_request(data):
+            data['verified_review'] = True
+            del data['review_request_id']
+            del data['review_request_token']
+        return data
+    
+    @classmethod
+    def verify_review_request(cls, data):
+        review_request_id = data.get('review_request_id')
+        if review_request_id:
+            product_id = data.get('product_id')
+            if not product_id:
+                raise DbException(message='Product_id required for review_request', status_code=401)
+    
+            review_request_token = data.get('review_request_token')
+            if not review_request_token:
+                raise DbException(message='Review request token required', status_code=401)
+    
+            review_request = ReviewRequest.query.filter_by(id=review_request_id).first()
+            if not review_request or not review_request.for_user == current_user:
+                raise DbException(message='Not your review request', status_code=401)
+            if not review_request_token == review_request.token:
+                raise DbException(message='Wrong review request token', status_code=401)
+    
+            product = Product.query.filter_by(id=product_id).first()
+            if not product or not product == review_request.for_product:
+                raise DbException(message='Product not in order', status_code=401)
+        return True
+
+    def create(self, data=None):
         user_like = ReviewLike(user_id=self.user_id, review=self)
         db.session.add(user_like)
-
-        product_review = ProductReview(product_id=product_id, review=self)
+    
+        product_review = ProductReview(product=self.product, review=self)
         db.session.add(product_review)
-
-        # shop_owner = self.product.shop.owner
-        # notification = Notification(user=shop_owner,
-        #                             content='You received a new review about <b>%s</b>. <br>'
-        #                                     'Click here to allow or deny display on plugin' % self.product.name,
-        #                             url='/review/%s' % self.id)
-        # db.session.add(notification)
-        db.session.commit()
+    
+        shop_owner = self.product.shop.owner
+        notification = Notification(user=shop_owner,
+                                    content='You received a new review about <b>%s</b>. <br>'
+                                            'Click here to allow or deny display on plugin' % self.product.name,
+                                    url='/review/%s' % self.id)
+        db.session.add(notification)
+        return self
 
     @property
     def likes(self):
@@ -369,14 +438,6 @@ class Review(db.Model):
             rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
             return (0 if rl.action == 1 else 1) if rl else 1
         return 1
-
-    @validates('star_rating')
-    def validate_star_rating(self, key, rating):
-        if rating:
-            rating = int(rating)
-            if rating >= 0 and rating <= 5:
-                return rating
-        raise DbException(message="[star_rating: Rating needs to be between 0 and 5 stars]", status_code=400)
 
     def __repr__(self):
         return '<Review %r... by %r>' % (self.body[:10], self.user)
@@ -445,11 +506,6 @@ class Shop(db.Model):
         self.products_imported = True
         db.session.add(self)
         db.session.commit()
-
-    @classmethod
-    def get_by_shop_domain(cls, shop_domain):
-        shop = Shop.query.filter_by(domain=shop_domain).first()
-        return shop
 
     @classmethod
     def get_by_id(cls, shop_id):

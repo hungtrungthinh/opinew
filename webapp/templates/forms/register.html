@@ -6,6 +6,11 @@
   {{ macros.form_field(signup_form, signup_form.email, class="form-control") }}<br>
   {{ macros.form_field(signup_form, signup_form.password, class="form-control") }}<br>
   {{ macros.form_field(signup_form, signup_form.password_confirm, class="form-control") }}<br>
+  {% if request.args.shop_owner %}
+    {{ signup_form.is_shop_owner(checked=checked) }} {{ signup_form.is_shop_owner.label() }}<br>
+  {% else %}
+    {{ signup_form.is_shop_owner() }} {{ signup_form.is_shop_owner.label() }}<br>
+  {% endif %}
     <br>
   {{ signup_form.submit(class="btn-primary form-control") }}<br>
 </form>

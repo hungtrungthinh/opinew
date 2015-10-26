@@ -1,8 +1,9 @@
 import requests
 import hmac
 import hashlib
-from flask import request, jsonify
+from flask import request, current_app
 from webapp.exceptions import ApiException, ParamException
+from config import TestingConstants
 
 
 class API(object):
@@ -32,6 +33,8 @@ class API(object):
         if not hmac_request:
             raise ParamException('incorrect shop name', 400)
         req = dict(request.args)
+        if not 'signature' in req:
+            raise ParamException('signature required', 400)
         del req['signature']
         del req['hmac']
         unsorted = []
@@ -50,6 +53,9 @@ class API(object):
             raise ParamException('incorrect shop name', 400)
 
     def get_access_token(self, code):
+        if current_app.config.get('TESTING'):
+            self.access_token = 'hello'
+            return
         r = requests.post('https://{shop}.myshopify.com/admin/oauth/access_token'.format(
             shop=self.shop_domain[:-14]),
             data={'client_id': self.client_id,
@@ -62,7 +68,9 @@ class API(object):
         self.access_token = access_token
 
     def create_webhook(self, topic, address):
-        r = requests.post("https://%s/admin/webhooks.json" % self.shop_domain,
+        if current_app.config.get('TESTING'):
+            return
+        requests.post("https://%s/admin/webhooks.json" % self.shop_domain,
                           headers={'X-Shopify-Access-Token': self.access_token},
                           json={
                               "webhook": {
@@ -73,6 +81,9 @@ class API(object):
                           })
 
     def get_shop(self):
+        if current_app.config.get('TESTING'):
+            return {'email': TestingConstants.NEW_USER_EMAIL,
+                    'shop_owner': TestingConstants.NEW_USER_NAME}
         r = requests.get("https://%s/admin/shop.json" % self.shop_domain,
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
@@ -81,6 +92,11 @@ class API(object):
         return response.get('shop', {})
 
     def get_products(self):
+        if current_app.config.get('TESTING'):
+            return [{
+                'id': TestingConstants.NEW_PRODUCT_ID,
+                'title': TestingConstants.NEW_PRODUCT_NAME
+            }]
         r = requests.get("https://%s/admin/products.json" % self.shop_domain,
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:

@@ -1,30 +1,5 @@
 {% import "_macros.html" as macros %}
 <div class="row">
-  {% if current_user.is_authenticated() %}
-    {% if  current_user.profile_picture_url %}
-      {% set user_photo_url = url_for('media.get_user_photo', filename='%s' % current_user.profile_picture_url) %}
-    {% elif current_user.email | gravatar %}
-      {% set user_photo_url = current_user.email | gravatar %}
-    {% else %}
-      {% set user_photo_url = url_for('media.get_user_photo', filename='%s' % g.constants.DEFAULT_PROFILE_PICTURE) %}
-    {% endif %}
-      <img id="review-login-profile-picture" src="{{ user_photo_url }}" class="img-thumbnail"
-           style="float:left; max-height:50px; "/>
-
-      <p id="review-login-name" class="lead"
-         style="float:left; padding: 0 10px 0 10px;">{{ current_user.name }}</p>
-  {% endif %}
-  {% if order %}
-      <span class="label label-success">
-                  <span class="glyphicon glyphicon-ok"></span> Verified purchase
-              </span>&nbsp;
-  {% endif %}
-  {% if order and order.product and order.product.shop.owner == current_user %}
-      <span class="label label-info">
-                  <span class="glyphicon glyphicon-user"></span> By shop owner
-              </span>
-  {% endif %}
-    <br><br>
 
     <form class="action" method="post" action="{{ url_for('media.upload_review_photo') }}">
         <img src="" class="img-thumbnail img-responsive"
@@ -35,74 +10,44 @@
       {{ review_photo_form.photo(class="form-control") }}<br>
     </form>
     <form class="action" method="post" action="{{ g.constants.API_V1_URL_PREFIX }}/review" id="review-form">
-        <input type="hidden" name="next" value="{{ request.args.next }}"/>
-        <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
+        <input type="hidden" name="_csrf_token" class="form-serialize" value="{{ csrf_token() }}">
+        <input type="hidden" name="api_next" value="{{ url_for('client.reviews') }}"/>
 
-        <fieldset class="rating">
-            <input type="radio" id="star5" name="star_rating" value="5" class="form-serialize"
-                   {% if request.args.get('like') == '1' %}checked="checked"{% endif %}/>
-            <label for="star5" title="Rocks!">5 stars</label>
-            <input type="radio" id="star4" name="star_rating" value="4" class="form-serialize"/>
-            <label for="star4" title="Pretty good">4 stars</label>
-            <input type="radio" id="star3" name="star_rating" value="3" class="form-serialize"/>
-            <label for="star3" title="Meh">3 stars</label>
-            <input type="radio" id="star2" name="star_rating" value="2" class="form-serialize"/>
-            <label for="star2" title="Kinda bad">2 stars</label>
-            <input type="radio" id="star1" name="star_rating" value="1" class="form-serialize"
-                   {% if request.args.get('like') == '0' %}checked="checked"{% endif %}/>
-            <label for="star1" title="Sucks big time">1 star</label>
-        </fieldset>
-      {% if order %}
-          <input type="hidden" class="form-serialize" name="order_id" value="{{ order.id }}">
-          <input type="hidden" class="form-serialize" name="order_token" value="{{ order.token }}">
-      {% endif %}
-      {% if product or (order and order.product) %}
-        {% if order %}{% set product=order.product %}{% endif %}
-          <input type="hidden" class="form-serialize" name="product_id" value="{{ product.id }}">
-      {% else %}
-          <div class="form-group">
-              <label for="sel_product">Select product</label>
-              <select class="form-control form-serialize" name="product_id" id="sel_product">
-                {% for product in products %}
-                    <option value="{{ product.id }}">{{ product.name }}</option>
-                {% endfor %}
-              </select>
-          </div>
-      {% endif %}
-      {% if order and order.product.review_help %}
-          <p class="text-muted">{{ order.product.review_help }}</p>
-      {% endif %}
-      {{ macros.form_field(review_form, review_form.body, class="form-control form-serialize", placeholder='Write your review...') }}<br>
-      {{ review_form.photo_url(class="form-control form-serialize hidden") }}<br>
-        <br>
-      {{ review_form.submit(class="btn-primary form-control") }}<br>
+        <div class="row">
+            <fieldset class="rating">
+                <input type="radio" id="star5" name="star_rating" value="5" class="form-serialize"
+                       {% if request.args.get('like') == '1' %}checked="checked"{% endif %}/>
+                <label for="star5" title="Rocks!">5 stars</label>
+                <input type="radio" id="star4" name="star_rating" value="4" class="form-serialize"/>
+                <label for="star4" title="Pretty good">4 stars</label>
+                <input type="radio" id="star3" name="star_rating" value="3" class="form-serialize"/>
+                <label for="star3" title="Meh">3 stars</label>
+                <input type="radio" id="star2" name="star_rating" value="2" class="form-serialize"/>
+                <label for="star2" title="Kinda bad">2 stars</label>
+                <input type="radio" id="star1" name="star_rating" value="1" class="form-serialize"
+                       {% if request.args.get('like') == '0' %}checked="checked"{% endif %}/>
+                <label for="star1" title="Sucks big time">1 star</label>
+            </fieldset>
+        </div>
+        <div class="row">
+          {% if product %}
+              <input type="hidden" class="form-serialize" name="product_id" value="{{ product.id }}">
+          {% else %}
+              <div class="form-group">
+                  <label for="sel_product">Select product</label>
+                  <select class="form-control form-serialize" name="product_id" id="sel_product">
+                    {% for product in products %}
+                        <option value="{{ product.id }}">{{ product.name }}</option>
+                    {% endfor %}
+                  </select>
+              </div>
+          {% endif %}
+          {{ macros.form_field(review_form, review_form.body, class="form-control form-serialize", placeholder='Write your review...') }}<br>
+          {{ review_form.photo_url(class="form-control form-serialize hidden") }}<br>
+            <br>
+          {{ review_form.submit(class="btn-primary form-control") }}<br>
+        </div>
     </form>
-  {% if not current_user or not current_user.is_authenticated() %}
-      <h4>Login to get exclusive deals</h4>
-      <div class="alert alert-danger" id="user-signup-status" hidden></div>
-      <form id="review-login-form" action="{{ g.constants.API_V1_URL_PREFIX }}/user" method="get">
-          <input name=_csrf_token type=hidden value="{{ csrf_token() }}">
-
-          <img id="review-login-profile-picture" src="" hidden class="img-thumbnail"
-               style="float:left; max-height:100px; "/>
-
-          <p id="review-login-name" hidden class="lead" style="float:left;"></p>
-
-          <label for="review-login-email-input">email:</label>
-          <input id="review-login-email-input" type="text" class="form-control form-serialize" name="email"
-                 placeholder="email@example.com"/><br>
-
-          <div id="review-login-password" hidden>
-              <label for="review-login-email-input">password:</label>
-              <input id="review-login-password-input" type="password" class="form-control form-serialize"
-                     name="password"
-                     placeholder="password"/><br>
-          </div>
-          <div id="review-login-submit" hidden>
-              <input type="submit" class="btn btn-primary" value="Log in"/>
-          </div>
-      </form>
-  {% endif %}
 </div>
 
 

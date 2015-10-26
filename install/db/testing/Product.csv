@@ -1,0 +1,4 @@
+id,name,active,short_description,product_type,category,image_url,url,platform_product_id,plugin_views,review_help,shop_id
+1,Ear rings,1,,,,https://opinew.com/media/review/earrings.jpg,http://opinew_shop.local:5001/product/1,1,0,,2
+2,Yoga mat,1,,,,https://opinew.com/media/review/yoga_mat.jpg,http://opinew_shop.local:5001/product/2,2,0,,2
+3,Blazer Dorothy Perkins,1,,,,https://opinew.com/media/review/blazer.jpg,http://opinew_shop.local:5001/product/3,3,0,,2

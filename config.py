@@ -3,8 +3,19 @@ import sensitive
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+class TestingConstants(object):
+    NEW_USER_EMAIL = 'test@test.test'
+    NEW_USER_NAME = 'Test Test'
+    NEW_USER_PWD = 'password'
+    NEW_PRODUCT_ID = 1
+    NEW_PRODUCT_NAME = 'testing product'
+    NEW_SHOP_NAME = 'opinew-testing'
+    NEW_SHOP_DOMAIN = NEW_SHOP_NAME + '.myshopify.com'
 
 class Constants(object):
+    MODE_DEVELOPMENT = 'development'
+    MODE_PRODUCTION = 'production'
+    MODE_TESTING = 'testing'
     DEFAULT_PROFILE_PICTURE = 'default_user.png'
     MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
     API_V1_URL_PREFIX = '/api/v1'
@@ -62,26 +73,30 @@ class Config(object):
     TWITTER_APP_ACCESS_SECRET = sensitive.TWITTER_APP_ACCESS_SECRET
 
 class ConfigTest(Config):
-    MODE = 'testing'
+    MODE = Constants.MODE_TESTING
     WTF_CSRF_ENABLED = False
     TESTING = True
     SERVER_NAME = 'localhost:5000'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api_test.db'
+    OPINEW_API_SERVER = 'http://localhost:5000'
+    DATABASE_LOCATION = '/tmp/ecommerce_api_test.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
 
     UPLOADED_USERPHOTOS_DEST  = os.path.join('tmp', 'media', 'user')
     UPLOADED_REVIEWPHOTOS_DEST = os.path.join('tmp', 'media', 'review')
 
 
 class ConfigDev(Config):
-    MODE = 'development'
+    MODE = Constants.MODE_DEVELOPMENT
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ecommerce_api.db'
+    DATABASE_LOCATION = '/tmp/ecommerce_api.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
 
 
 class ConfigProd(Config):
-    MODE = 'production'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////home/opinew_server/db/ecommerce_api.db'
+    MODE = Constants.MODE_PRODUCTION
+    DATABASE_LOCATION = '/home/opinew_server/db/ecommerce_api.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
 
 
