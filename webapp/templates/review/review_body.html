@@ -6,10 +6,13 @@
     <span class="star-rating {% if review.star_rating == 5 %}star-actives{% endif %}">☆</span>
 
 </div>
-<br>
-<br>
 <p style="font-size: 1.2em; margin: 10px;">
   {{ review.body }}
+  {% if review.youtube_video %}
+      <br>
+      <iframe width="700" height="315" src="{{ review.youtube_video }}" frameborder="0"
+              allowfullscreen></iframe>
+  {% endif %}
 </p>
 {% if current_user.is_authenticated() %}
     <form class="review-like-form" style="display:inline;"
@@ -30,7 +33,7 @@
         <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
     </a>
 {% endif %}
-{% if not in_plugin %}
+{% if hide_buy_button %}
     <a class="btn btn-primary pull-right" href="{{ review.product.url }}">Buy</a>
 {% endif %}
 

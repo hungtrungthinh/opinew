@@ -11,7 +11,8 @@
                   </div>
               {% endif %}
             </div>
-            <div class="col-md-8">
+            <div class="col-md-10">
+              {% set show_product_info = True %}
               {% for review in reviews %}
                 {% include "review/review.html" %}
               {% endfor %}

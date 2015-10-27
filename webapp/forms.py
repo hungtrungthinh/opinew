@@ -23,13 +23,13 @@ class ShopForm(Form):
     submit = SubmitField('Go')
 
 
-class ReviewPhotoForm(Form):
-    photo = FileField('photo')
+class ReviewImageForm(Form):
+    image = FileField('image')
 
 
 class ReviewForm(Form):
     body = TextAreaField('', validators=[Length(max=260)])
-    photo_url = StringField()
+    image_url = StringField()
     submit = SubmitField('Post')
 
 

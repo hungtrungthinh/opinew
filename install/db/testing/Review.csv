@@ -1,7 +1,7 @@
-id,body,photo_url,star_rating,verified_review,by_shop_owner,user_id,product_id,shop_id,source_id,source_url,source_user_name,source_user_profile_picture_url
-1,Perfect unusual accessory for a normal day.,barbara_earrings.jpg,4,1,0,2,1,,1,,,
-2,Great value for money yoga mat,barbara_yoga_mat.jpg,5,0,0,2,2,,1,,,
-3,"Love my new blazer jacket and skirt pants. Accidental match! Inexpensive, comfortable, nice fabric, perfect for spring and autumn.",bobi_blazer.jpg,5,1,1,1,3,,1,,,
-4,Very compact; lovely design. It detangles hair more easily and makes it smooth and shiny but doesn't actually reduce hair loss so I don't think it's worth all the hype OR the price.,bobi_hairbrush.jpg,3,1,0,1,1,,1,,,
-5,"A great device! The design is simple and elegant. Pretty cheap, only 350 euro with Nvidia GPU and Intel i3 processor, tough only 4GB RAM. Only drawback is the battery 2400mAh, but for that price it's perfect",chavdar_laptop.jpg,5,0,0,3,2,,1,,,
-6,"Love my #nexus5, quick, great camera, regular updates. Pitty that Google stopped producing it anymore :(",dani_phone.jpg,5,1,1,3,3,,1,,,
+id,body,image_url,star_rating,verified_review,by_shop_owner,user_id,product_id,shop_id,source_id,source_url,source_user_name,source_user_profile_picture_url,youtube_video
+1,Perfect unusual accessory for a normal day.,barbara_earrings.jpg,1,1,0,2,1,,1,,,,
+2,Great value for money yoga mat,barbara_yoga_mat.jpg,5,0,0,2,2,,1,,,,
+3,"Love my new blazer jacket and skirt pants. Accidental match! Inexpensive, comfortable, nice fabric, perfect for spring and autumn.",bobi_blazer.jpg,5,1,1,1,3,,1,,,,
+4,Very compact; lovely design. It detangles hair more easily and makes it smooth and shiny but doesn't actually reduce hair loss so I don't think it's worth all the hype OR the price.,bobi_hairbrush.jpg,3,1,0,1,1,,1,,,,
+5,"A great device! The design is simple and elegant. Pretty cheap, only 350 euro with Nvidia GPU and Intel i3 processor, tough only 4GB RAM. Only drawback is the battery 2400mAh, but for that price it's perfect",chavdar_laptop.jpg,5,0,0,3,2,,1,,,,
+6,"Love my #nexus5, quick, great camera, regular updates. Pitty that Google stopped producing it anymore :(",dani_phone.jpg,5,1,1,3,3,,1,,,,https://www.youtube.com/embed/dQw4w9WgXcQ

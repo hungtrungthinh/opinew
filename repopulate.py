@@ -20,7 +20,7 @@ def import_tables(db_instance, db_dir):
                 for i, column in enumerate(headers):
                     record[column] = row[i]
                 model_class = getattr(models, model_name)
-                model_instance = model_class(**record)
+                model_instance = model_class().from_repopulate(**record)
                 db.session.add(model_instance)
     db_instance.session.commit()
 

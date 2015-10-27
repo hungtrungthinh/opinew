@@ -1,4 +1,4 @@
-from flask import Flask, g, request, redirect
+from flask import Flask, g, request, redirect, flash
 from flask_admin import Admin
 from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
@@ -27,10 +27,10 @@ admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
 security = Security()
 api_manager = APIManager()
 compress = Compress()
-gravatar = Gravatar(size=100, rating='g', default='retro', force_default=False, use_ssl=False, base_url=None)
+gravatar = Gravatar(size=100, rating='g', default='wavatar', force_default=False, use_ssl=False, base_url=None)
 
-user_photos = UploadSet('userphotos', IMAGES)
-review_photos = UploadSet('reviewphotos', IMAGES)
+user_images = UploadSet('userimages', IMAGES)
+review_images = UploadSet('reviewimages', IMAGES)
 
 
 def create_app(option):
@@ -72,7 +72,10 @@ def create_app(option):
         def redirect_if_next(response_class):
             payload = request.args if request.method == 'GET' else request.form
             if 'api_next' in payload:
-                return redirect(payload.get('api_next') or request.referrer)
+                if not response_class.status_code == 200:
+                    flash(response_class.data)
+                    return redirect(request.referrer)
+                return redirect(payload.get('api_next'))
             return response_class
 
     patch_request_class(app, Constants.MAX_FILE_SIZE)
@@ -82,6 +85,6 @@ def create_app(option):
     for code in default_exceptions.iterkeys():
         app.error_handler_spec[None][code] = make_json_error
 
-    configure_uploads(app, (user_photos, review_photos,))
+    configure_uploads(app, (user_images, review_images,))
 
     return app

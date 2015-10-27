@@ -1,13 +1,13 @@
 {% import "_macros.html" as macros %}
-<div class="row">
-
-    <form class="action" method="post" action="{{ url_for('media.upload_review_photo') }}">
+<div class="alert" id="ajax-status" hidden></div>
+<div class="row" id="product-review">
+    <form class="action" method="post" action="{{ url_for('media.upload_review_image') }}">
         <img src="" class="img-thumbnail img-responsive"
              style="max-height:200px; max-width:500px; margin: 20px 0 20px 0;"
-             hidden id="review-photo-img"/>
+             hidden id="review-image"/>
         <br>
-      {{ review_photo_form.hidden_tag() }}
-      {{ review_photo_form.photo(class="form-control") }}<br>
+      {{ review_image_form.hidden_tag() }}
+      {{ review_image_form.image(class="form-control") }}<br>
     </form>
     <form class="action" method="post" action="{{ g.constants.API_V1_URL_PREFIX }}/review" id="review-form">
         <input type="hidden" name="_csrf_token" class="form-serialize" value="{{ csrf_token() }}">
@@ -43,7 +43,7 @@
               </div>
           {% endif %}
           {{ macros.form_field(review_form, review_form.body, class="form-control form-serialize", placeholder='Write your review...') }}<br>
-          {{ review_form.photo_url(class="form-control form-serialize hidden") }}<br>
+          {{ review_form.image_url(class="form-control form-serialize hidden") }}<br>
             <br>
           {{ review_form.submit(class="btn-primary form-control") }}<br>
         </div>

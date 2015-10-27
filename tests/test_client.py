@@ -1,11 +1,13 @@
 import json
 import os
+import datetime
 from flask import url_for
 from freezegun import freeze_time
 from unittest import TestCase
 from webapp import create_app, db
-from webapp.models import User, Role, Shop
-from config import Constants, TestingConstants, basedir
+from webapp.models import User, Role, Shop, Review
+from tests import testing_constants
+from config import Constants, basedir
 import sensitive
 from repopulate import import_tables
 
@@ -88,7 +90,7 @@ class TestViews(TestFlaskApplication):
     def test_shopify_install_shop_exists_and_token(self):
         shop = Shop.query.filter_by(name='Opinew shop').first()
         old_shop_domain = shop.domain
-        shop.domain = TestingConstants.NEW_SHOP_DOMAIN
+        shop.domain = testing_constants.NEW_SHOP_DOMAIN
         shop.access_token = 'Hellotoken'
         db.session.add(shop)
         db.session.commit()
@@ -104,7 +106,7 @@ class TestViews(TestFlaskApplication):
 
     def test_shopify_install_redirect(self):
         response_actual = self.client.get("/install", query_string={'ref': 'shopify',
-                                                                    'shop': TestingConstants.NEW_SHOP_DOMAIN})
+                                                                    'shop': testing_constants.NEW_SHOP_DOMAIN})
         location_expected = 'https://opinew-testing.myshopify.com/admin/oauth/authorize?client_id=7260cb38253b9adc4af0c90eb622f4ce&scope=read_products,read_orders,read_fulfillments&redirect_uri=http://localhost:5000/oauth/callback&state=opinew-testing'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
@@ -128,14 +130,14 @@ class TestViews(TestFlaskApplication):
     def test_oauth_callback_no_code(self):
         response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing',
                                                                            'hmac': 'fdsa',
-                                                                           'shop': TestingConstants.NEW_SHOP_DOMAIN})
+                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN})
         response_expected = {u'error': u'code parameter is required'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_wrong_nonce(self):
         response_actual = self.client.get("/oauth/callback", query_string={'state': 'WRONG_NONCE',
                                                                            'hmac': 'fdsa',
-                                                                           'shop': TestingConstants.NEW_SHOP_DOMAIN,
+                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                            'code': 'abc'})
         response_expected = {u'error': u'incorrect nonce'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
@@ -143,7 +145,7 @@ class TestViews(TestFlaskApplication):
     def test_oauth_callback_no_signature(self):
         response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing',
                                                                            'hmac': 'fdsa',
-                                                                           'shop': TestingConstants.NEW_SHOP_DOMAIN,
+                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                            'code': 'abc'})
         response_expected = {u'error': u'signature required'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
@@ -151,7 +153,7 @@ class TestViews(TestFlaskApplication):
     def test_oauth_callback_hmac_wrong(self):
         response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing',
                                                                            'hmac': 'fdsa',
-                                                                           'shop': TestingConstants.NEW_SHOP_DOMAIN,
+                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                            'code': 'abc',
                                                                            'signature': 'abc'})
         response_expected = {u'error': u'hmac unverified'}
@@ -160,19 +162,19 @@ class TestViews(TestFlaskApplication):
     def test_oauth_callback_success(self):
         response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing',
                                                                            'hmac': '4989858235c2ceded8d751658b9a8d7af995343950bcf65bee49ea48fb20380e',
-                                                                           'shop': TestingConstants.NEW_SHOP_DOMAIN,
+                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                            'code': 'abc',
                                                                            'signature': 'abc'})
         location_expected = url_for('client.shop_dashboard')
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
-        new_user = User.query.filter_by(email=TestingConstants.NEW_USER_EMAIL).first()
-        new_shop = Shop.query.filter_by(name=TestingConstants.NEW_SHOP_NAME).first()
+        new_user = User.query.filter_by(email=testing_constants.NEW_USER_EMAIL).first()
+        new_shop = Shop.query.filter_by(name=testing_constants.NEW_SHOP_NAME).first()
 
         self.assertTrue(new_user is not None)
         self.assertTrue(new_shop is not None)
-        self.assertEquals(new_user.name, TestingConstants.NEW_USER_NAME)
+        self.assertEquals(new_user.name, testing_constants.NEW_USER_NAME)
         self.assertEquals(new_user.roles[0], Constants.SHOP_OWNER_ROLE)
         self.assertEquals(new_shop.owner, new_user)
 
@@ -193,64 +195,64 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('Password not provided' in response_actual.data)
 
     def test_register_post_name(self):
-        response_actual = self.client.post("/register", data={'name': TestingConstants.NEW_USER_NAME})
+        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Email not provided' in response_actual.data)
         self.assertTrue('Password not provided' in response_actual.data)
 
     def test_register_post_name_and_email(self):
-        response_actual = self.client.post("/register", data={'name': TestingConstants.NEW_USER_NAME,
-                                                              'email': TestingConstants.NEW_USER_EMAIL})
+        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+                                                              'email': testing_constants.NEW_USER_EMAIL})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Password not provided' in response_actual.data)
 
     def test_register_post_no_password_confirm(self):
-        response_actual = self.client.post("/register", data={'name': TestingConstants.NEW_USER_NAME,
-                                                              'email': TestingConstants.NEW_USER_EMAIL,
-                                                              'password': TestingConstants.NEW_USER_PWD})
+        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+                                                              'email': testing_constants.NEW_USER_EMAIL,
+                                                              'password': testing_constants.NEW_USER_PWD})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Passwords do not match' in response_actual.data)
 
     def test_register_post_not_matching_passwords(self):
-        response_actual = self.client.post("/register", data={'name': TestingConstants.NEW_USER_NAME,
-                                                              'email': TestingConstants.NEW_USER_EMAIL,
-                                                              'password': TestingConstants.NEW_USER_PWD,
+        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+                                                              'email': testing_constants.NEW_USER_EMAIL,
+                                                              'password': testing_constants.NEW_USER_PWD,
                                                               'password_confirm': 'not matching'})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Passwords do not match' in response_actual.data)
 
     def test_register_post_default_reviewer(self):
-        response_actual = self.client.post("/register", data={'name': TestingConstants.NEW_USER_NAME,
-                                                              'email': TestingConstants.NEW_USER_EMAIL,
-                                                              'password': TestingConstants.NEW_USER_PWD,
-                                                              'password_confirm': TestingConstants.NEW_USER_PWD})
+        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+                                                              'email': testing_constants.NEW_USER_EMAIL,
+                                                              'password': testing_constants.NEW_USER_PWD,
+                                                              'password_confirm': testing_constants.NEW_USER_PWD})
         location_expected = url_for('client.index')
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
-        new_user = User.query.filter_by(email=TestingConstants.NEW_USER_EMAIL).first()
+        new_user = User.query.filter_by(email=testing_constants.NEW_USER_EMAIL).first()
 
         self.assertTrue(new_user is not None)
-        self.assertEquals(new_user.name, TestingConstants.NEW_USER_NAME)
+        self.assertEquals(new_user.name, testing_constants.NEW_USER_NAME)
         self.assertEquals(new_user.roles[0], Constants.REVIEWER_ROLE)
 
         db.session.delete(new_user)
         db.session.commit()
 
     def test_register_post_shop_owner(self):
-        response_actual = self.client.post("/register", data={'name': TestingConstants.NEW_USER_NAME,
-                                                              'email': TestingConstants.NEW_USER_EMAIL,
-                                                              'password': TestingConstants.NEW_USER_PWD,
-                                                              'password_confirm': TestingConstants.NEW_USER_PWD,
+        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+                                                              'email': testing_constants.NEW_USER_EMAIL,
+                                                              'password': testing_constants.NEW_USER_PWD,
+                                                              'password_confirm': testing_constants.NEW_USER_PWD,
                                                               'is_shop_owner': True})
         location_expected = url_for('client.index')
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
-        new_user = User.query.filter_by(email=TestingConstants.NEW_USER_EMAIL).first()
+        new_user = User.query.filter_by(email=testing_constants.NEW_USER_EMAIL).first()
 
         self.assertTrue(new_user is not None)
-        self.assertEquals(new_user.name, TestingConstants.NEW_USER_NAME)
+        self.assertEquals(new_user.name, testing_constants.NEW_USER_NAME)
         self.assertEquals(new_user.roles[0], Constants.SHOP_OWNER_ROLE)
 
         db.session.delete(new_user)
@@ -300,29 +302,124 @@ class TestViews(TestFlaskApplication):
 
     def test_render_add_review_no_product(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get("/add_review")
+        response_actual = self.client.get(url_for('client.add_review'))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Select product' in response_actual.data)
         self.logout()
 
     def test_render_add_review_to_product(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get("/add_review", query_string={"product_id": 1})
+        response_actual = self.client.get(url_for('client.add_review'), query_string={"product_id": 1})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h1>Review Ear rings' in response_actual.data)
         self.logout()
 
-    # API
-    @freeze_time("2015-03-14")
-    def test_api_post_review(self):
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_api_post_review_full_pipeline(self):
+        split_frozen_time = testing_constants.NEW_REVIEW_CREATED_TS.split('-')
+        frozen_time = datetime.datetime(int(split_frozen_time[0]), int(split_frozen_time[1]), int(split_frozen_time[2]))
+        # Login as a reviewer
         self.login(self.reviewer_user.email, self.reviewer_password)
-        body_payload = "fdsa"
-        payload = json.dumps({"product_id": "1",
-                              "star_rating": "4",
-                              "body": body_payload})
+        payload = json.dumps({"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
+                              "body": testing_constants.NEW_REVIEW_BODY,
+                              "star_rating": testing_constants.NEW_REVIEW_STARS,
+                              "image_url": testing_constants.NEW_REVIEW_IMAGE_URL})
         response_actual = self.client.post("/api/v1/review",
                                            headers={'content-type': 'application/json'},
                                            data=payload)
+
+        # First, check if API response is good...
         self.assertEquals(response_actual.status_code, 201)
-        self.assertTrue(body_payload in response_actual.data)
+        jsonified_response = json.loads(response_actual.data)
+        self.assertTrue('body' in jsonified_response and
+                        unicode(testing_constants.NEW_REVIEW_BODY) == jsonified_response['body'])
+        self.assertTrue('star_rating' in jsonified_response and
+                        testing_constants.NEW_REVIEW_STARS == jsonified_response['star_rating'])
+        self.assertTrue('image_url' in jsonified_response and
+                        testing_constants.NEW_REVIEW_IMAGE_URL == jsonified_response['image_url'])
+        self.assertTrue('product_id' in jsonified_response and
+                        testing_constants.NEW_REVIEW_PRODUCT_ID == jsonified_response['product_id'])
+        self.assertTrue('password' not in jsonified_response['user'])
+
+        # Check if db records are fine and dandy...
+        review_id = jsonified_response['id']
+        review = Review.query.filter_by(id=review_id).first()
+        self.assertEquals(testing_constants.NEW_REVIEW_BODY, review.body)
+        self.assertEquals(testing_constants.NEW_REVIEW_STARS, review.star_rating)
+        self.assertEquals(testing_constants.NEW_REVIEW_IMAGE_URL, review.image_url)
+        self.assertFalse(review.approval_pending)
+        self.assertFalse(review.by_shop_owner)
+        self.assertFalse(review.verified_review)
+        self.assertEquals(frozen_time, review.created_ts)
+        self.assertTrue(review.approved_by_shop)
+
+        # Finally, check that what needs to be rendered, is rendered..
+        response_actual = self.client.get(url_for('client.get_product', product_id=1))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue(testing_constants.NEW_REVIEW_BODY in response_actual.data)
+        self.assertTrue(testing_constants.NEW_REVIEW_IMAGE_URL in response_actual.data)
+        self.assertTrue(testing_constants.RENDERED_STARS in response_actual.data)
+        self.logout()
+
+    def helper_api_post_review_youtube_link(self, body_string):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        payload = json.dumps({"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
+                              "body": body_string})
+        response_actual = self.client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload)
+
+        # First, check if API response is good...
+        self.assertEquals(response_actual.status_code, 201)
+        jsonified_response = json.loads(response_actual.data)
+        self.assertTrue('body' in jsonified_response and
+                        unicode(testing_constants.NEW_REVIEW_BODY) == jsonified_response['body'])
+
+        # Check if db records are fine and dandy...
+        review_id = jsonified_response['id']
+        review = Review.query.filter_by(id=review_id).first()
+        self.assertEquals(testing_constants.NEW_REVIEW_BODY, review.body)
+        self.assertEquals(Constants.YOUTUBE_EMBED_URL.format(youtube_video_id=testing_constants.NEW_REVIEW_YOUTUBE_VIDEO_ID), review.youtube_video)
+
+        # Finally, check that what needs to be rendered, is rendered..
+        response_actual = self.client.get(url_for('client.get_product', product_id=1))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue(testing_constants.NEW_REVIEW_BODY in response_actual.data)
+        self.assertTrue(testing_constants.RENDERED_YOUTUBE in response_actual.data)
+        self.logout()
+
+    def test_api_post_review_youtube_link_at_end_of_body(self):
+        self.helper_api_post_review_youtube_link(testing_constants.NEW_REVIEW_BODY + ' ' + testing_constants.NEW_REVIEW_YOUTUBE_LINK)
+
+    def test_api_post_review_youtube_link_at_beginning_of_body(self):
+        self.helper_api_post_review_youtube_link(testing_constants.NEW_REVIEW_YOUTUBE_LINK + ' ' +testing_constants.NEW_REVIEW_BODY)
+
+    def test_api_post_review_youtube_link_middle_of_body(self):
+        self.helper_api_post_review_youtube_link(' ' + testing_constants.NEW_REVIEW_YOUTUBE_LINK + ' ' +testing_constants.NEW_REVIEW_BODY)
+
+    def test_api_post_review_shop_owner(self):
+        split_frozen_time = testing_constants.NEW_REVIEW_CREATED_TS.split('-')
+        frozen_time = datetime.datetime(int(split_frozen_time[0]), int(split_frozen_time[1]), int(split_frozen_time[2]))
+        self.login(self.shop_onwer_user.email, self.shop_owner_password)
+        payload = json.dumps({"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID})
+        response_actual = self.client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload)
+
+        # First, check if API response is good...
+        self.assertEquals(response_actual.status_code, 201)
+        jsonified_response = json.loads(response_actual.data)
+        self.assertTrue('product_id' in jsonified_response and
+                        testing_constants.NEW_REVIEW_PRODUCT_ID == jsonified_response['product_id'])
+        self.assertTrue('by_shop_owner' in jsonified_response and jsonified_response['by_shop_owner'])
+
+        # Check if db records are fine and dandy...
+        review_id = jsonified_response['id']
+        review = Review.query.filter_by(id=review_id).first()
+        self.assertTrue(review.by_shop_owner)
+
+        # Finally, check that what needs to be rendered, is rendered..
+        response_actual = self.client.get(url_for('client.get_product', product_id=1))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue(testing_constants.RENDERED_BY_SHOP_OWNER in response_actual.data)
         self.logout()

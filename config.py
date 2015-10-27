@@ -1,16 +1,8 @@
+# -*- coding: utf-8 -*-
 import os
 import sensitive
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-
-class TestingConstants(object):
-    NEW_USER_EMAIL = 'test@test.test'
-    NEW_USER_NAME = 'Test Test'
-    NEW_USER_PWD = 'password'
-    NEW_PRODUCT_ID = 1
-    NEW_PRODUCT_NAME = 'testing product'
-    NEW_SHOP_NAME = 'opinew-testing'
-    NEW_SHOP_DOMAIN = NEW_SHOP_NAME + '.myshopify.com'
 
 class Constants(object):
     MODE_DEVELOPMENT = 'development'
@@ -28,6 +20,9 @@ class Constants(object):
     REVIEWS_PER_PAGE = 10
     NOTIFICATIONS_INITIAL = 20
     CURRENCY = "gbp"
+    YOUTUBE_WATCH_LINK = 'https://www.youtube.com/watch?v='
+    YOUTUBE_SHORT_LINK = 'https://youtu.be/'
+    YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/{youtube_video_id}'
 
 
 class Config(object):
@@ -41,11 +36,11 @@ class Config(object):
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
 
-    UPLOADED_USERPHOTOS_DEST = os.path.join(basedir, 'media', 'user')
-    UPLOADED_USERPHOTOS_URL = '/media/user/'
+    UPLOADED_USERIMAGES_DEST = os.path.join(basedir, 'media', 'user')
+    UPLOADED_USERIMAGES_URL = '/media/user/'
 
-    UPLOADED_REVIEWPHOTOS_DEST = os.path.join(basedir, 'media', 'review')
-    UPLOADED_REVIEWPHOTOS_URL = '/media/review/'
+    UPLOADED_REVIEWIMAGES_DEST = os.path.join(basedir, 'media', 'review')
+    UPLOADED_REVIEWIMAGES_URL = '/media/review/'
 
     SHOPIFY_APP_API_KEY = sensitive.SHOPIFY_APP_API_KEY
     SHOPIFY_APP_SECRET = sensitive.SHOPIFY_APP_SECRET
@@ -81,8 +76,8 @@ class ConfigTest(Config):
     DATABASE_LOCATION = '/tmp/ecommerce_api_test.db'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
 
-    UPLOADED_USERPHOTOS_DEST  = os.path.join('tmp', 'media', 'user')
-    UPLOADED_REVIEWPHOTOS_DEST = os.path.join('tmp', 'media', 'review')
+    UPLOADED_USERIMAGES_DEST  = os.path.join('tmp', 'media', 'user')
+    UPLOADED_REVIEIMAGES_DEST = os.path.join('tmp', 'media', 'review')
 
 
 class ConfigDev(Config):

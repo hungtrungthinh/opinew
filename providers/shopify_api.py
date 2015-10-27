@@ -3,7 +3,7 @@ import hmac
 import hashlib
 from flask import request, current_app
 from webapp.exceptions import ApiException, ParamException
-from config import TestingConstants
+from tests import testing_constants
 
 
 class API(object):
@@ -82,8 +82,8 @@ class API(object):
 
     def get_shop(self):
         if current_app.config.get('TESTING'):
-            return {'email': TestingConstants.NEW_USER_EMAIL,
-                    'shop_owner': TestingConstants.NEW_USER_NAME}
+            return {'email': testing_constants.NEW_USER_EMAIL,
+                    'shop_owner': testing_constants.NEW_USER_NAME}
         r = requests.get("https://%s/admin/shop.json" % self.shop_domain,
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
@@ -94,8 +94,8 @@ class API(object):
     def get_products(self):
         if current_app.config.get('TESTING'):
             return [{
-                'id': TestingConstants.NEW_PRODUCT_ID,
-                'title': TestingConstants.NEW_PRODUCT_NAME
+                'id': testing_constants.NEW_PRODUCT_ID,
+                'title': testing_constants.NEW_PRODUCT_NAME
             }]
         r = requests.get("https://%s/admin/products.json" % self.shop_domain,
                          headers={'X-Shopify-Access-Token': self.access_token})

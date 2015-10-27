@@ -1,3 +1,4 @@
+from flask import current_app
 from webapp import create_app
 from celery import Celery
 
@@ -17,7 +18,7 @@ def make_celery(app):
     celery.Task = ContextTask
     return celery
 
-app = create_app('dummy')
+app = current_app or create_app('dummy')
 celery = make_celery(app)
 
 @celery.task()

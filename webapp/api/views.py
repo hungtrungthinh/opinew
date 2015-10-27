@@ -99,15 +99,16 @@ api_manager.create_api(models.Product,
 
 # To query the reviews:
 # http://flask-restless.readthedocs.org/en/latest/searchformat.html
+# TODO: TEST THIS SHIT
 # e.g. http://localhost:5000/api/v1/review?q={"order_by": [{"field": "created_ts", "direction":"desc"}], "offset":10}
 api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [del_csrf, auth_func, models.Review.preprocess],
+                           'POST': [del_csrf, auth_func],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
-                       exclude_columns=models.User.exclude_fields(),
+                       exclude_columns=models.Review.exclude_fields(),
                        validation_exceptions=[DbException])
 
 api_manager.create_api(models.ReviewLike,

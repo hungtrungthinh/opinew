@@ -1,10 +1,10 @@
 from datetime import datetime
+import re
 from sqlalchemy import and_
-from sqlalchemy.orm import validates
 from webapp import db, admin
 from webapp.exceptions import DbException
 from async import stripe_payment
-from flask import url_for, g, abort, redirect, request
+from flask import url_for, abort, redirect, request
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
@@ -20,7 +20,16 @@ roles_users_table = db.Table('roles_users',
                              )
 
 
-class Role(db.Model, RoleMixin):
+class Repopulatable(object):
+    def from_repopulate(self, **kwargs):
+        model_attributes = [a for a in dir(self) if not a[0] == '_']
+        for attr, val in kwargs.iteritems():
+            if attr in model_attributes:
+                setattr(self, attr, val)
+        return self
+
+
+class Role(db.Model, RoleMixin, Repopulatable):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(80), unique=True)
     description = db.Column(db.String(255))
@@ -29,16 +38,16 @@ class Role(db.Model, RoleMixin):
         return '<Role %r>' % self.name
 
 
-class User(db.Model, UserMixin):
+class User(db.Model, UserMixin, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String)
     roles = db.relationship("Role", secondary=roles_users_table,
-                               backref=db.backref('users', lazy='dynamic'))
+                            backref=db.backref('users', lazy='dynamic'))
     is_shop_owner = db.Column(db.Boolean, default=False)
     temp_password = db.Column(db.String)
     password = db.Column(db.String)
     name = db.Column(db.String)
-    profile_picture_url = db.Column(db.String)
+    image_url = db.Column(db.String)
 
     active = db.Column(db.Boolean, default=True)
     confirmed_at = db.Column(db.DateTime)
@@ -66,7 +75,7 @@ class User(db.Model, UserMixin):
         return ['id',
                 'email',
                 'name',
-                'profile_picture_url']
+                'image_url']
 
     def get_notifications(self, start=0, stop=Constants.NOTIFICATIONS_INITIAL):
         return Notification.query.filter_by(user=self).order_by(Notification.id.desc()).all()[start:stop]
@@ -95,7 +104,7 @@ class User(db.Model, UserMixin):
         return '<User %r>' % self.email
 
 
-class Customer(db.Model):
+class Customer(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -113,7 +122,7 @@ class Customer(db.Model):
         return '<Customer %r>' % self.user
 
 
-class Plan(db.Model):
+class Plan(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
 
     name = db.Column(db.String)
@@ -134,7 +143,7 @@ class Plan(db.Model):
         return '<Plan %r>' % self.name
 
 
-class Subscription(db.Model):
+class Subscription(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
 
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
@@ -143,11 +152,12 @@ class Subscription(db.Model):
     plan_id = db.Column(db.Integer, db.ForeignKey('plan.id'))
     plan = db.relationship("Plan", backref=db.backref("subscription"), uselist=False)
 
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow())
+    timestamp = db.Column(db.DateTime)
 
     stripe_subscription_id = db.Column(db.String)
 
     def create(self):
+        self.timestamp = datetime.utcnow()
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
         stripe_opinew_adapter.create_subscription(self)
         return self
@@ -167,7 +177,7 @@ class ReviewLike(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     action = db.Column(db.Integer, default=1)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow())
+    timestamp = db.Column(db.DateTime)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
                         default=current_user.id if current_user and current_user.is_authenticated() else 0)
@@ -280,7 +290,7 @@ class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String)
     created_ts = db.Column(db.DateTime, default=datetime.utcnow())
-    photo_url = db.Column(db.String)
+    image_url = db.Column(db.String)
     by_customer_support = db.Column(db.Boolean, default=False)
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
@@ -293,7 +303,7 @@ class Comment(db.Model):
         return '<Comment %r... for %r by %r>' % (self.body[:10], self.review, self.user)
 
 
-class Source(db.Model):
+class Source(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
 
@@ -303,7 +313,7 @@ class Source(db.Model):
 
 class ReviewRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    created_ts = db.Column(db.DateTime, default=datetime.utcnow())
+    created_ts = db.Column(db.DateTime)
 
     token = db.Column(db.String)
 
@@ -323,19 +333,12 @@ class ReviewRequest(db.Model):
     completed = db.Column(db.Boolean)
 
 
-class Review(db.Model):
+class Review(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
-    created_ts = db.Column(db.DateTime, default=datetime.utcnow())
 
-    body = db.Column(db.UnicodeText, default=u'')
-    photo_url = db.Column(db.String)
+    body = db.Column(db.String)
+    image_url = db.Column(db.String)
     star_rating = db.Column(db.Integer, default=0)
-
-    verified_review = db.Column(db.Boolean, default=False)
-    by_shop_owner = db.Column(db.Boolean, default=False)
-
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    user = db.relationship('User', backref=db.backref('reviews'))
 
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     product = db.relationship('Product', backref=db.backref('reviews'))
@@ -343,76 +346,100 @@ class Review(db.Model):
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship('Shop', backref=db.backref('reviews'))
 
+    # CANNOT SET THESE BELOW:
+    created_ts = db.Column(db.DateTime)
+
+    verified_review = db.Column(db.Boolean, default=False)
+    by_shop_owner = db.Column(db.Boolean, default=False)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship('User', backref=db.backref('reviews'))
+
     source_id = db.Column(db.Integer, db.ForeignKey('source.id'))
     source = db.relationship('Source', backref=db.backref('reviews'))
 
     source_url = db.Column(db.String)
     source_user_name = db.Column(db.String)
-    source_user_profile_picture_url = db.Column(db.String)
+    source_user_image_url = db.Column(db.String)
+
+    approved_by_shop = db.Column(db.Boolean, default=True)
+    approval_pending = db.Column(db.Boolean, default=False)
 
     amending_review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     amending_review = db.relationship('Review', uselist=False, remote_side=[id],
                                       backref=db.backref('amended_review', uselist=False))
 
-    def __init__(self, user_id=None, body=None, photo_url=None, product_id=None, shop_id=None, star_rating=None,
-                 verified_review=None, by_shop_owner=None, **kwargs):
-        self.user_id = user_id
+    youtube_video = db.Column(db.String)
+
+    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, **kwargs):
         self.body = unicode(body)
-        self.photo_url = photo_url
+        self.image_url = image_url
+        self.star_rating = star_rating
+        if shop_id and product_id:
+            raise DbException(message="[consistency: Can't set both shop_id and product_id]", status_code=400)
         self.product_id = product_id
         self.shop_id = shop_id
-        self.star_rating = star_rating
-        self.verified_review = verified_review
-        self.by_shop_owner = by_shop_owner
 
-    @validates('star_rating')
-    def validate_star_rating(self, key, rating):
-        if rating:
-            rating = int(rating)
-            if rating >= 0 and rating <= 5:
-                return rating
-        raise DbException(message="[star_rating: Rating needs to be between 0 and 5 stars]", status_code=400)
+        # Set automatic variables
+        if current_user and current_user.is_authenticated():
+            self.user = current_user
+        self.created_ts = datetime.utcnow()
+        # Is it by shop owner?
+        if product_id:
+            product = Product.query.filter_by(id=product_id).first()
+            if product and product.shop and product.shop.owner and product.shop.owner == current_user:
+                self.by_shop_owner = True
+        # Is it verified review?
+        review_request_id = kwargs.get('review_request_id')
+        if review_request_id and self.verify_review_request(kwargs):
+            self.verified_review = True
+        # Should we include youtube link?
+        if Constants.YOUTUBE_WATCH_LINK in self.body or Constants.YOUTUBE_SHORT_LINK in self.body:
+            # we have youtube video somewhere in the body, let's extract it
+            if Constants.YOUTUBE_WATCH_LINK in self.body:
+                youtube_link = Constants.YOUTUBE_WATCH_LINK
+            else:
+                youtube_link = Constants.YOUTUBE_SHORT_LINK
+            # find the youtube video id
+            youtube_video_id = self.body.split(youtube_link)[1].split(' ')[0].split('?')[0].split('&')[0]
+            self.youtube_video = Constants.YOUTUBE_EMBED_URL.format(youtube_video_id=youtube_video_id)
+            # Finally, remove the link from the body
+            to_remove = youtube_link + self.body.split(youtube_link)[1].split(' ')[0]
+            self.body = re.sub(r"\s*" + re.escape(to_remove) + r"\s*", '', self.body)
 
-    @classmethod
-    def preprocess(cls, data):
-        data['user_id'] = current_user.id
-        review_request_id = data.get('review_request_id')
-        if review_request_id and cls.verify_review_request(data):
-            data['verified_review'] = True
-            del data['review_request_id']
-            del data['review_request_token']
-        return data
-    
     @classmethod
     def verify_review_request(cls, data):
         review_request_id = data.get('review_request_id')
         if review_request_id:
             product_id = data.get('product_id')
             if not product_id:
-                raise DbException(message='Product_id required for review_request', status_code=401)
-    
+                raise DbException(message='[Product_id required for review_request]', status_code=401)
+
             review_request_token = data.get('review_request_token')
             if not review_request_token:
                 raise DbException(message='Review request token required', status_code=401)
-    
+
             review_request = ReviewRequest.query.filter_by(id=review_request_id).first()
             if not review_request or not review_request.for_user == current_user:
                 raise DbException(message='Not your review request', status_code=401)
             if not review_request_token == review_request.token:
                 raise DbException(message='Wrong review request token', status_code=401)
-    
+
             product = Product.query.filter_by(id=product_id).first()
             if not product or not product == review_request.for_product:
                 raise DbException(message='Product not in order', status_code=401)
         return True
 
+    @classmethod
+    def exclude_fields(cls):
+        excluded = []
+        excluded += User.exclude_fields()
+        return excluded
+
     def create(self, data=None):
         user_like = ReviewLike(user_id=self.user_id, review=self)
         db.session.add(user_like)
-    
-        product_review = ProductReview(product=self.product, review=self)
-        db.session.add(product_review)
-    
+
         shop_owner = self.product.shop.owner
         notification = Notification(user=shop_owner,
                                     content='You received a new review about <b>%s</b>. <br>'
@@ -447,9 +474,22 @@ class Review(db.Model):
             raise DbException(message="This review is not for this shop", status_code=404)
         return True
 
-    def is_approved_by_shop(self):
-        product_review = ProductReview.get_by_shop_and_review_id(self.product.id, self.id)
-        return product_review.approved_by_shop
+    def approve(self):
+        self.approved_by_shop = True
+        self.approval_pending = False
+        notification = Notification(user=self.review.user,
+                                    content='The shop owner approved your review about <b>%s</b>.<br>'
+                                            'View it here!' % self.shop_product.product.label,
+                                    url=url_for('.get_product', product_id=self.shop_product.product.id))
+        db.session.add(notification)
+        db.session.add(self)
+        db.session.commit()
+
+    def disapprove(self):
+        self.approved_by_shop = False
+        self.approval_pending = False
+        db.session.add(self)
+        db.session.commit()
 
     @classmethod
     def get_by_id(cls, review_id):
@@ -470,15 +510,8 @@ class Review(db.Model):
         reviews = cls.query.order_by(Review.id.desc()).all()[start:end]
         return reviews
 
-    @classmethod
-    def get_for_product_approved_by_shop(cls, product_id, shop_id):
-        shop_product = Product.query.filter(
-            and_(Product.id == product_id, Product.shop_id == shop_id)).first()
-        reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
-        return [r for r in reviews if r.product_review and r.product_review.approved_by_shop]
 
-
-class Shop(db.Model):
+class Shop(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     description = db.Column(db.String)
@@ -486,7 +519,6 @@ class Shop(db.Model):
 
     automatically_approve_reviews = db.Column(db.Boolean, default=True)
 
-    # TODO: DEPRECATE
     access_token = db.Column(db.String)
     products_imported = db.Column(db.Boolean, default=False)
 
@@ -530,7 +562,7 @@ class Shop(db.Model):
         return '<Shop %r>' % self.name
 
 
-class Platform(db.Model):
+class Platform(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
 
@@ -545,45 +577,7 @@ class Platform(db.Model):
         return "<Platform %r>" % self.name
 
 
-class ProductReview(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    product = db.relationship("Product", backref=db.backref("product_review", uselist=False))
-
-    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("product_review", uselist=False))
-
-    approved_by_shop = db.Column(db.Boolean, default=True)
-    approval_pending = db.Column(db.Boolean, default=False)
-
-    @classmethod
-    def get_by_shop_and_review_id(cls, product_id, review_id):
-        product_review = cls.query.filter(
-            and_(cls.product_id == product_id, cls.review_id == review_id)).first()
-        if not product_review:
-            raise DbException(message='Product %s does not have review %s' % (product_id, review_id), status_code=400)
-        return product_review
-
-    def approve(self):
-        self.approved_by_shop = True
-        self.approval_pending = False
-        notification = Notification(user=self.review.user,
-                                    content='The shop owner approved your review about <b>%s</b>.<br>'
-                                            'View it here!' % self.shop_product.product.label,
-                                    url=url_for('.get_product', product_id=self.shop_product.product.id))
-        db.session.add(notification)
-        db.session.add(self)
-        db.session.commit()
-
-    def disapprove(self):
-        self.approved_by_shop = False
-        self.approval_pending = False
-        db.session.add(self)
-        db.session.commit()
-
-
-class Product(db.Model):
+class Product(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     active = db.Column(db.Boolean, default=False)
@@ -646,5 +640,4 @@ admin.add_view(AdminModelView(Comment, db.session))
 admin.add_view(AdminModelView(Review, db.session))
 admin.add_view(AdminModelView(Shop, db.session))
 admin.add_view(AdminModelView(Platform, db.session))
-admin.add_view(AdminModelView(ProductReview, db.session))
 admin.add_view(AdminModelView(Product, db.session))

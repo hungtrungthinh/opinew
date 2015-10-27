@@ -1,18 +1,21 @@
 <div class="review-container">
-    <h3><a href="{{ url_for('client.get_product', product_id=review.product.id) }}"><b>{{ review.product.name }}</b></a> from
-        <a href="{{ review.product.url }}" target="_blank"><b>{{ review.product.shop.name }}</b></a></h3>
+  {% if show_product_info %}
+      <h3>
+          <a href="{{ url_for('client.get_product', product_id=review.product.id) }}"><b>{{ review.product.name }}</b></a>
+          from
+          <a href="{{ review.product.url }}" target="_blank"><b>{{ review.product.shop.name }}</b></a></h3>
 
-    <hr>
+      <hr>
+  {% endif %}
   {% include "review/review_author.html" %}
-  {% if review.tags %}
-    {% for tag in review.tags %}
-      {% include "review/review_tag.html" %}
-    {% endfor %}
-  {% endif %}
-  {% if review.photo_url %}
-    {% include "review/review_photo.html" %}
-  {% endif %}
-  {% if review.body %}
-    {% include "review/review_body.html" %}
-  {% endif %}
+    <div class="media">
+      {% if review.image_url %}
+          <div class="media-left media-top">
+            {% include "review/review_image.html" %}
+          </div>
+      {% endif %}
+        <div class="media-body">
+          {% include "review/review_body.html" %}
+        </div>
+    </div>
 </div>

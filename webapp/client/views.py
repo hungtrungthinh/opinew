@@ -7,11 +7,11 @@ from flask.ext.security.utils import encrypt_password
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
-from webapp.models import Review, Shop, Platform, User, Product, Order, ProductReview, \
+from webapp.models import Review, Shop, Platform, User, Product, Order, \
     Role, Customer, Notification, Subscription, Plan, ReviewRequest
 from webapp.common import param_required, catch_exceptions, generate_temp_password, get_post_payload
 from webapp.exceptions import ParamException, DbException
-from webapp.forms import LoginForm, ReviewForm, ReviewPhotoForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
+from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
 
 
@@ -202,7 +202,7 @@ def reviews():
     start = Constants.REVIEWS_PER_PAGE * (page - 1)
     end = start + Constants.REVIEWS_PER_PAGE
     reviews = Review.get_latest(start, end)
-    return render_template('reviewer/home.html', page_title="Reviews - ",
+    return render_template('reviews.html', page_title="Reviews - ",
                            reviews=reviews, page=page)
 
 
@@ -248,7 +248,7 @@ def shop_dashboard_id(shop_id):
 def get_plugin():
     try:
         review_form = ReviewForm()
-        review_photo_form = ReviewPhotoForm()
+        review_image_form = ReviewImageForm()
         signup_form = ExtendedRegisterForm()
         login_form = LoginForm()
         shop_id = param_required('shop_id', request.args)
@@ -263,7 +263,8 @@ def get_plugin():
             product = None
         if not product:
             return '', 404
-        reviews = Review.get_for_product_approved_by_shop(product.id, product.shop.id)
+        reviews = Review.query.filter_by(product_id=product.id, approved_by_shop=True).order_by(
+            Review.created_ts.desc()).all()
         own_reviews = Review.query.filter_by(user=current_user,
                                              product=product).all() if current_user.is_authenticated() else []
         next_arg = request.url
@@ -273,8 +274,8 @@ def get_plugin():
         return '', 400
     return render_template('plugin/plugin.html', product=product, reviews=reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
-                           review_photo_form=review_photo_form, next_arg=next_arg,
-                           own_reviews=own_reviews, no_buy=True)
+                           review_image_form=review_image_form, next_arg=next_arg,
+                           own_reviews=own_reviews)
 
 
 @client.route('/product', defaults={'product_id': 0})
@@ -282,15 +283,16 @@ def get_plugin():
 def get_product(product_id):
     try:
         product = Product.get_by_id(product_id)
-        reviews = Review.query.filter_by(product_id=product_id).all()
+        reviews = Review.query.filter_by(product_id=product_id).order_by(
+            Review.created_ts.desc()).all()
     except (ParamException, DbException) as e:
         flash(e.message)
         return redirect(request.referrer)
-    return render_template('product/product.html', page_title="%s Reviews - " % product.name,
+    return render_template('product.html', page_title="%s Reviews - " % product.name,
                            product=product, reviews=reviews)
 
 
-@client.route('/read_notification')
+@client.route('/read-notification')
 @login_required
 @catch_exceptions
 def read_notification():
@@ -301,7 +303,7 @@ def read_notification():
     return redirect(next)
 
 
-@client.route('/add_review', methods=['GET'])
+@client.route('/add-review', methods=['GET'])
 @catch_exceptions
 @login_required
 def add_review():
@@ -326,9 +328,9 @@ def add_review():
     if 'product' not in ctx or not ctx['product']:
         ctx['products'] = Product.query.all()
     # Initialize forms
-    ctx['review_photo_form'] = ReviewPhotoForm()
+    ctx['review_image_form'] = ReviewImageForm()
     ctx['review_form'] = ReviewForm()
-    return render_template('web_review/main.html', **ctx)
+    return render_template('add_review.html', **ctx)
 
 
 @client.route('/review', defaults={'review_id': 0})
@@ -340,7 +342,7 @@ def view_review(review_id):
     return render_template('shop_admin/view_review.html', review=review)
 
 
-@client.route('/plugin_logout')
+@client.route('/plugin-logout')
 @login_required
 def plugin_logout():
     logout_user()
@@ -352,7 +354,7 @@ def faq():
     return render_template('faq.html')
 
 
-@client.route('/about_us')
+@client.route('/about-us')
 def about_us():
     return render_template('about_us.html', page_title="About us - ")
 
@@ -402,8 +404,8 @@ def sitemapxml():
     return response
 
 
-@client.route('/render_email', defaults={'filename': None})
-@client.route('/render_email/<path:filename>')
+@client.route('/render-email', defaults={'filename': None})
+@client.route('/render-email/<path:filename>')
 def render_email(filename):
     if not filename:
         abort(404)
@@ -411,8 +413,8 @@ def render_email(filename):
                            **{k: (w[0] if len(w) else w) for k, w in dict(request.args).iteritems()})
 
 
-@client.route('/fake_shopify_api', defaults={'shop': None})
-@client.route('/fake_shopify_api/<shop>', methods=['POST'])
+@client.route('/fake-shopify-api', defaults={'shop': None})
+@client.route('/fake-shopify-api/<shop>', methods=['POST'])
 def fake_shopify_api(shop):
     if not g.mode == 'testing':
         abort(404)

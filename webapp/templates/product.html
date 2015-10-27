@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-12 col-md-10 col-md-offset-1">
+                <h2>
+                    <a href="{{ product.url }}">{{ product.name }}</a><br>
+                    <small>from <a href="{{ product.shop.domain }}">{{ product.shop.name }}</a></small>
+                </h2>
+                <div class="media">
+                  {% if product.short_description %}
+                    {% if product.image_url %}
+                        <div class="media-left media-top">
+                            <a href="#">
+                                <img class="media-object img-thumbnail" src="{{ product.image_url }}"
+                                     alt="{{ product.name }} image" style="max-height:120px">
+                            </a>
+                        </div>
+                    {% endif %}
+                      <div class="media-body">
+                          <h4 class="media-heading">{{ product.short_description }}</h4>
+                      </div>
+                      </div>
+                  {% endif %}
+                <h3>Reviews</h3>
+              {% if not reviews %}
+                  <h2>No reviews yet</h2>
+              {% else %}
+                {% for review in reviews %}
+                  {% include "review/review.html" %}
+                {% endfor %}
+              {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
