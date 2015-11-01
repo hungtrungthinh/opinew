@@ -3,7 +3,7 @@ from webapp.media import media
 from webapp import review_images, user_images
 
 
-@media.route('/user/upload', methods=['POST'])
+@media.route('/upload/user', methods=['POST'])
 def upload_user_image():
     if 'image' in request.files:
         filename = user_images.save(request.files['image'])
@@ -18,7 +18,7 @@ def get_user_image(filename):
     return send_from_directory(g.config.get('UPLOADED_USERIMAGES_DEST'), filename)
 
 
-@media.route('/review/upload', methods=['POST'])
+@media.route('/upload/review', methods=['POST'])
 def upload_review_image():
     if 'image' in request.files:
         filename = review_images.save(request.files['image'])

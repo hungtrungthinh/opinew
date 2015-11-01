@@ -21,12 +21,10 @@ def platform_shopify_create_product():
     platform_product_id = payload.get('id')
     product_title = payload.get('title')
 
-    product = models.Product(name=product_title)
-
-    shop_product = models.ShopProduct(product=product, shop=shop, platform_product_id=platform_product_id)
-    db.session.add(shop_product)
+    product = models.Product(name=product_title, shop=shop, platform_product_id=platform_product_id)
+    db.session.add(product)
     db.session.commit()
-    return build_created_response('.get_product', product_id=product.id)
+    return build_created_response('client.get_product', product_id=product.id)
 
 
 @api.route('/platform/shopify/products/update', methods=['POST'])
@@ -43,8 +41,7 @@ def platform_shopify_update_product():
     platform_product_id = payload.get('id')
     product_title = payload.get('title')
 
-    shop_product = models.ShopProduct.get_by_platform_product_id(platform_product_id)
-    product = shop_product.product
+    product = models.Product.query.filter_by(platform_product_id=platform_product_id).first()
     product.label = product_title
 
     db.session.add(product)
@@ -65,8 +62,8 @@ def platform_shopify_delete_product():
 
     platform_product_id = payload.get('id')
 
-    shop_product = models.ShopProduct.get_by_platform_product_id(platform_product_id)
-    db.session.delete(shop_product)
+    product = models.Product.query.filter_by(platform_product_id=platform_product_id).first()
+    db.session.delete(product)
     db.session.commit()
     return jsonify({}), 200
 
@@ -90,8 +87,7 @@ def platform_shopify_create_order():
     line_items = payload.get('line_items', [])
     for line_item in line_items:
         platform_product_id = line_item.get('product_id')
-        shop_product = models.ShopProduct.get_by_platform_product_id(platform_product_id)
-        product = shop_product.product
+        product = models.Product.query.filter_by(platform_product_id=platform_product_id).first()
         order.products.append(product)
 
     db.session.add(order)
@@ -106,7 +102,7 @@ def platform_shopify_fulfill_order():
     payload = get_post_payload()
     platform_order_id = payload.get('order_id')
 
-    order = models.Order.get_by_platform_order_id(platform_order_id)
+    order = models.Order.query.filter_by(platform_order_id=platform_order_id).first()
     delivery_tracking_number = payload.get('tracking_number')
     order.ship(delivery_tracking_number)
 

@@ -41,6 +41,7 @@ pushprod() {
                                       pip install -r requirements.txt &&
                                       find ./media -type f -exec chmod 664 {} \; &&
                                       find ./webapp/static -type f -exec chmod 664 {} \; &&
+                                      sudo chown -R www-data ./media &&
                                       sudo service nginx restart &&
                                       sudo service uwsgi restart"
 }

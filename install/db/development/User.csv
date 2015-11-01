@@ -19,4 +19,4 @@ id,email,password,name,image_url,is_shop_owner
 18,denise.sims@example.com,$2a$12$gSzIGVOi76jcs56Mlv6Vveaj7K1dOIe9/Y.99A0iNSPJuEBVSpTP2,Denise Sims,https://opinew.com/media/user/17_denise_sims.jpg,0
 19,veera.ketola@example.com,$2a$12$wtfpZjbK7muvyH7GgVgyZOVbOgT5VPb7PUEF3tx.mi5uuElS0bwjq,Veera Ketola,https://opinew.com/media/user/18_veera_ketola.jpg,0
 20,crystal.dunn@example.com,$2a$12$KwgfKC8BArJ3Lk2wynJFRevnNkfulghEQ.cg0Hg0/wvoyejnyFTpG,Crystal Dunn,https://opinew.com/media/user/19_crystal_dunn.jpg,0
-21,info@fake_beautykitchen.co.uk,$2a$12$4mc6T/QulJUJV4UvTf2TgenbjsfOwiRQW62aXnPvsB5urtK8FZGBe,Beauty Kitchen,https://opinew.com/media/user/beauty_kitchen.jpeg,1
+21,KFerguson@beautykitchen.co.uk,$2a$12$4mc6T/QulJUJV4UvTf2TgenbjsfOwiRQW62aXnPvsB5urtK8FZGBe,Beauty Kitchen,https://opinew.com/media/user/beauty_kitchen.jpeg,1

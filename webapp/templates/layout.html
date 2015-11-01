@@ -48,8 +48,8 @@
 {% elif g.mode in ['development', 'testing'] %}
     <script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endif %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {# Place per-page scripts #}
 {% block script %}{% endblock %}
 {# Include Google analytics if in production mode #}

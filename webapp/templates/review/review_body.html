@@ -33,7 +33,7 @@
         <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
     </a>
 {% endif %}
-{% if hide_buy_button %}
+{% if not hide_buy_button %}
     <a class="btn btn-primary pull-right" href="{{ review.product.url }}">Buy</a>
 {% endif %}
 

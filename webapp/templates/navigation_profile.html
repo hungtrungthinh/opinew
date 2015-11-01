@@ -1,9 +1,9 @@
 {% if  current_user.image_url %}
   {% set user_image_url = current_user.image_url %}
 {% elif current_user.email | gravatar %}
-  {% set user_photo_url = current_user.email | gravatar %}
+  {% set user_image_url = current_user.email | gravatar %}
 {% else %}
-  {% set user_photo_url = url_for('media.get_user_photo', filename='%s' % g.constants.DEFAULT_PROFILE_PICTURE) %}
+  {% set user_image_url = url_for('media.get_user_image', filename='%s' % g.constants.DEFAULT_PROFILE_PICTURE) %}
 {% endif %}
 <li role="presentation" class="dropdown"
     style="margin-top: 10px; margin-left: 10px;  margin-right: 10px">

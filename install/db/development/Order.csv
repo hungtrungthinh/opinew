@@ -1,0 +1,1 @@
+id,platform_order_id,user_id,shop_id,delivery_tracking_number,status,purchase_timestamp,shipment_timestamp,delivery_timestamp,to_notify_timestamp,notification_timestamp

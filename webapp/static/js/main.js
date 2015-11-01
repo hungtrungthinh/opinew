@@ -8,7 +8,7 @@ $.ajaxSetup({
     }
 });
 
-$('.review-like-form').bind('submit', function (e) {
+$('.review-like-form').on('submit', function (e) {
   e.preventDefault();
   var $form = $(this);
   var $likeActionInput =$($form.children('.like-action-input'));
