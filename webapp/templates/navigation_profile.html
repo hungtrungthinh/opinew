@@ -1,4 +1,4 @@
-{% if  current_user.profile_picture_fname %}
+{% if  current_user.image_url %}
   {% set user_image_url = current_user.image_url %}
 {% elif current_user.email | gravatar %}
   {% set user_photo_url = current_user.email | gravatar %}

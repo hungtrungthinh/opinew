@@ -1,4 +1,4 @@
 id,email,password,name,image_url
-1,daniel@opinew.com,$2a$12$bGs3Dyw0ULdyj6yYq/IDB.ICFsOTziB1OMsbv8xQq8Z.uV.UijAeO,Admin Administrator,1_dani.jpg
-2,rose.castro@example.com,$2a$12$SUYH0oCQwCFJSwDZcGrTUeTyDGsqPGUI3qcsfBiv8WT2LA.203tTS,Rose Castro,3_rose_castro.jpg
+1,daniel@opinew.com,$2a$12$bGs3Dyw0ULdyj6yYq/IDB.ICFsOTziB1OMsbv8xQq8Z.uV.UijAeO,Daniel Tsvetkov,https://opinew.com/media/user/1_dani.jpg
+2,rose.castro@example.com,$2a$12$SUYH0oCQwCFJSwDZcGrTUeTyDGsqPGUI3qcsfBiv8WT2LA.203tTS,Rose Castro,https://opinew.com/media/user/3_rose_castro.jpg
 3,owner@opinew.com,$2a$12$siN59c.b0KrTdggjjmIMYuhyPofY8EepoZkRMsyOyMtjQg8sxDvKq,Shop Owner,

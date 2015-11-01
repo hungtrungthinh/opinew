@@ -423,3 +423,59 @@ class TestViews(TestFlaskApplication):
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue(testing_constants.RENDERED_BY_SHOP_OWNER in response_actual.data)
         self.logout()
+
+    def test_plugin_404(self):
+        response_actual = self.client.get(url_for('client.get_plugin'))
+        self.assertEquals(response_actual.status_code, 404)
+        self.assertEquals('', response_actual.data)
+
+    def test_plugin_get_by_platform_id_not_logged_in(self):
+        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+            shop_id=2, platform_product_id=1, get_by='platform_id'
+        ))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Ear rings Reviews</h2>' in response_actual.data)
+        self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
+        self.assertTrue('Write a review' in response_actual.data)
+        self.assertTrue('modal-review' not in response_actual.data)
+        self.assertTrue('modal-signup' in response_actual.data)
+
+    def test_plugin_get_by_platform_id_logged_in(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+            shop_id=2, platform_product_id=1, get_by='platform_id'
+        ))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Ear rings Reviews</h2>' in response_actual.data)
+        self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
+        self.assertTrue('Write a review' in response_actual.data)
+        self.assertTrue('modal-review' in response_actual.data)
+        self.assertTrue('modal-signup' not in response_actual.data)
+        self.assertTrue('Rose Castro' in response_actual.data)
+        self.assertTrue('https://opinew.com/media/user/3_rose_castro.jpg' in response_actual.data)
+        self.logout()
+
+    def test_plugin_get_by_loc_not_logged_in(self):
+        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+            shop_id=2, product_location='http://opinew_shop.local:5001/product/1', get_by='loc'
+        ))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Ear rings Reviews</h2>' in response_actual.data)
+        self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
+        self.assertTrue('Write a review' in response_actual.data)
+        self.assertTrue('modal-review' not in response_actual.data)
+        self.assertTrue('modal-signup' in response_actual.data)
+
+    def test_plugin_get_by_loc_logged_in(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+            shop_id=2, product_location='http://opinew_shop.local:5001/product/1', get_by='loc'
+        ))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Ear rings Reviews</h2>' in response_actual.data)
+        self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
+        self.assertTrue('Write a review' in response_actual.data)
+        self.assertTrue('modal-review' in response_actual.data)
+        self.assertTrue('modal-signup' not in response_actual.data)
+        self.assertTrue('Rose Castro' in response_actual.data)
+        self.logout()

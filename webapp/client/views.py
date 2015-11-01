@@ -147,7 +147,7 @@ def shopify_plugin_callback():
 
         # Login shop_user
         login_user(shop_owner)
-        return redirect(url_for('client.shop_dashboard'))
+    return redirect(url_for('client.shop_dashboard'))
 
 # Signals
 from flask.ext.security import user_registered
@@ -271,7 +271,7 @@ def get_plugin():
         product.plugin_views += 1
         db.session.commit()
     except (ParamException, DbException) as e:
-        return '', 400
+        return '', 404
     return render_template('plugin/plugin.html', product=product, reviews=reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
                            review_image_form=review_image_form, next_arg=next_arg,

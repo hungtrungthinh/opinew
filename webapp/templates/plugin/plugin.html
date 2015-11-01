@@ -46,7 +46,7 @@
             {% if own_reviews %}
                 <h3>Your reviews</h3>
               {% for review in own_reviews %}
-                {% if review.is_approved_by_shop() %}
+                {% if review.approved_by_shop %}
                     <div class="alert alert-success">
                     <p>Approved by the shop!</p>
                 {% else %}

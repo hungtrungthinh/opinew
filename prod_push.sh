@@ -51,20 +51,19 @@ send_update() {
         return 1
     fi
     ip_address=$1
-    if [ ! "$2" == "--no-test" ]; then
-        ./run_tests.py
-        if [ $? -eq 1 ]; then
-            >&2 echo "ERROR: Tests failed. ABORTING!!!"
-            return 1
-        fi
+    ./run_tests.py
+    if [ $? -eq 1 ]; then
+        >&2 echo "ERROR: Tests failed. ABORTING!!!"
+        return 1
+    else
+        update_requirements
+        tar_self
+        send_tar_prod "$ip_address"
+        pushprod "$ip_address"
+        echo  "*** LOCAL: Cleanup ***"
+        rm opinew_ecommerce_api.tar.gz
+        return 0
     fi
-    update_requirements
-    tar_self
-    send_tar_prod "$ip_address"
-    pushprod "$ip_address"
-    echo  "*** LOCAL: Cleanup ***"
-    rm opinew_ecommerce_api.tar.gz
-    return 0
 }
 
-send_update opinew_api.com $1
+send_update opinew_api.com
