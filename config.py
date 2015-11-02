@@ -24,6 +24,16 @@ class Constants(object):
     YOUTUBE_SHORT_LINK = 'https://youtu.be/'
     YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/{youtube_video_id}'
 
+    ORDER_STATUS_PURCHASED = 'PURCHASED'
+    ORDER_STATUS_SHIPPED = 'SHIPPED'
+    ORDER_STATUS_DELIVERED = 'DELIVERED'
+    ORDER_STATUS_NOTIFIED = 'NOTIFIED'
+    ORDER_STATUS_REVIEWED = 'REVIEWED'
+    ORDER_STATUS_FAILED = 'FAILED'
+
+    DIFF_SHIPMENT_DELIVERY = 5
+    DIFF_DELIVERY_NOTIFY = 3
+
 
 class Config(object):
     MAIL_SERVER = "smtpout.europe.secureserver.net"

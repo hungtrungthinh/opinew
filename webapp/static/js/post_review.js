@@ -1,3 +1,11 @@
+function inIframe () {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
+}
+
 $('input[type=file]').change(function (e) {
   $('#review-image').attr('src', "/static/img/ajax-loader.gif");
   e.preventDefault(); // Prevent the form from submitting via the browser.
@@ -42,6 +50,9 @@ $('#review-form').bind('submit', function (e) {
         .addClass('alert-success')
         .html('<p>Thank you for posting review</p>')
         .slideDown();
+    if (inIframe) {
+      document.location.href = document.location.href;
+    }
   }).fail(function (r) {
     var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
     $('#ajax-status')

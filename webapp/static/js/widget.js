@@ -1,8 +1,9 @@
-var OPINEW_PLUGIN_URL = "https://opinew.com/plugin";
+//var OPINEW_PLUGIN_URL = "https://opinew.com/plugin";
+var OPINEW_PLUGIN_URL = "http://localhost:5000/plugin";
 
 var pluginElement = window.document.getElementById("opinew-plugin");
 var opinewShopId = pluginElement.getAttribute('data-opinew-shop-id');
-var productLocation = window.location.href;
+var productLocation = window.location.host + window.location.pathname;
 
 function insertPlugin(url) {
   pluginElement.innerHTML =

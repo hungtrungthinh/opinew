@@ -4,6 +4,7 @@ from flask import request, redirect, url_for, render_template, flash, g, send_fr
     current_app, make_response, abort, jsonify
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask.ext.security.utils import encrypt_password
+from sqlalchemy import func
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client

@@ -5,9 +5,11 @@ from webapp import db, admin
 from webapp.exceptions import DbException
 from async import stripe_payment
 from flask import url_for, abort, redirect, request
+from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
+from webapp.common import generate_temp_password
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
@@ -21,10 +23,17 @@ roles_users_table = db.Table('roles_users',
 
 
 class Repopulatable(object):
+    def _is_datetime(self, value):
+        try:
+            return datetime.strptime(value,  '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            return value
+
     def from_repopulate(self, **kwargs):
         model_attributes = [a for a in dir(self) if not a[0] == '_']
         for attr, val in kwargs.iteritems():
-            if attr in model_attributes:
+            if attr in model_attributes and val:
+                val = self._is_datetime(val)
                 setattr(self, attr, val)
         return self
 
@@ -94,6 +103,22 @@ class User(db.Model, UserMixin, Repopulatable):
         if not user:
             raise DbException(message="User with email %s does not exist." % email, status_code=400)
         return user
+
+    @classmethod
+    def get_or_create_by_email(cls, email, **kwargs):
+        is_new = False
+        instance = cls.query.filter_by(email=email).first()
+        if not instance:
+            is_new = True
+            reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
+            temp_password = generate_temp_password()
+            encr_password = encrypt_password(temp_password)
+            instance = cls(email=email,
+                           temp_password=temp_password,
+                           password=encr_password,
+                           **kwargs)
+            instance.roles.append(reviewer_role)
+        return instance, is_new
 
     def unread_notifications(self):
         notifications = Notification.query.filter(and_(Notification.user_id == self.id,
@@ -221,7 +246,7 @@ class Notification(db.Model):
         return cls.query.filter_by(user=user).order_by(Notification.id.desc()).all()
 
 
-class Order(db.Model):
+class Order(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
 
     platform_order_id = db.Column(db.Integer)

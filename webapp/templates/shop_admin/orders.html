@@ -17,12 +17,16 @@
               <td>{{ order.purchase_timestamp | timesince }}</td>
               <td>{{ order.user }}</td>
               <td>
-                  <a href="{{ order.product.url }}"
-                     target="_blank"><span class="glyphicon glyphicon-link"></span> {{ order.product.name }}</a>
+                {% for product in order.products %}
+                    <a href="{{ product.url }}"
+                       target="_blank"><span class="glyphicon glyphicon-link"></span> {{ product.name }}</a>
+                {% endfor %}
               </td>
               <td>
-                  <a href="{{ url_for('client.get_product', product_id=order.product.id) }}"
-                     target="_blank">{{ order.product.name }}</a>
+                {% for product in order.products %}
+                    <a href="{{ url_for('client.get_product', product_id=product.id) }}"
+                       target="_blank">{{ product.name }}</a>
+                {% endfor %}
               </td>
               <td>
                 {% if not order.review %}

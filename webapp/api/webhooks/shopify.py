@@ -78,11 +78,11 @@ def platform_shopify_create_order():
     shop = models.Shop.get_by_shop_domain(shop_domain)
 
     customer_email = payload.get('customer', {}).get('email')
-    customer = models.User.get_or_create_by_email(customer_email)
+    opinew_user, _ = models.User.get_or_create_by_email(customer_email)
 
     platform_order_id = payload.get('id')
 
-    order = models.Order(platform_order_id=platform_order_id, user=customer, shop=shop)
+    order = models.Order(platform_order_id=platform_order_id, user=opinew_user, shop=shop)
 
     line_items = payload.get('line_items', [])
     for line_item in line_items:
