@@ -1,0 +1,17 @@
+{% if results %}
+  {% for result in results %}
+    {% if result.type == 'company' %}
+      {% include "search/company_result.html" %}
+    {% elif result.type == 'user' %}
+      {% include "search/user_result.html" %}
+    {% elif result.type == 'review' %}
+      {% set review = result.review %}
+      {% if result.match %}
+        {% set review_body = result.match.review_body %}
+      {% endif %}
+      {% include "review/review.html" %}
+    {% endif %}
+  {% endfor %}
+{% else %}
+    <p class="lead">Sorry, no results for {{ request.args.get('q') }}</p>
+{% endif %}

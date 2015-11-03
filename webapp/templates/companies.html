@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <br>
+
+            <div class="col-md-10 col-md-offset-2">
+                <form action="/search">
+                    <div class="input-group">
+                        <input type="text" name="q" value="" placeholder="Search for companies, people or skills" class="form-control"
+                                style="font-size: 2em; height: 2em;" />
+                      <span class="input-group-btn">
+                        <button class="btn btn-primary" style="height: 4em; padding: 0 4em 0 4em;">
+                            <span class="glyphicon glyphicon-search" style="font-size: 2em;"></span>
+                        </button>
+                      </span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    <br>
+        <div class="row">
+            <div class="col-md-2">
+              {% if not current_user.is_authenticated() %}
+                  <br>
+                  <div class="well" style="position:fixed;">
+                      <p>Business owner?</p>
+                      <a href="/register?shop_owner=1" class="btn btn-block btn-primary btn-lg">Get our plugin</a>
+                  </div>
+              {% endif %}
+            </div>
+            <div class="col-md-10">
+              {% set show_product_info = True %}
+              {% for company in companies %}
+                {% include "company/company_list.html" %}
+              {% endfor %}
+              {% if page and page > 1 %}
+                  <a class="btn btn-default btn-lg" href="{{ url_for('.get_companies', page=1) }}">
+                      <span class="glyphicon glyphicon-home"></span> First
+                  </a>
+                  <a class="btn btn-default btn-lg" href="{{ url_for('.get_companies', page=page - 1) }}">
+                      <span class="glyphicon glyphicon-arrow-left"></span> Previous
+                  </a>
+              {% endif %}
+              {% if companies|length == g.constants.REVIEWS_PER_PAGE %}
+                  <a class="btn btn-default btn-lg" href="{{ url_for('.get_companies', page=page + 1) }}">
+                      Next <span class="glyphicon glyphicon-arrow-right"></span>
+                  </a>
+              {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

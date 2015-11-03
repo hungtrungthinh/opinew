@@ -105,7 +105,9 @@ class ConfigDev(Config):
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
     DATABASE_LOCATION = '/tmp/ecommerce_api.db'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
+    # SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
+    SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
+
 
 
 class ConfigProd(Config):

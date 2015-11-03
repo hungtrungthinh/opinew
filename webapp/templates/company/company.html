@@ -1,0 +1,155 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <br>
+
+            <div class="media">
+                <div class="media-left media-top">
+                    <div class="media-left media-top">
+                        <img class="media-object" src="{{ company.image_url }}"
+                             alt="{{ company.name }} logo" style="max-width:150px">
+                    </div>
+                </div>
+                <div class="media-body">
+                    <h1>{{ company.name }}</h1>
+
+                    <p class="lead">{{ company.description }}</p>
+
+                    <div class="progress" style="background-color: #444;">
+                        <div class="progress-bar progress-bar-striped" role="progressbar" aria-valuenow="60"
+                             aria-valuemin="0"
+                             aria-valuemax="100" style="width: {{ 8.33 + (company.phase_id - 1) * 16.67 }}%;">
+                        </div>
+                    </div>
+                    <div class="row">
+                      {% for phase in phases %}
+                          <div class="col-xs-2" style="text-align:center;" title="{{ phase.description }}">
+                            {{ phase.name }}
+                          </div>
+                      {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8">
+                <h2>Pitch</h2>
+              {% if company.hook %}
+                  <h3>Hook</h3>
+                  <p>{{ company.hook }}</p>
+              {% endif %}
+              {% if company.problem %}
+                  <h3>Problem</h3>
+                  <p>{{ company.problem }}</p>
+              {% endif %}
+              {% if company.solution %}
+                  <h3>Solution</h3>
+                  <p>{{ company.solution }}</p>
+              {% endif %}
+              {% if company.market_size %}
+                  <h3>Market size</h3>
+                  <p>{{ company.market_size }}</p>
+              {% endif %}
+              {% if company.revenue %}
+                  <h3>Revenue</h3>
+                  <p>{{ company.revenue }}</p>
+              {% endif %}
+              {% if company.traction %}
+                  <h3>Traction</h3>
+                  <p>{{ company.traction }}</p>
+              {% endif %}
+              {% if company.ask %}
+                  <h3>Ask</h3>
+                  <p>{{ company.ask }}</p>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+                <h2>Team</h2>
+              {% for member in company.team %}
+                  <div class="media">
+                      <div class="media-left media-top">
+                          <div class="media-left media-top">
+                              <a href="{{ url_for('client.get_user', user_id=member.id) }}">
+                                  <img class="media-object" src="{{ member.image_url }}"
+                                       alt="{{ member.name }} profile picture" style="max-width:50px">
+                              </a>
+                          </div>
+                      </div>
+                      <div class="media-body">
+                          <a href="{{ url_for('client.get_user', user_id=member.id) }}">
+                              <p class="lead">{{ member.name }}</p>
+                          </a>
+                        {% if member.can_help_with %}
+                            <p>{{ member.can_help_with }}</p>
+                        {% endif %}
+                        {% if member.best_contact %}
+                            <p><strong>Best way to contact:</strong> {{ member.best_contact | safe }}</p>
+                        {% endif %}
+                      </div>
+                  </div>
+              {% endfor %}
+              {% if company.markets %}
+                  <h2>Markets</h2>
+                {% for market in company.markets %}
+                    <span class="label label-default">{{ market.name }}</span>&nbsp;
+                {% endfor %}
+              {% endif %}
+              {% if company.partners %}
+                  <h2>Partners</h2>
+                {% for partner in company.partners %}
+                    <div class="media">
+                        <div class="media-left media-top">
+                            <div class="media-left media-top">
+                                <img class="media-object" src="{{ partner.image_url }}"
+                                     alt="{{ partner.name }} logo" style="max-width:50px">
+                            </div>
+                        </div>
+                        <div class="media-body">
+                            <h4>{{ partner.name }}</h4>
+
+                            <p>{{ partner.description }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+              {% endif %}
+              {% if company.competitors %}
+                  <h2>Competitors</h2>
+                {% for competitor in company.competitors %}
+                    <div class="media">
+                        <div class="media-left media-top">
+                            <div class="media-left media-top">
+                                <img class="media-object" src="{{ competitor.image_url }}"
+                                     alt="{{ competitor.name }} logo" style="max-width:50px">
+                            </div>
+                        </div>
+                        <div class="media-body">
+                            <h4>{{ competitor.name }}</h4>
+
+                            <p>{{ competitor.description }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+              {% endif %}
+              {% if company.technologies %}
+                  <h2>Technologies</h2>
+                {% for technology in company.technologies %}
+                    <div class="media">
+                        <div class="media-left media-top">
+                            <div class="media-left media-top">
+                                <img class="media-object" src="{{ technology.image_url }}"
+                                     alt="{{ technology.name }} logo" style="max-width:50px">
+                            </div>
+                        </div>
+                        <div class="media-body">
+                            <h4>{{ technology.name }}</h4>
+
+                            <p>{{ technology.description }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+              {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

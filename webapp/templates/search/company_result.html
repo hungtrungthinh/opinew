@@ -1,0 +1,36 @@
+<div class="review-container">
+    <div class="media">
+      {% if result.company.image_url %}
+          <div class="media-left media-top">
+              <div class="media-left media-top">
+                  <a href="{{ url_for('client.get_company', company_id=result.company.id) }}">
+                      <img class="media-object" src="{{ result.company.image_url }}"
+                           alt="{{ result.company.name }} logo" style="max-width:100px">
+                  </a>
+              </div>
+          </div>
+      {% endif %}
+        <div class="media-body">
+            <a href="{{ url_for('client.get_company', company_id=result.company.id) }}">
+                <h3>{{ result.company.name }}</h3></a>
+          {% if result.match.company_name %}
+              <p><span class="text-muted">Company name:</span> {{ result.match.company_name |safe }}</p>
+          {% endif %}
+          {% if result.match.industry %}
+              <p><span class="text-muted">Industry:</span> {{ result.match.industry |safe }}</p>
+          {% endif %}
+          {% if result.match.company_description %}
+              <p><span class="text-muted">Description:</span> {{ result.match.company_description|safe }}</p>
+          {% endif %}
+          {% if result.match.company_one_min_pitch %}
+              <p><span class="text-muted">Pitch:</span> {{ result.match.company_one_min_pitch|safe }}</p>
+          {% endif %}
+          {% if result.company_team %}
+              <p><span class="text-muted">Team:</span></p>
+            {% for member_result in result.company_team %}
+              {% include "search/member_within_company_result.html" %}
+            {% endfor %}
+          {% endif %}
+        </div>
+    </div>
+</div>

@@ -7,7 +7,11 @@
 
 </div>
 <p style="font-size: 1.2em; margin: 10px;">
-  {{ review.body }}
+  {% if review_body %}
+    {{ review_body | safe }}
+  {% else %}
+    {{ review.body }}
+  {% endif %}
   {% if review.youtube_video %}
       <br>
       <iframe width="700" height="315" src="{{ review.youtube_video }}" frameborder="0"
@@ -33,7 +37,7 @@
         <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
     </a>
 {% endif %}
-{% if not hide_buy_button %}
+{% if not hide_buy_button and review.product_id %}
     <a class="btn btn-primary pull-right" href="{{ review.product.url }}">Buy</a>
 {% endif %}
 

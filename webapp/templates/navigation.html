@@ -36,6 +36,10 @@
                       <a href="{{ link }}">Shop Admin</a>
                   </li>
               {% endif %}
+              {% set link = url_for('client.get_companies') %}
+                <li {% if request.path == link %}class="active"{% endif %}>
+                    <a href="{{ link }}">Companies</a>
+                </li>
               {% set link = url_for('client.reviews') %}
                 <li {% if request.path == link %}class="active"{% endif %}>
                     <a href="{{ link }}">Reviews</a>
@@ -51,8 +55,8 @@
             </ul>
             <ul class="nav navbar-nav navbar-right">
               {% if current_user.is_authenticated() %}
-                  {% include "navigation_notifications.html" %}
-                  {% include "navigation_profile.html" %}
+                {% include "navigation_notifications.html" %}
+                {% include "navigation_profile.html" %}
               {% else %}
                   <li>
                       <a href="{{ url_for('security.login') }}">Log in</a>

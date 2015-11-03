@@ -6,6 +6,7 @@ from flask import current_app
 from webapp import models, db, create_app
 from config import basedir
 
+
 def import_tables(db_instance, db_dir):
     for filename in os.listdir(db_dir):
         if not filename.endswith(".csv"):
@@ -41,6 +42,22 @@ def import_tables(db_instance, db_dir):
                 db_instance.session.add(model_one_instance)
     db_instance.session.commit()
 
+    # Import many-to-many self-referential relationships
+    for filename in os.listdir(os.path.join(db_dir, 'm_m')):
+        filepath = os.path.join(db_dir, 'm_m', filename)
+        with open(filepath, 'r') as csvfile:
+            csv_reader = csv.reader(csvfile)
+            fname = filename.split('.')[0]
+            model_one_name, model_two_name = fname.split('_')
+            headers = csv_reader.next()
+            for row in csv_reader:
+                model_class = getattr(models, model_one_name)
+                model_one_instance = model_class.query.filter_by(id=row[0]).first()
+                model_two_instance = model_class.query.filter_by(id=row[1]).first()
+                getattr(model_one_instance, headers[1]).append(model_two_instance)
+                db_instance.session.add(model_one_instance)
+    db_instance.session.commit()
+
 
 if __name__ == '__main__':
     arguments = sys.argv
@@ -51,16 +68,17 @@ if __name__ == '__main__':
     app = create_app(option)
 
     db.init_app(app)
+    app.app_context().push()
 
     try:
         os.remove(app.config.get('DATABASE_LOCATION'))
-    except OSError:
+        db.drop_all()
+    except:
         pass
 
     ###############################
     # INIT DB
     ###############################
-    app.app_context().push()
     db.create_all()
 
     db_dir = os.path.join(basedir, 'install', 'db', current_app.config.get('MODE'))

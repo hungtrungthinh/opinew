@@ -4,16 +4,16 @@ from flask import request, redirect, url_for, render_template, flash, g, send_fr
     current_app, make_response, abort, jsonify
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask.ext.security.utils import encrypt_password
-from sqlalchemy import func
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, \
-    Role, Customer, Notification, Subscription, Plan, ReviewRequest
-from webapp.common import param_required, catch_exceptions, generate_temp_password, get_post_payload
+    Role, Customer, Notification, Subscription, Plan, ReviewRequest, Company, Phase
+from webapp.common import param_required, catch_exceptions, generate_temp_password
 from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
+from webapp.search import search_and_rank
 
 
 @client.route('/install')
@@ -420,3 +420,50 @@ def fake_shopify_api(shop):
     if not g.mode == 'testing':
         abort(404)
     return jsonify({'access_token': 'hello world'}), 200
+
+
+@client.route('/companies')
+def get_companies():
+    page = request.args.get('page', '1')
+    page = int(page) if page.isdigit() else 1
+    start = Constants.REVIEWS_PER_PAGE * (page - 1)
+    end = start + Constants.REVIEWS_PER_PAGE
+    companies = Company.query.filter(Shop.name != '').all()[start:end]
+
+    return render_template('companies.html', page_title="Companies - ",
+                           companies=companies, page=page)
+
+
+@client.route('/companies/<int:company_id>')
+def get_company(company_id):
+    company = Company.query.filter_by(id=company_id).first()
+    if not company:
+        abort(404)
+    phases = Phase.query.all()
+    return render_template('company/company.html', company=company, phases=phases)
+
+
+@client.route('/users/<int:user_id>')
+def get_user(user_id):
+    user = User.query.filter_by(id=user_id).first()
+    if not user:
+        abort(404)
+    return render_template('user/user.html', user=user)
+
+
+@client.route('/search')
+def search():
+    query = request.args.get('q', None)
+    if not query:
+        return redirect(url_for('client.get_companies'))
+    return render_template('search.html')
+
+
+@client.route('/ajax/search')
+def ajax_search():
+    query = request.args.get('q', None)
+    if not query:
+        return ''
+    results = search_and_rank(query)
+    return render_template('search/search_results.html', results=results)
+

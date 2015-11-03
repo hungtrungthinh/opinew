@@ -1,0 +1,24 @@
+<div class="review-container">
+    <div class="media">
+      {% if company.image_url %}
+          <div class="media-left media-top">
+              <div class="media-left media-top">
+                  <a href="#">
+                      <img class="media-object" src="{{ company.image_url }}"
+                           alt="{{ company.name }} logo" style="max-width:100px">
+                  </a>
+              </div>
+          </div>
+      {% endif %}
+        <div class="media-body">
+            <a href="{{ url_for('client.get_company', company_id=company.id) }}"><h3>{{ company.name }}</h3></a>
+
+            <p class="lead">{{ company.description }}</p>
+          {% for member in company.team %}
+              <a href="{{ url_for('client.get_user', user_id=member.id) }}">
+                  <img src="{{ member.image_url }}" style="height: 30px;" alt="{{ member.name }} profile pic"
+                          title="{{ member.name }}" /></a>
+          {% endfor %}
+        </div>
+    </div>
+</div>

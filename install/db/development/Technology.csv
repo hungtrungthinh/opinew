@@ -1,0 +1,3 @@
+id,name,description,image_url,web_page
+1,Flask,"A lightweight Python web framework based on Werkzeug and Jinja 2. Code, documentation, and community links are provided.",http://flask.pocoo.org/docs/0.10/_static/flask.png,http://flask.pocoo.org/
+2,Insightly,online Customer Relationship & Project Management Software used by over 400000 small businesses world wide.,https://int-dir.s3.amazonaws.com/uploads/979_979_insightly_logo_210x210.png,https://www.insightly.com

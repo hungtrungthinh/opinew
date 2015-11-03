@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <br>
+
+            <div class="media">
+                <div class="media-left media-top">
+                    <div class="media-left media-top">
+                        <img class="media-object" src="{{ user.image_url }}"
+                             alt="{{ user.name }} profile picture" style="max-width:150px">
+                    </div>
+                </div>
+                <div class="media-body">
+                    <h1>{{ user.name }}</h1>
+
+                  {% if user.can_help_with %}
+                      <p class="lead">{{ user.can_help_with }}</p>
+                  {% endif %}
+                  {% if user.best_contact %}
+                      <p>{{ user.best_contact | safe }}</p>
+                  {% endif %}
+                </div>
+            </div>
+            <div class="row">
+              {% if user.company %}
+                  <h2>Company</h2>
+                  {% set company = user.company %}
+                  {% include "company/company_list.html" %}
+              {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

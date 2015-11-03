@@ -1,0 +1,23 @@
+<div class="media">
+  {% if member_result.user.image_url %}
+      <div class="media-left media-top">
+          <div class="media-left media-top">
+              <a href="#">
+                  <img class="media-object" src="{{ member_result.user.image_url }}"
+                       alt="{{ member_result.user.name }} profile picture" style="max-width:30px">
+              </a>
+          </div>
+      </div>
+  {% endif %}
+    <div class="media-body">
+        <p>{{ member_result.user.name }}</p>
+      {% if member_result.match.user_name %}
+          <p><span class="text-muted">Name:</span> {{ member_result.match.user_name | safe }}</p>
+      {% endif %}
+      {% if member_result.match.user_can_help_with %}
+          <p><span
+                  class="text-muted">Can help with:</span> {{ member_result.match.user_can_help_with | safe }}
+          </p>
+      {% endif %}
+    </div>
+</div>

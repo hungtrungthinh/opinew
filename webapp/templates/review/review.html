@@ -1,10 +1,17 @@
 <div class="review-container">
   {% if show_product_info %}
       <h3>
-          <a href="{{ url_for('client.get_product', product_id=review.product.id) }}"><b>{{ review.product.name }}</b></a>
-          from
-          <a href="{{ review.product.url }}" target="_blank"><b>{{ review.product.shop.name }}</b></a></h3>
+        {% if review.product %}
+            <a href="{{ url_for('client.get_product', product_id=review.product.id) }}"><b>{{ review.product.name }}</b></a>
+          {% if review.product.shop %}
+              from
+              <a href="http://{{ review.product.url }}" target="_blank"><b>{{ review.product.shop.name }}</b></a>
+          {% endif %}
 
+        {% elif review.shop %}
+            <a href="{{ url_for('client.get_company', company_id=review.shop.company.id) }}"><b>{{ review.shop.name }}</b></a>
+        {% endif %}
+      </h3>
       <hr>
   {% endif %}
   {% include "review/review_author.html" %}

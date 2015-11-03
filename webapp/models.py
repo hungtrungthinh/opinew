@@ -10,6 +10,12 @@ from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
 from webapp.common import generate_temp_password
+from flask.ext.sqlalchemy import BaseQuery
+from sqlalchemy_searchable import SearchQueryMixin
+from sqlalchemy_utils.types import TSVectorType
+from sqlalchemy_searchable import make_searchable
+
+make_searchable()
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
@@ -21,19 +27,60 @@ roles_users_table = db.Table('roles_users',
                              db.Column('role_id', db.Integer(), db.ForeignKey('role.id'))
                              )
 
+companies_markets_table = db.Table('companies_markets',
+                                   db.Column('company_id', db.Integer(), db.ForeignKey('company.id')),
+                                   db.Column('market_id', db.Integer(), db.ForeignKey('market.id'))
+                                   )
+
+companies_technologies_table = db.Table('companies_technologies',
+                                        db.Column('company_id', db.Integer(), db.ForeignKey('company.id')),
+                                        db.Column('technology_id', db.Integer(), db.ForeignKey('technology.id'))
+                                        )
+
+techonologies_tech_categories_table = db.Table('techonologies_tech_categories',
+                                               db.Column('technology_id', db.Integer(), db.ForeignKey('technology.id')),
+                                               db.Column('tech_categories_id', db.Integer(),
+                                                         db.ForeignKey('tech_category.id'))
+                                               )
+
+companies_competitors_table = db.Table("companies_competitors",
+                                       db.Column("company_id", db.Integer, db.ForeignKey("company.id"),
+                                                 primary_key=True),
+                                       db.Column("competitor_id", db.Integer, db.ForeignKey("company.id"),
+                                                 primary_key=True)
+                                       )
+
+companies_partners_table = db.Table("companies_partners",
+                                    db.Column("company_id", db.Integer, db.ForeignKey("company.id"),
+                                              primary_key=True),
+                                    db.Column("partner_id", db.Integer, db.ForeignKey("company.id"),
+                                              primary_key=True)
+                                    )
+
 
 class Repopulatable(object):
-    def _is_datetime(self, value):
+    def _str_to_value(self, value):
         try:
-            return datetime.strptime(value,  '%Y-%m-%d %H:%M:%S')
+            return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         except ValueError:
+            pass
+        try:
+            return int(value)
+        except ValueError:
+            if value.lower() in ['true', 'false']:
+                if value.lower() in ['true']:
+                    return True
+                return False
+        try:
+            return unicode(value)
+        except:
             return value
 
     def from_repopulate(self, **kwargs):
         model_attributes = [a for a in dir(self) if not a[0] == '_']
         for attr, val in kwargs.iteritems():
             if attr in model_attributes and val:
-                val = self._is_datetime(val)
+                val = self._str_to_value(val)
                 setattr(self, attr, val)
         return self
 
@@ -47,7 +94,14 @@ class Role(db.Model, RoleMixin, Repopulatable):
         return '<Role %r>' % self.name
 
 
+class UserQuery(BaseQuery, SearchQueryMixin):
+    pass
+
+
 class User(db.Model, UserMixin, Repopulatable):
+    query_class = UserQuery
+    search_vector = db.Column(TSVectorType('name', 'can_help_with'))
+
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String)
     roles = db.relationship("Role", secondary=roles_users_table,
@@ -57,6 +111,12 @@ class User(db.Model, UserMixin, Repopulatable):
     password = db.Column(db.String)
     name = db.Column(db.String)
     image_url = db.Column(db.String)
+
+    can_help_with = db.Column(db.UnicodeText)
+    best_contact = db.Column(db.UnicodeText)
+
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
+    company = db.relationship("Company", backref=db.backref("team"), uselist=False, foreign_keys=[company_id])
 
     active = db.Column(db.Boolean, default=True)
     confirmed_at = db.Column(db.DateTime)
@@ -363,7 +423,14 @@ class ReviewRequest(db.Model):
     completed = db.Column(db.Boolean)
 
 
+class ReviewQuery(BaseQuery, SearchQueryMixin):
+    pass
+
+
 class Review(db.Model, Repopulatable):
+    query_class = ReviewQuery
+    search_vector = db.Column(TSVectorType('body'))
+
     id = db.Column(db.Integer, primary_key=True)
 
     body = db.Column(db.String)
@@ -541,10 +608,93 @@ class Review(db.Model, Repopulatable):
         return reviews
 
 
-class Shop(db.Model, Repopulatable):
+class Phase(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     description = db.Column(db.String)
+
+
+class Market(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    description = db.Column(db.String)
+
+
+class TechCategory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    description = db.Column(db.String)
+
+
+class Technology(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    image_url = db.Column(db.String)
+    description = db.Column(db.String)
+    web_page = db.Column(db.String)
+
+    tech_categories = db.relationship("TechCategory", secondary=techonologies_tech_categories_table,
+                                      backref=db.backref('technologies', lazy='dynamic'))
+
+
+class CompanyQuery(BaseQuery, SearchQueryMixin):
+    pass
+
+
+class Company(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+    image_url = db.Column(db.String)
+    name = db.Column(db.String)
+
+    description = db.Column(db.UnicodeText)
+    longer_description = db.Column(db.UnicodeText)
+
+    markets = db.relationship("Market", secondary=companies_markets_table,
+                              backref=db.backref('companies', lazy='dynamic'))
+    technologies = db.relationship("Technology", secondary=companies_technologies_table,
+                                   backref=db.backref('companies', lazy='dynamic'))
+
+    phase_id = db.Column(db.Integer, db.ForeignKey('phase.id'))
+    phase = db.relationship('Phase', backref=db.backref('companies'))
+
+    competitors = db.relationship("Company",
+                                  secondary=companies_competitors_table,
+                                  primaryjoin=id == companies_competitors_table.c.company_id,
+                                  secondaryjoin=id == companies_competitors_table.c.competitor_id,
+                                  backref="competitees"
+                                  )
+    partners = db.relationship("Company",
+                               secondary=companies_partners_table,
+                               primaryjoin=id == companies_partners_table.c.company_id,
+                               secondaryjoin=id == companies_partners_table.c.partner_id,
+                               backref="partnees"
+                               )
+
+    hook = db.Column(db.UnicodeText)
+    problem = db.Column(db.UnicodeText)
+    solution = db.Column(db.UnicodeText)
+    market_size = db.Column(db.UnicodeText)
+    revenue = db.Column(db.UnicodeText)
+    traction = db.Column(db.UnicodeText)
+    ask = db.Column(db.UnicodeText)
+
+    web_page = db.Column(db.String)
+    main_contact = db.Column(db.String)
+    facebook = db.Column(db.String)
+    twitter = db.Column(db.String)
+
+    query_class = CompanyQuery
+    search_vector = db.Column(TSVectorType('name', 'description', 'longer_description',
+                                           'problem', 'solution', 'market_size', 'revenue',
+                                           'traction', 'ask'))
+
+    def __repr__(self):
+        return '<Company %r>' % self.name
+
+
+class Shop(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
     domain = db.Column(db.String)
 
     automatically_approve_reviews = db.Column(db.Boolean, default=True)
@@ -552,9 +702,11 @@ class Shop(db.Model, Repopulatable):
     access_token = db.Column(db.String)
     products_imported = db.Column(db.Boolean, default=False)
 
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'),
-                         default=current_user.id if current_user and current_user.is_authenticated() else None)
-    owner = db.relationship("User", backref=db.backref("shops"))
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
+    company = db.relationship("Company", backref=db.backref("shop", uselist=False))
+
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    owner = db.relationship("User", backref=db.backref("shops"), foreign_keys=[owner_id])
 
     platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
     platform = db.relationship("Platform", backref=db.backref("platform", uselist=False))
@@ -616,7 +768,7 @@ class Product(db.Model, Repopulatable):
     category = db.Column(db.String)
     image_url = db.Column(db.String)
     url = db.Column(db.String)
-    platform_product_id = db.Column(db.Integer)
+    platform_product_id = db.Column(db.String)
     plugin_views = db.Column(db.Integer, default=0)
     review_help = db.Column(db.String)
 

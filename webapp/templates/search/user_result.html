@@ -1,0 +1,27 @@
+<div class="review-container">
+    <div class="media">
+      {% if result.user.image_url %}
+          <div class="media-left media-top">
+              <div class="media-left media-top">
+                  <a href="{{ url_for('client.get_user', user_id=result.user.id) }}">
+                      <img class="media-object" src="{{ result.user.image_url }}"
+                           alt="{{ result.user.name }} profile picture" style="max-width:100px">
+                  </a>
+              </div>
+          </div>
+      {% endif %}
+        <div class="media-body">
+            <a href="{{ url_for('client.get_user', user_id=result.user.id) }}">
+                <h3>{{ result.user.name }}</h3>
+            </a>
+          {% if result.match.user_name %}
+              <p><span class="text-muted">Name:</span> {{ result.match.user_name | safe }}</p>
+          {% endif %}
+          {% if result.match.user_can_help_with %}
+              <p><span
+                      class="text-muted">Can help with:</span> {{ result.match.user_can_help_with | safe }}
+              </p>
+          {% endif %}
+        </div>
+    </div>
+</div>
