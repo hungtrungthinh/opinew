@@ -4,33 +4,69 @@
 {% else %}
     <table class="table">
         <tr>
-            <th>Order Token</th>
-            <th>Generated</th>
-            <th>User</th>
-            <th>Product URL</th>
-            <th>Product reviews</th>
-            <th>Reviewed?</th>
+            <th>Order id</th>
+            <th>Details</th>
+            <th>Status</th>
+            <th>Review</th>
         </tr>
       {% for order in orders %}
           <tr>
-              <td>{{ order.token }}</td>
-              <td>{{ order.purchase_timestamp | timesince }}</td>
-              <td>{{ order.user }}</td>
+              <td>{{ order.id }}</td>
               <td>
-                {% for product in order.products %}
-                    <a href="{{ product.url }}"
-                       target="_blank"><span class="glyphicon glyphicon-link"></span> {{ product.name }}</a>
-                {% endfor %}
+                {{ order.user.email }}<br>
+                  <ul>
+                    {% for product in order.products %}
+                        <li><a href="{{ url_for('client.get_product', product_id=product.id) }}"
+                               target="_blank">{{ product.name }}
+                        </a>&nbsp;
+                            <a href="http://{{ product.url }}" target="_blank"><span
+                                    class="glyphicon glyphicon-link"></span></a>
+                        </li>
+                    {% endfor %}
+                  </ul>
               </td>
               <td>
-                {% for product in order.products %}
-                    <a href="{{ url_for('client.get_product', product_id=product.id) }}"
-                       target="_blank">{{ product.name }}</a>
-                {% endfor %}
+                  <span class="label
+                  {% if order.status == g.constants.ORDER_STATUS_PURCHASED %}
+                  label-default
+                  {% elif order.status == g.constants.ORDER_STATUS_SHIPPED %}
+                  label-info
+                  {% elif order.status == g.constants.ORDER_STATUS_DELIVERED %}
+                  label-warning
+                  {% elif order.status == g.constants.ORDER_STATUS_NOTIFIED %}
+                  label-success
+                  {% elif order.status == g.constants.ORDER_STATUS_FAILED %}
+                  label-danger
+                  {% endif %}
+                  ">
+                    {{ order.status }}
+                  </span>
+                  <br>
+                  <small>
+                    {% if order.notify_timestamp %}
+                      {{ g.constants.ORDER_STATUS_NOTIFIED }}:{{ order.notification_timestamp | timesince }}<br>
+                    {% endif %}
+                    {% if order.delivery_timestamp %}
+                      {{ g.constants.ORDER_STATUS_DELIVERED }}:{{ order.delivery_timestamp | timesince }}<br>
+                    {% endif %}
+                    {% if order.shipment_timestamp %}
+                      {{ g.constants.ORDER_STATUS_SHIPPED }}: {{ order.shipment_timestamp | timesince }}<br>
+                    {% endif %}
+                    {{ g.constants.ORDER_STATUS_PURCHASED }}: {{ order.purchase_timestamp | timesince }}<br>
+                  </small>
               </td>
               <td>
                 {% if not order.review %}
-                    No review yet
+                  {% if order.status == g.constants.ORDER_STATUS_PURCHASED %}
+                      <button class="btn btn-sm btn-info">Shipped</button>
+                  {% elif order.status == g.constants.ORDER_STATUS_SHIPPED %}
+                      <button class="btn btn-sm btn-warning">Delivered</button><br>
+                      <small>Delivery ETA in {{ order.to_deliver_timestamp | timeto }}</small>
+                  {% elif order.status == g.constants.ORDER_STATUS_DELIVERED %}
+                      <button class="btn btn-sm btn-success">Notify now</button>
+                      <button class="btn btn-sm btn-default">Cancel</button><br>
+                      <small>Will notify in {{ order.to_notify_timestamp | timeto }}</small>
+                  {% endif %}
                 {% else %}
                     <a href="{{ url_for('client.view_review', review_id=order.review.id) }}"
                        target="_blank">View review</a>

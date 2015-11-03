@@ -267,6 +267,8 @@ class Order(db.Model, Repopulatable):
 
     purchase_timestamp = db.Column(db.DateTime)
     shipment_timestamp = db.Column(db.DateTime)
+
+    to_deliver_timestamp = db.Column(db.DateTime)
     delivery_timestamp = db.Column(db.DateTime)
 
     to_notify_timestamp = db.Column(db.DateTime)
@@ -341,6 +343,9 @@ class ReviewRequest(db.Model):
     created_ts = db.Column(db.DateTime)
 
     token = db.Column(db.String)
+    task_id = db.Column(db.String)
+    task_eta = db.Column(db.DateTime)
+    task_status = db.Column(db.String)
 
     from_customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     from_customer = db.relationship('Customer', backref=db.backref('review_requests'))

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sensitive
+from celery.schedules import crontab
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -76,6 +77,15 @@ class Config(object):
     TWITTER_API_SECRET = sensitive.TWITTER_API_SECRET
     TWITTER_APP_ACCESS_TOKEN = '3013280003-rZBNIbqXigzTaJyhb9u0I46VzwpKeY4cheFDsXs'
     TWITTER_APP_ACCESS_SECRET = sensitive.TWITTER_APP_ACCESS_SECRET
+
+    CELERYBEAT_SCHEDULE = {
+        # Every day at 00:00
+        'update_orders': {
+            'task': 'tasks.update_orders',
+            'schedule': crontab(minute=0, hour=0),
+            'args': (),
+        },
+    }
 
 class ConfigTest(Config):
     MODE = Constants.MODE_TESTING
