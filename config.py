@@ -110,6 +110,8 @@ class ConfigDev(Config):
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION
+    SESSION_COOKIE_HTTPONLY = False
+    SESSION_COOKIE_SECURE = True
     DATABASE_LOCATION = '/home/opinew_server/db/ecommerce_api.db'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
