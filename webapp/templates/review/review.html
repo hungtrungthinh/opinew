@@ -5,7 +5,7 @@
             {% include "review/review_image.html" %}
           </div>
       {% endif %}
-        <div class="col-sm-8">
+        <div class="{% if review.image_url %}col-sm-8{% else %}col-md-12{% endif %}">
           {% include "review/review_body.html" %}
             <div class="row">
                 <div class="col-sm-5">
