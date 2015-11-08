@@ -78,6 +78,8 @@ class Config(object):
     TWITTER_APP_ACCESS_TOKEN = '3013280003-rZBNIbqXigzTaJyhb9u0I46VzwpKeY4cheFDsXs'
     TWITTER_APP_ACCESS_SECRET = sensitive.TWITTER_APP_ACCESS_SECRET
 
+    GIPHY_API_KEY = sensitive.GIPHY_API_KEY
+
     CELERYBEAT_SCHEDULE = {
         # Every day at 00:00
         'update_orders': {

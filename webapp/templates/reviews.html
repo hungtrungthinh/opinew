@@ -1,17 +1,16 @@
 {% extends "layout.html" %}
 {% block content %}
-    <div class="container">
+    <div class="container-fluid">
         <div class="row">
             <div class="col-md-2">
-              {% if not current_user.is_authenticated() %}
-                  <br>
-                  <div class="well" style="position:fixed;">
+              {% if not current_user.is_authenticated() and not g.mobile %}
+                  <div class="well">
                       <p>Business owner?</p>
                       <a href="/register?shop_owner=1" class="btn btn-block btn-primary btn-lg">Get our plugin</a>
                   </div>
               {% endif %}
             </div>
-            <div class="col-md-10">
+            <div class="col-md-8 col-sm-12">
               {% set show_product_info = True %}
               {% for review in reviews %}
                 {% include "review/review.html" %}

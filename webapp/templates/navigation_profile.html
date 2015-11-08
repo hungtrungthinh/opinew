@@ -7,18 +7,18 @@
 {% endif %}
 <li role="presentation" class="dropdown"
     style="margin-top: 10px; margin-left: 10px;  margin-right: 10px">
-                      <span href="#" class="dropdown-toggle mobile-menu-profile-pic" data-toggle="dropdown"
-                            role="button"
-                            aria-expanded="false">
-                          <img alt="{{ current_user.name }} profile picture" class="navbar-profile-pic  pull-left"
-                               src="{{ user_image_url }}"/>
-                          <span class="hidden-xs navbar-name">
-                              {{ current_user.name }}
-                            {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
-                                <br><span class="text-muted">(shop owner)</span>
-                            {% endif %}
-                          </span>
-                      </span>
+  <span href="#" class="dropdown-toggle mobile-menu-profile-pic" data-toggle="dropdown"
+        role="button"
+        aria-expanded="false">
+      <img alt="{{ current_user.name }} profile picture" class="navbar-profile-pic  pull-left"
+           src="{{ user_image_url }}"/>
+      <span class="hidden-xs navbar-name">
+          {{ current_user.name }}
+        {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
+            <br><span class="text-muted">(shop owner)</span>
+        {% endif %}
+      </span>
+  </span>
     <ul class="dropdown-menu pull-right">
       {% if in_plugin %}
           <li><a href="{{ url_for('client.plugin_logout') }}">Log out</a></li>

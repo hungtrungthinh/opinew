@@ -183,6 +183,9 @@ def index():
             return redirect(url_for('client.shop_dashboard'))
         elif current_user.has_role(Constants.REVIEWER_ROLE):
             return redirect(url_for('client.reviews'))
+    if g.mobile:
+        login_form = LoginForm()
+        return render_template('mobile_index.html', login_user_form=login_form)
     return render_template('index.html')
 
 
@@ -420,3 +423,15 @@ def fake_shopify_api(shop):
     if not g.mode == 'testing':
         abort(404)
     return jsonify({'access_token': 'hello world'}), 200
+
+from providers import giphy
+
+@client.route('/search-giphy')
+def search_giphy():
+    giphy_api_key = current_app.config.get('GIPHY_API_KEY')
+    query = request.args.get('q')
+    if not query:
+        return jsonify(giphy.get_trending(giphy_api_key))
+    limit = request.args.get('limit', Constants.REVIEWS_PER_PAGE)
+    offset = request.args.get('offset', 0)
+    return jsonify(giphy.get_by_query(giphy_api_key, query, limit, offset))

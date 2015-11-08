@@ -1,106 +1,79 @@
 {% import "_macros.html" as macros %}
-<div class="alert" id="ajax-status" hidden></div>
+<div class="alert" id="ajax-status" hidden xmlns="http://www.w3.org/1999/html"></div>
 <div class="row" id="product-review">
-    <form class="action" method="post" action="{{ url_for('media.upload_review_image') }}">
-        <img src="" class="img-thumbnail img-responsive"
-             style="max-height:200px; max-width:500px; margin: 20px 0 20px 0;"
-             hidden id="review-image"/>
-        <br>
-      {{ review_image_form.hidden_tag() }}
-      {{ review_image_form.image(class="form-control") }}<br>
-    </form>
+  {% if g.mobile %}
+      <button class="btn btn-success btn-block btn-lg" onclick="launchCamera()" id="launch-mobile-camera">
+          <span class="glyphicon glyphicon-camera" style="font-size: 5em;"></span><br>
+          <span style="font-size: 1em;">take a picture</span>
+      </button>
+      <script type="text/javascript">
+          function launchCamera() {
+              $('#launch-mobile-camera').hide();
+              $('#tab-giphy').hide();
+              $('#review-image').attr('src', "/static/img/ajax-loader.gif");
+              Android.launchCamera();
+          }
+      </script>
+  {% else %}
+      <ul class="nav nav-tabs" role="tablist">
+          <li role="presentation" class="active">
+              <a href="#tab-giphy" aria-controls="tab-giphy" role="tab" data-toggle="tab">Giphy</a>
+          </li>
+
+          <li role="presentation">
+              <a href="#tab-upload-image" aria-controls="tab-upload-image" role="tab" data-toggle="tab">Upload image</a>
+          </li>
+      </ul>
+  {% endif %}
+    <div class="tab-content">
+        <div role="tabpanel" class="tab-pane active" id="tab-giphy">
+          {% include "forms/review_giphy.html" %}
+        </div>
+      {% if not g.mobile %}
+          <div role="tabpanel" class="tab-pane" id="tab-upload-image">
+            {% include "forms/review_image_upload.html" %}
+          </div>
+      {% endif %}
+    </div>
+
     <form class="action" method="post" action="{{ g.constants.API_V1_URL_PREFIX }}/review" id="review-form">
         <input type="hidden" name="_csrf_token" class="form-serialize" value="{{ csrf_token() }}">
         <input type="hidden" name="api_next" value="{{ url_for('client.reviews') }}"/>
+      {% if product %}
+          <input type="hidden" class="form-serialize" name="product_id" value="{{ product.id }}">
+      {% else %}
+          <div class="form-group">
+              <label for="sel_product">Select product</label>
+              <select class="form-control form-serialize" name="product_id" id="sel_product">
+                {% for product in products %}
+                    <option value="{{ product.id }}">{{ product.name }}</option>
+                {% endfor %}
+              </select>
+          </div>
+      {% endif %}
+        <br>
 
-        <div class="row">
-            <fieldset class="rating">
-                <input type="radio" id="star5" name="star_rating" value="5" class="form-serialize"
-                       {% if request.args.get('like') == '1' %}checked="checked"{% endif %}/>
-                <label for="star5" title="Rocks!">5 stars</label>
-                <input type="radio" id="star4" name="star_rating" value="4" class="form-serialize"/>
-                <label for="star4" title="Pretty good">4 stars</label>
-                <input type="radio" id="star3" name="star_rating" value="3" class="form-serialize"/>
-                <label for="star3" title="Meh">3 stars</label>
-                <input type="radio" id="star2" name="star_rating" value="2" class="form-serialize"/>
-                <label for="star2" title="Kinda bad">2 stars</label>
-                <input type="radio" id="star1" name="star_rating" value="1" class="form-serialize"
-                       {% if request.args.get('like') == '0' %}checked="checked"{% endif %}/>
-                <label for="star1" title="Sucks big time">1 star</label>
-            </fieldset>
+        <div class="col-md-4">
+          {% include "forms/review_stars.html" %}
+            <img src="" class="img-thumbnail img-responsive"
+                 style="max-height:200px; max-width:300px; margin: 10px 0 10px 0;"
+                 hidden id="review-image"/>
         </div>
-        <div class="row">
-          {% if product %}
-              <input type="hidden" class="form-serialize" name="product_id" value="{{ product.id }}">
-          {% else %}
-              <div class="form-group">
-                  <label for="sel_product">Select product</label>
-                  <select class="form-control form-serialize" name="product_id" id="sel_product">
-                    {% for product in products %}
-                        <option value="{{ product.id }}">{{ product.name }}</option>
-                    {% endfor %}
-                  </select>
-              </div>
-          {% endif %}
-          {{ macros.form_field(review_form, review_form.body, class="form-control form-serialize", placeholder='Write your review...') }}<br>
-          {{ review_form.image_url(class="form-control form-serialize hidden") }}<br>
-            <br>
-          {{ review_form.submit(class="btn-primary form-control") }}<br>
+        <div class="col-md-8">
+
+            <div class="col-xs-10" style="padding:0;">
+                <label class="text-muted">Write your review...</label>
+              {{ macros.form_field(review_form, review_form.body, id='textarea-body', class="form-control form-serialize", placeholder='Write your review...') }}<br>
+            </div>
+            <div class="col-xs-2">
+                <label class="text-muted">Emoji</label>
+                <a id="emoji-button" class="btn btn-default"><img src="http://twemoji.maxcdn.com/36x36/1f602.png"/></a>
+            </div>
         </div>
-    </form>
 </div>
 
-
-<style>
-    .rating {
-        float: left;
-    }
-
-    /* :not(:checked) is a filter, so that browsers that don’t support :checked don’t
-       follow these rules. Every browser that supports :checked also supports :not(), so
-       it doesn’t make the test unnecessarily selective */
-    .rating:not(:checked) > input {
-        position: absolute;
-        top: -9999px;
-        clip: rect(0, 0, 0, 0);
-    }
-
-    .rating:not(:checked) > label {
-        float: right;
-        width: 1em;
-        padding: 0 .1em;
-        overflow: hidden;
-        white-space: nowrap;
-        cursor: pointer;
-        font-size: 200%;
-        line-height: 1.2;
-        color: #666;
-    }
-
-    .rating:not(:checked) > label:before {
-        content: '★ ';
-    }
-
-    .rating > input:checked ~ label {
-        color: #fb8c2d;
-    }
-
-    .rating:not(:checked) > label:hover,
-    .rating:not(:checked) > label:hover ~ label {
-        color: #FF8E2E;
-    }
-
-    .rating > input:checked + label:hover,
-    .rating > input:checked + label:hover ~ label,
-    .rating > input:checked ~ label:hover,
-    .rating > input:checked ~ label:hover ~ label,
-    .rating > label:hover ~ input:checked ~ label {
-        color: #FFB77A;
-    }
-
-    .rating > label:active {
-        position: relative;
-        top: 2px;
-        left: 2px;
-    }
-</style>
+{{ review_form.image_url(class="form-control form-serialize hidden") }}<br>
+<br>
+{{ review_form.submit(class="btn-primary form-control") }}<br>
+</form>
+</div>

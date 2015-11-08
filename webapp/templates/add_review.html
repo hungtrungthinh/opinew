@@ -1,37 +1,44 @@
 {% extends "layout.html" %}
 {% block content %}
-    <div class="container">
+  {% if g.mobile and product %}
+      <input type="hidden" id="in-mobile-next" value="{{ url_for('client.get_product', product_id=product.id) }}"/>
+  {% endif %}
+    <div class="container-fluid">
         <div class="row">
-          {% if product %}
-              <h1>Review {{ product.name }} from {{ product.shop.name }}</h1>
-          {% endif %}
-          {% if request.args.get('like') == '1' %}
-              <div class="alert alert-success">
-                  <p><strong>Superb!</strong> We are glad you enjoyed your new <b>{{ product.name }}</b>.<br>
-                      Help 5000 other people that are in the market for <b>{{ product.product_type }}</b> to chose
-                      the right one!
-                  </p>
-              </div>
-          {% elif request.args.get('like') == '0' %}
-              <div class="alert alert-warning">
-                  <p><strong>Bummer! :(</strong> We are sorry to hear that you don't like your new
-                      <b>{{ product.name }}</b>.<br>
-                      Let us help you resolve any issues you had...
-                  </p>
-              </div>
-          {% endif %}
+            <div class="col-md-12">
+              {% if product %}
+                  <h3 style="text-align: center;">Review <a
+                          href="{{ url_for('client.get_product', product_id=product.id) }}">{{ product.name }}</a>
+                      from {{ product.shop.name }}</h3>
+              {% endif %}
+              {% if request.args.get('like') == '1' %}
+                  <div class="alert alert-success">
+                      <p><strong>Superb!</strong> We are glad you enjoyed your new <b>{{ product.name }}</b>.<br>
+                          Help 5000 other people that are in the market for <b>{{ product.product_type }}</b> to chose
+                          the right one!
+                      </p>
+                  </div>
+              {% elif request.args.get('like') == '0' %}
+                  <div class="alert alert-warning">
+                      <p><strong>Bummer! :(</strong> We are sorry to hear that you don't like your new
+                          <b>{{ product.name }}</b>.<br>
+                          Let us help you resolve any issues you had...
+                      </p>
+                  </div>
+              {% endif %}
 
-            <br>
+                <br>
 
                 <div class="col-md-8 col-md-offset-2">
-                    <div class="row">
-                      {% include "forms/review.html" %}
-                    </div>
+                  {% include "forms/review.html" %}
                 </div>
+            </div>
         </div>
     </div>
 {% endblock %}
 
 {% block script %}
+    <link rel="stylesheet" href="/static/css/jquery.emojiarea.css">
+    <script src="/static/js/jquery.emojiarea.js"></script>
     <script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
 {% endblock %}

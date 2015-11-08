@@ -1,6 +1,11 @@
 <div class="media-left media-top">
+  {% if review.youtube_video %}
+      <br>
+      <iframe width="700" height="315" src="{{ review.youtube_video }}" frameborder="0"
+              allowfullscreen></iframe>
+  {% endif %}
     <a href="#">
-        <img class="media-object" src="{{ review.image_url }}"
-             alt="{{ review.product.name }} review by {{ review.user.name }}" style="max-width:300px">
+        <img class="img-responsive" src="{{ review.image_url }}"
+             alt="{{ review.product.name }} review by {{ review.user.name }}">
     </a>
 </div>

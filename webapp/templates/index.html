@@ -1,9 +1,5 @@
 {% extends "layout.html" %}
 {% import "_macros.html" as macros %}
-{% block style %}
-    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/index_styles.css') }}" rel="stylesheet">
-{% endblock %}
 
 {% block content %}
     <section class="container-fluid" id="welcome">
@@ -143,7 +139,8 @@
                              alt="reviews screenshot"/>
                     </div>
                 </a>
-                <a href="{{ url_for('.reviews') }}" class="btn btn-block btn-lg btn-info" style="clear:both">View our reviews</a>
+                <a href="{{ url_for('.reviews') }}" class="btn btn-block btn-lg btn-info" style="clear:both">View our
+                    reviews</a>
             </div>
         </div>
     </section>

@@ -23,12 +23,4 @@
   {% endif %}
     <div class="review-author-name">{{ user_name }}</div>
     <div class="review-time-posted">{{ review.created_ts | timesince }}</div>
-    <div class="badges">
-      {% if review.verified_review %}
-          <span class="label label-success"><span class="glyphicon glyphicon-ok"></span> Verified review</span>
-      {% endif %}
-      {% if review.by_shop_owner %}
-          <span class="label label-info"><span class="glyphicon glyphicon-user"></span> By shop owner</span>
-      {% endif %}
-    </div>
 </header>

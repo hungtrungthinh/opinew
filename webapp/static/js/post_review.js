@@ -1,9 +1,9 @@
-function inIframe () {
-    try {
-        return window.self !== window.top;
-    } catch (e) {
-        return true;
-    }
+function inIframe() {
+  try {
+    return window.self !== window.top;
+  } catch (e) {
+    return true;
+  }
 }
 
 $('input[type=file]').change(function (e) {
@@ -22,12 +22,50 @@ $('input[type=file]').change(function (e) {
     processData: false
   }).done(function (r) {
     var image_url = r.image_url;
-    $('#image_url').val(image_url);
-    $('#review-image').attr('src', image_url).show();
+    setImageUrl(image_url);
   }).fail(function () {
     // Optionally alert the user of an error here...
   });
 });
+
+function setImageUrl(imageUrl) {
+  $('#image_url').val(imageUrl);
+  $('#review-image').attr('src', imageUrl).show();
+}
+
+function getGiphyImages(form) {
+  $.ajax({
+    type: form.attr('method'),
+    url: form.attr('action'),
+    data: form.serialize(),
+    cache: false,
+    contentType: false,
+    processData: false
+  }).done(function (r) {
+    $('#giphy-images').html("");
+    for (var i = 0; i < r.data.length; i++) {
+      var imageUrl = r.data[i].images.fixed_height.url;
+      $('#giphy-images').append("<a href='javascript:setImageUrl(\"" + imageUrl + "\");'><img style='margin: 0 10px 0 0' class=' img-thumbnail' src='" + imageUrl + "' /></a>");
+    }
+  }).fail(function () {
+    // Optionally alert the user of an error here...
+  });
+}
+
+function giphyLabel(button) {
+  var query = $(button).text();
+  $('#review-giphy-search').val(query);
+  $('#review-giphy-form').submit()
+}
+
+$('#review-giphy-form').on("submit", function (e) {
+  $('#giphy-images').attr('src', "/static/img/ajax-loader.gif");
+  e.preventDefault(); // Prevent the form from submitting via the browser.
+  // select the form and submit
+  var $form = $(this);
+  getGiphyImages($form);
+});
+
 
 $('#review-form').bind('submit', function (e) {
   e.preventDefault();
@@ -53,6 +91,10 @@ $('#review-form').bind('submit', function (e) {
     if (inIframe) {
       document.location.href = document.location.href;
     }
+    if ($('#in-mobile-next')) {
+      console.log($('#in-mobile-next').val());
+      document.location.href = $('#in-mobile-next').val();
+    }
   }).fail(function (r) {
     var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
     $('#ajax-status')
@@ -62,4 +104,12 @@ $('#review-form').bind('submit', function (e) {
 
   });
   return false;
+});
+
+$.emojiarea.path = 'http://twemoji.maxcdn.com/36x36/';
+$.emojiarea.icons = EMOJIS;
+$('textarea').emojiarea({button: '#emoji-button'});
+
+$(document).ready(function () {
+  getGiphyImages($('#review-giphy-form'));
 });

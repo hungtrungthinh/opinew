@@ -1,39 +1,27 @@
-<div class="rating">
+{% if show_product_info %}
+    <div>
+        <h4>
+            <a href="{{ url_for('client.get_product', product_id=review.product.id) }}"><b>{{ review.product.name }}</b></a>
+            from
+            <a href="{{ review.product.url }}" target="_blank"><b>{{ review.product.shop.name }}</b></a>
+        </h4>
+    </div>
+{% endif %}
+<div class="badges pull-right">
+  {% if review.verified_review %}
+      <span class="label label-success"><span class="glyphicon glyphicon-ok"></span> Verified review</span>
+  {% endif %}
+  {% if review.by_shop_owner %}
+      <span class="label label-info"><span class="glyphicon glyphicon-user"></span> By shop owner</span>
+  {% endif %}
+</div>
+<div class="rating-review-body">
     <span class="star-rating {% if review.star_rating >= 1 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating >= 2 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating >= 3 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating >= 4 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating == 5 %}star-actives{% endif %}">☆</span>
-
 </div>
-<p style="font-size: 1.2em; margin: 10px;">
-  {{ review.body }}
-  {% if review.youtube_video %}
-      <br>
-      <iframe width="700" height="315" src="{{ review.youtube_video }}" frameborder="0"
-              allowfullscreen></iframe>
-  {% endif %}
-</p>
-{% if current_user.is_authenticated() %}
-    <form class="review-like-form" style="display:inline;"
-          action="{{ g.constants.API_V1_URL_PREFIX }}/review_like{% if review.liked_by_current_user %}/{{ review.liked_by_current_user.id }}{% endif %}"
-          method="{% if review.liked_by_current_user %}patch{% else %}post{% endif %}">
-        <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
-        <input type="hidden" name="review_id" class="form-serialize" value="{{ review.id }}"/>
-        <input type="hidden" name="action" class="form-serialize like-action-input"
-               value="{{ review.next_like_action }}"/>
-        <button class="btn {% if review.liked_by_current_user and review.liked_by_current_user.action %}btn-success{% else %}btn-default{% endif %}"
-                type="submit">
-            <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
-        </button>
-    </form>
-{% else %}
-    <a class="btn {% if review.liked_by_current_user and review.liked_by_current_user.action %}btn-success{% else %}btn-default{% endif %}"
-       href="/login">
-        <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
-    </a>
-{% endif %}
-{% if not hide_buy_button %}
-    <a class="btn btn-primary pull-right" href="{{ review.product.url }}">Buy</a>
-{% endif %}
-
+<blockquote>
+    <p class="review-body-content">{{ review.body }}</p>
+</blockquote>

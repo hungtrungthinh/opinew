@@ -64,6 +64,8 @@ def create_app(option):
 
         @app.before_request
         def before_request():
+            if request.headers.get('mobile'):
+                g.mobile = True
             g.constants = Constants
             g.config = app.config
             g.mode = app.config.get('MODE')

@@ -1,0 +1,31 @@
+{% if not request.path == '/' %}
+    <div class="container"
+         style="padding: 10px 0 5px 10px; position: fixed; z-index: 50; background-color: rgba(44, 84, 168, 0.5);; display:block; width: 100%;">
+        <div class="row">
+            <div class="col-xs-2">
+                <a href="/" style="margin: 10px;">
+                    <img alt="Opinew logo" id="logo-image"
+                         src="{{ url_for('static', filename='img/opinew_diamond.png') }}">
+                </a>
+            </div>
+            <div class="col-xs-10">
+              {% if current_user.is_authenticated() %}
+                {% if product %}
+                    <a href="{{ url_for('client.add_review', product_id=product.id) }}" class="btn btn-primary"
+                       style="float:right;">
+                        <span class="glyphicon glyphicon-edit"></span> Review
+                    </a>
+                {% endif %}
+                  <ul class="nav nav-tabs" style="float:right; margin-top: -10px; border-bottom: 0;">
+                    {% include "navigation_notifications.html" %}
+                    {% include "navigation_profile.html" %}
+                  </ul>
+              {% else %}
+                  <a class="btn btn-success" href="{{ url_for('security.register') }}" style="float:right;">Register</a>
+                  <a class="btn btn-default" href="{{ url_for('security.login') }}" style="float:right;">Log in</a>
+              {% endif %}
+            </div>
+        </div>
+    </div>
+    <div style="height: 50px;"></div>
+{% endif %}

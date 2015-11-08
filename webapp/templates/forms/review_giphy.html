@@ -1,0 +1,22 @@
+<div style="margin:20px 0 0 20px">
+    <form class="action" method="get" action="{{ url_for('client.search_giphy') }}" id="review-giphy-form">
+      {{ review_image_form.hidden_tag() }}
+        <div class="input-group">
+            <input type="text" name="q" id="review-giphy-search" class="form-control" placeholder="Search funny images...">
+      <span class="input-group-btn">
+        <button class="btn btn-default" type="button"><span class="glyphicon glyphicon-search"></span></button>
+      </span>
+        </div>
+        <!-- /input-group -->
+    </form>
+    <div class="btn-group" role="group" aria-label="..." style="margin: 20px 0 20px 0;">
+        <button type="button" onclick="giphyLabel(this);" class="btn" style="background-color:coral; color: white;">Happy</button>
+        <button type="button" onclick="giphyLabel(this);" class="btn" style="background-color:hotpink; color: white;">In Love</button>
+        <button type="button" onclick="giphyLabel(this);" class="btn" style="background-color:darkred; color: white;">Angry</button>
+        <button type="button" onclick="giphyLabel(this);" class="btn" style="background-color:grey; color: white;">Sad</button>
+        <button type="button" onclick="giphyLabel(this);" class="btn" style="background-color:chocolate; color: white;">Confused</button>
+    </div>
+    <div id="giphy-images" style="overflow-x: scroll; height: 220px; overflow-y: hidden; white-space: nowrap;">
+        <img src="{{ url_for('static', filename='img/ajax-loader.gif') }}"/>
+    </div>
+</div>
