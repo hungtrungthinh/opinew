@@ -7,8 +7,7 @@
         <div class="row">
             <div class="col-md-12">
               {% if product %}
-                  <h3 style="text-align: center;">Review <a
-                          href="{{ url_for('client.get_product', product_id=product.id) }}">{{ product.name }}</a>
+                  <h3 style="text-align: center;">Review <a href="{{ url_for('client.get_product', product_id=product.id) }}">{{ product.name }}</a>
                       from {{ product.shop.name }}</h3>
               {% endif %}
               {% if request.args.get('like') == '1' %}

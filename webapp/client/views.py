@@ -4,7 +4,6 @@ from flask import request, redirect, url_for, render_template, flash, g, send_fr
     current_app, make_response, abort, jsonify
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask.ext.security.utils import encrypt_password
-from sqlalchemy import func
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
@@ -14,6 +13,7 @@ from webapp.common import param_required, catch_exceptions, generate_temp_passwo
 from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
+from providers import giphy
 
 
 @client.route('/install')
@@ -176,6 +176,11 @@ user_registered.connect(capture_registration)
 
 @client.route('/')
 def index():
+    if 'mobile' in g and g.mobile:
+        login_form = LoginForm()
+        if current_user.is_authenticated():
+            return redirect(url_for('client.reviews'))
+        return render_template('mobile_index.html', login_user_form=login_form)
     if current_user.is_authenticated():
         if current_user.has_role(Constants.ADMIN_ROLE):
             return redirect('/admin')
@@ -183,9 +188,6 @@ def index():
             return redirect(url_for('client.shop_dashboard'))
         elif current_user.has_role(Constants.REVIEWER_ROLE):
             return redirect(url_for('client.reviews'))
-    if g.mobile:
-        login_form = LoginForm()
-        return render_template('mobile_index.html', login_user_form=login_form)
     return render_template('index.html')
 
 
@@ -424,7 +426,6 @@ def fake_shopify_api(shop):
         abort(404)
     return jsonify({'access_token': 'hello world'}), 200
 
-from providers import giphy
 
 @client.route('/search-giphy')
 def search_giphy():

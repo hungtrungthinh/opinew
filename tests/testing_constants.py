@@ -24,7 +24,7 @@ RENDERED_STARS = """<span class="star-rating star-active">☆</span>
     <span class="star-rating star-active">☆</span>
     <span class="star-rating ">☆</span>"""
 
-RENDERED_YOUTUBE = """<iframe width="700" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0"
+RENDERED_YOUTUBE = """<iframe width="240" height="180" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0"
               allowfullscreen></iframe>"""
 
 RENDERED_BY_SHOP_OWNER = """<span class="label label-info"><span class="glyphicon glyphicon-user"></span> By shop owner</span>"""

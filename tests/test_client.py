@@ -287,6 +287,40 @@ class TestViews(TestFlaskApplication):
         self.assertEquals(location_expected, response_actual.location)
         self.logout()
 
+    def test_get_index_mobile(self):
+        response_actual = self.client.get("/", headers={'mobile': 'true'})
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Don\'t have an account?' in response_actual.data)
+
+    def test_get_index_mobile_logged_in(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.client.get("/", headers={'mobile': 'true'})
+        location_expected = url_for('client.reviews')
+        self.assertEquals(response_actual.status_code, 302)
+        self.assertEquals(location_expected, response_actual.location)
+        self.logout()
+
+    def test_get_index_mobile_not_logged_in_reviews(self):
+        response_actual = self.client.get(url_for('client.reviews'), headers={'mobile': 'true'})
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Register' in response_actual.data)
+        self.assertTrue('<footer' not in response_actual.data)
+
+    def test_get_index_mobile_product_page(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.client.get(url_for('client.get_product', product_id=1),
+                                          headers={'mobile': 'true'})
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Review' in response_actual.data)
+        self.logout()
+
+    def test_get_index_mobile_add_review(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.client.get(url_for('client.reviews'), headers={'mobile': 'true'})
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('take a picture' not in response_actual.data)
+        self.logout()
+
     def test_get_reviews(self):
         response_actual = self.client.get("/reviews")
         self.assertEquals(response_actual.status_code, 200)
@@ -311,7 +345,7 @@ class TestViews(TestFlaskApplication):
         self.login(self.reviewer_user.email, self.reviewer_password)
         response_actual = self.client.get(url_for('client.add_review'), query_string={"product_id": 1})
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h1>Review Ear rings' in response_actual.data)
+        self.assertTrue('<a href="/product/1">Ear rings</a>' in response_actual.data)
         self.logout()
 
     @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
@@ -434,7 +468,7 @@ class TestViews(TestFlaskApplication):
             shop_id=2, platform_product_id=1, get_by='platform_id'
         ))
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h2>Ear rings Reviews</h2>' in response_actual.data)
+        self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)
         self.assertTrue('modal-review' not in response_actual.data)
@@ -446,7 +480,7 @@ class TestViews(TestFlaskApplication):
             shop_id=2, platform_product_id=1, get_by='platform_id'
         ))
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h2>Ear rings Reviews</h2>' in response_actual.data)
+        self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)
         self.assertTrue('modal-review' in response_actual.data)
@@ -460,7 +494,7 @@ class TestViews(TestFlaskApplication):
             shop_id=2, product_location='http://opinew_shop.local:5001/product/1', get_by='loc'
         ))
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h2>Ear rings Reviews</h2>' in response_actual.data)
+        self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)
         self.assertTrue('modal-review' not in response_actual.data)
@@ -472,7 +506,7 @@ class TestViews(TestFlaskApplication):
             shop_id=2, product_location='http://opinew_shop.local:5001/product/1', get_by='loc'
         ))
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h2>Ear rings Reviews</h2>' in response_actual.data)
+        self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)
         self.assertTrue('modal-review' in response_actual.data)
