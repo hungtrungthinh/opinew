@@ -334,6 +334,14 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('<h1>Welcome to admin panel</h1>' in response_actual.data)
         self.logout()
 
+    def test_dashboard(self):
+        # TODO
+        self.login(self.shop_onwer_user.email, self.shop_onwer_user)
+        response_actual = self.client.get("/dashboard/2", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h1>Welcome to admin panel</h1>' in response_actual.data)
+        self.logout()
+
     def test_render_add_review_no_product(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
         response_actual = self.client.get(url_for('client.add_review'))

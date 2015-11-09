@@ -29,6 +29,7 @@ $('input[type=file]').change(function (e) {
 });
 
 function setImageUrl(imageUrl) {
+  console.log('fdsafs');
   $('#image_url').val(imageUrl);
   $('#review-image').attr('src', imageUrl).show();
 }

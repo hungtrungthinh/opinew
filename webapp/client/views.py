@@ -9,7 +9,7 @@ from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, \
     Role, Customer, Notification, Subscription, Plan, ReviewRequest, ProductUrl
-from webapp.common import param_required, catch_exceptions, generate_temp_password
+from webapp.common import param_required, catch_exceptions, generate_temp_password, get_post_payload
 from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
@@ -235,10 +235,7 @@ def shop_dashboard_id(shop_id):
     shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
     if not shop:
         flash('Not your shop')
-        return redirect(url_for('client.shop_admin'))
-    orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
-    products = Product.query.filter_by(shop_id=shop_id).all()
-    reviews = Review.query.filter(Review.product_id.in_([p.id for p in products])).all()
+        return redirect(url_for('client.shop_dashboard'))
     if shop.platform.name == 'shopify':
         code = render_template('user_setup/shopify_code.html', shop=shop)
     else:
@@ -246,9 +243,45 @@ def shop_dashboard_id(shop_id):
     shop_form = ShopForm(MultiDict(shop.__dict__))
     review_request_form = ReviewRequestForm()
     platforms = Platform.query.all()
-    return render_template('shop_admin/home.html', shop=shop, orders=orders, products=products, code=code,
-                           reviews=reviews, shop_form=shop_form, review_request_form=review_request_form,
-                           platforms=platforms)
+    return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
+                           review_request_form=review_request_form, platforms=platforms)
+
+
+@client.route('/dashboard/<int:shop_id>/orders')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def shop_dashboard_orders(shop_id):
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
+    return render_template("shop_admin/orders.html", orders=orders)
+
+
+@client.route('/dashboard/<int:shop_id>/products')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def shop_dashboard_products(shop_id):
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    products = Product.query.filter_by(shop_id=shop_id).all()
+    return render_template("shop_admin/products.html", products=products)
+
+
+@client.route('/dashboard/<int:shop_id>/reviews')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def shop_dashboard_reviews(shop_id):
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    products = Product.query.filter_by(shop_id=shop_id).all()
+    reviews = Review.query.filter(Review.product_id.in_([p.id for p in products])).all()
+    return render_template("shop_admin/reviews.html", reviews=reviews)
 
 
 @client.route('/plugin')
@@ -437,3 +470,39 @@ def search_giphy():
     limit = request.args.get('limit', Constants.REVIEWS_PER_PAGE)
     offset = request.args.get('offset', 0)
     return jsonify(giphy.get_by_query(giphy_api_key, query, limit, offset))
+
+
+@client.route('/update-order', methods=['POST'])
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def update_order():
+    post = get_post_payload()
+    order_id = param_required('order_id', post)
+    state = param_required('state', post)
+    shops = Shop.query.filter_by(owner_id=current_user.id).all()
+    order = Order.query.filter_by(id=order_id).first()
+    failure = False
+    if order.shop_id not in [s.id for s in shops]:
+        flash('Not your shop')
+        failure = True
+    if state == Constants.ORDER_STATUS_SHIPPED:
+        order.ship()
+        flash('Shipped order %s' % order_id)
+    elif state == Constants.ORDER_STATUS_DELIVERED:
+        order.deliver()
+        flash('Delivered order %s' % order_id)
+    elif state == Constants.ORDER_ACTION_NOTIFY:
+        order.notify()
+        flash('Notified for order %s' % order_id)
+    elif state == Constants.ORDER_ACTION_CANCEL_REVIEW:
+        order.cancel_review()
+        flash('Canceled review on order %s' % order_id)
+    if state == Constants.ORDER_ACTION_DELETE:
+        db.session.delete(order)
+        flash('Deleted order %s' % order_id)
+    if not failure:
+        db.session.add(order)
+        db.session.commit()
+        return redirect(url_for('client.shop_dashboard'))
+    flash('Invalid state %s' % state)
+    return redirect(url_for('client.shop_dashboard'))

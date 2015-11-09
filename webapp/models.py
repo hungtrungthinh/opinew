@@ -263,7 +263,7 @@ class Order(db.Model, Repopulatable):
     delivery_tracking_number = db.Column(db.String)
     discount = db.Column(db.String)
 
-    status = db.Column(db.String, default='PURCHASED')  # ['PURCHASED', 'SHIPPED', 'DELIVERED', 'NOTIFIED', 'REVIEWED']
+    status = db.Column(db.String, default=Constants.ORDER_STATUS_PURCHASED)  # ['PURCHASED', 'SHIPPED', 'DELIVERED', 'NOTIFIED', 'REVIEWED']
 
     purchase_timestamp = db.Column(db.DateTime)
     shipment_timestamp = db.Column(db.DateTime)
@@ -287,30 +287,41 @@ class Order(db.Model, Repopulatable):
         return order
 
     def ship(self, delivery_tracking_number=None):
-        self.status = 'SHIPPED'
+        self.status = Constants.ORDER_STATUS_SHIPPED
         self.shipment_timestamp = datetime.utcnow()
         self.delivery_tracking_number = delivery_tracking_number
-        # TODO: Update estimation
-        db.session.add(self)
-        db.session.commit()
+        # Delivery timestamp = shipment + 5
+        delivery_dt = self.shipment_timestamp + datetime.timedelta(days=Constants.DIFF_SHIPMENT_DELIVERY)
+        if not self.to_deliver_timestamp:
+            self.to_deliver_timestamp = delivery_dt
+
+            # Notify timestamp = delivery + 3
+            if not self.to_notify_timestamp:
+                notify_dt = delivery_dt + datetime.timedelta(days=Constants.DIFF_DELIVERY_NOTIFY)
+                self.to_notify_timestamp = notify_dt
 
     def deliver(self):
-        self.status = 'DELIVERED'
+        self.status = Constants.ORDER_STATUS_DELIVERED
         self.delivery_timestamp = datetime.utcnow()
-        db.session.add(self)
-        db.session.commit()
+        notify_dt = self.delivery_timestamp + datetime.timedelta(days=Constants.DIFF_DELIVERY_NOTIFY)
+        self.to_notify_timestamp = notify_dt
 
     def notify(self):
-        self.status = 'NOTIFIED'
+        # TODO
+        self.status = Constants.ORDER_STATUS_LEGACY
         self.notification_timestamp = datetime.utcnow()
         for product in self.products:
             notification = Notification(user=self.user,
                                         content='We hope you love your new <b>%s</b>. <br>'
-                                                'Could you spend a minute reviewing it?' % product.label,
-                                        url=url_for('.web_review', order_id=self.id, product_id=product.id))
+                                                'Could you spend a minute reviewing it?' % product.name,
+                                        url='https://opinew.com/add-review?product_id=%s' % product.id)
             db.session.add(notification)
-        db.session.add(self)
-        db.session.commit()
+            db.session.commit()
+
+    def cancel_review(self):
+        # TODO
+        self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
+        pass
 
 
 class Comment(db.Model):

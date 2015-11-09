@@ -63,6 +63,7 @@
 
             <div class="col-xs-10" style="padding:0;">
                 <label class="text-muted">Write your review...</label>
+              {{ review_form.image_url(class="form-control form-serialize hidden") }}<br>
               {{ macros.form_field(review_form, review_form.body, id='textarea-body', class="form-control form-serialize", placeholder='Write your review...') }}<br>
             </div>
             <div class="col-xs-2">
@@ -70,10 +71,6 @@
                 <a id="emoji-button" class="btn btn-default"><img src="http://twemoji.maxcdn.com/36x36/1f602.png"/></a>
             </div>
         </div>
-</div>
-
-{{ review_form.image_url(class="form-control form-serialize hidden") }}<br>
-<br>
-{{ review_form.submit(class="btn-primary form-control") }}<br>
-</form>
+      {{ review_form.submit(class="btn-primary form-control") }}<br>
+    </form>
 </div>
