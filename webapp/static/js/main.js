@@ -79,11 +79,9 @@ $(document).ready(function () {
     var finalText = $(this).text();
     for (var property in EMOJIS) {
       if (EMOJIS.hasOwnProperty(property)) {
-        console.log(property + " " + EMOJIS[property]);
         finalText = finalText.replace(property, "<img style='height: 1.2em' src='http://twemoji.maxcdn.com/36x36/" + EMOJIS[property] + "' />")
       }
     }
-    console.log(finalText);
     $(this).html(finalText);
   })
 });

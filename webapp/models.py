@@ -25,7 +25,7 @@ roles_users_table = db.Table('roles_users',
 class Repopulatable(object):
     def _is_datetime(self, value):
         try:
-            return datetime.strptime(value,  '%Y-%m-%d %H:%M:%S')
+            return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         except ValueError:
             return value
 
@@ -615,7 +615,6 @@ class Product(db.Model, Repopulatable):
     product_type = db.Column(db.String)
     category = db.Column(db.String)
     image_url = db.Column(db.String)
-    url = db.Column(db.String)
     platform_product_id = db.Column(db.Integer)
     plugin_views = db.Column(db.Integer, default=0)
     review_help = db.Column(db.String)
@@ -626,12 +625,45 @@ class Product(db.Model, Repopulatable):
     def __repr__(self):
         return '<Product %r>' % self.name
 
+    @property
+    def url(self):
+        for url in self.urls:
+            if not url.is_regex:
+                return url
+
     @classmethod
     def get_by_id(cls, product_id):
         product = cls.query.filter(Product.id == product_id).first()
         if not product:
             raise DbException(message='Product doesn\'t exist', status_code=404)
         return product
+
+    @classmethod
+    def find_product_by_url(cls, product_url, shop_id):
+        product_candidate = ProductUrl.query.filter_by(url=product_url, is_regex=False).first()
+        if product_candidate and \
+                product_candidate.product and \
+                product_candidate.product.shop_id:
+            if product_candidate.product.shop_id == int(shop_id):
+                return product_candidate.product
+        else:
+            product_candidates = Product.query.filter_by(shop_id=shop_id).all()
+            for product_candidate in product_candidates:
+                for url in product_candidate.urls:
+                    if url.is_regex:
+                        url_regex = re.compile(url.url)
+                        match = re.match(url_regex, product_url)
+                        if match:
+                            return product_candidate
+
+
+class ProductUrl(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String)
+    is_regex = db.Column(db.Boolean, default=False)
+
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("urls"))
 
 
 # Create customized model view class
@@ -671,3 +703,4 @@ admin.add_view(AdminModelView(Review, db.session))
 admin.add_view(AdminModelView(Shop, db.session))
 admin.add_view(AdminModelView(Platform, db.session))
 admin.add_view(AdminModelView(Product, db.session))
+admin.add_view(AdminModelView(ProductUrl, db.session))

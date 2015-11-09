@@ -8,8 +8,8 @@ from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, \
-    Role, Customer, Notification, Subscription, Plan, ReviewRequest
-from webapp.common import param_required, catch_exceptions, generate_temp_password, get_post_payload
+    Role, Customer, Notification, Subscription, Plan, ReviewRequest, ProductUrl
+from webapp.common import param_required, catch_exceptions, generate_temp_password
 from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
@@ -141,8 +141,9 @@ def shopify_plugin_callback():
             product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
             product = Product(name=product_j.get('title', ''),
                               shop=shop,
-                              url=product_url,
                               platform_product_id=product_j.get('id', ''))
+            product_url = ProductUrl(url=product_url)
+            product.urls.append(product_url)
             db.session.add(product)
         db.session.commit()
 
@@ -259,9 +260,9 @@ def get_plugin():
         login_form = LoginForm()
         shop_id = param_required('shop_id', request.args)
         get_by = param_required('get_by', request.args)
-        if get_by == 'loc':
-            product_location = param_required('product_location', request.args)
-            product = Product.query.filter_by(shop_id=shop_id, url=product_location).first()
+        if get_by == 'url':
+            product_url = param_required('product_url', request.args)
+            product = Product.find_product_by_url(product_url, shop_id)
         elif get_by == 'platform_id':
             platform_product_id = param_required('platform_product_id', request.args)
             product = Product.query.filter_by(shop_id=shop_id, platform_product_id=platform_product_id).first()
@@ -276,7 +277,7 @@ def get_plugin():
         next_arg = request.url
         product.plugin_views += 1
         db.session.commit()
-    except (ParamException, DbException) as e:
+    except (ParamException, DbException, AssertionError) as e:
         return '', 404
     return render_template('plugin/plugin.html', product=product, reviews=reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,

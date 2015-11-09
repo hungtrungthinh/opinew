@@ -489,9 +489,9 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('https://opinew.com/media/user/3_rose_castro.jpg' in response_actual.data)
         self.logout()
 
-    def test_plugin_get_by_loc_not_logged_in(self):
+    def test_plugin_get_by_url_not_logged_in(self):
         response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
-            shop_id=2, product_location='http://opinew_shop.local:5001/product/1', get_by='loc'
+            shop_id=2, product_url='opinew_shop.local:5001/product/1', get_by='url'
         ))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
@@ -500,10 +500,21 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('modal-review' not in response_actual.data)
         self.assertTrue('modal-signup' in response_actual.data)
 
-    def test_plugin_get_by_loc_logged_in(self):
+    def test_plugin_get_by_url_regex_not_logged_in(self):
+        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+            shop_id=2, product_url='opinew_shop.local:5001/something_else/product/1', get_by='url'
+        ))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
+        self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
+        self.assertTrue('Write a review' in response_actual.data)
+        self.assertTrue('modal-review' not in response_actual.data)
+        self.assertTrue('modal-signup' in response_actual.data)
+
+    def test_plugin_get_by_url_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
         response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
-            shop_id=2, product_location='http://opinew_shop.local:5001/product/1', get_by='loc'
+            shop_id=2, product_url='opinew_shop.local:5001/product/1', get_by='url'
         ))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)

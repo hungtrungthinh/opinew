@@ -1,0 +1,7 @@
+id,url,product_id,is_regex
+1,opinew_shop.local:5001/product/1,1,0
+2,opinew_shop.local:5001/product/2,2,0
+3,opinew_shop.local:5001/product/3,3,0
+4,opinew_shop.local:5001/(.)*product/1,1,1
+5,opinew_shop.local:5001/(.)*product/2,2,1
+6,opinew_shop.local:5001/(.)*product/3,3,1
