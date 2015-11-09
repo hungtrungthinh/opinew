@@ -1,5 +1,5 @@
 {% if not hide_buy_button %}
-    <a class="btn btn-primary pull-right" href="{{ review.product.url }}">Buy</a>
+    <a class="btn btn-primary pull-right" href="http://{{ review.product.url }}">Buy</a>
 {% endif %}
 {% if current_user.is_authenticated() %}
     <form class="review-like-form pull-right" style="margin-right: 10px; display:inline;"

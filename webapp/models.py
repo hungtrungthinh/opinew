@@ -629,7 +629,7 @@ class Product(db.Model, Repopulatable):
     def url(self):
         for url in self.urls:
             if not url.is_regex:
-                return url
+                return url.url
 
     @classmethod
     def get_by_id(cls, product_id):
