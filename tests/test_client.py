@@ -25,7 +25,7 @@ class TestFlaskApplication(TestCase):
         db.create_all()
 
         db_dir = os.path.join(basedir, 'install', 'db', cls.app.config.get('MODE'))
-        import_tables(db,db_dir)
+        import_tables(db, db_dir)
 
         admin_role = Role.query.filter_by(name=Constants.ADMIN_ROLE).first()
         cls.admin_user = User.query.filter_by(id=1).first()
@@ -64,6 +64,8 @@ class TestViews(TestFlaskApplication):
             # and rules that require parameters
             if "GET" in rule.methods:
                 if rule.endpoint in ['static', 'admin.static', 'security.reset_password']:
+                    continue
+                if rule.endpoint == 'client.shop_dashboard_products':
                     continue
                 url = url_for(rule.endpoint, **(rule.defaults or {}))
                 if 'admin' in url:
@@ -335,11 +337,36 @@ class TestViews(TestFlaskApplication):
         self.logout()
 
     def test_dashboard(self):
-        # TODO
-        self.login(self.shop_onwer_user.email, self.shop_onwer_user)
+        self.login(self.shop_onwer_user.email, self.shop_owner_password)
         response_actual = self.client.get("/dashboard/2", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h1>Welcome to admin panel</h1>' in response_actual.data)
+        self.assertTrue('<h3>Plugin code</h3>' in response_actual.data)
+        self.assertTrue('<h3>Shop settings</h3>' in response_actual.data)
+        self.assertTrue('General settings' in response_actual.data)
+        self.assertTrue('Products' in response_actual.data)
+        self.assertTrue('Orders' in response_actual.data)
+        self.assertTrue('Reviews' in response_actual.data)
+        self.logout()
+
+    def test_dashboard_orders(self):
+        self.login(self.shop_onwer_user.email, self.shop_owner_password)
+        response_actual = self.client.get("/dashboard/2/orders", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Orders</h2>' in response_actual.data)
+        self.logout()
+
+    def test_dashboard_products(self):
+        self.login(self.shop_onwer_user.email, self.shop_owner_password)
+        response_actual = self.client.get("/dashboard/2/products", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Products</h2>' in response_actual.data)
+        self.logout()
+
+    def test_dashboard_reviews(self):
+        self.login(self.shop_onwer_user.email, self.shop_owner_password)
+        response_actual = self.client.get("/dashboard/2/reviews", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Reviews</h2>' in response_actual.data)
         self.logout()
 
     def test_render_add_review_no_product(self):
@@ -421,7 +448,9 @@ class TestViews(TestFlaskApplication):
         review_id = jsonified_response['id']
         review = Review.query.filter_by(id=review_id).first()
         self.assertEquals(testing_constants.NEW_REVIEW_BODY, review.body)
-        self.assertEquals(Constants.YOUTUBE_EMBED_URL.format(youtube_video_id=testing_constants.NEW_REVIEW_YOUTUBE_VIDEO_ID), review.youtube_video)
+        self.assertEquals(
+            Constants.YOUTUBE_EMBED_URL.format(youtube_video_id=testing_constants.NEW_REVIEW_YOUTUBE_VIDEO_ID),
+            review.youtube_video)
 
         # Finally, check that what needs to be rendered, is rendered..
         response_actual = self.client.get(url_for('client.get_product', product_id=1))
@@ -431,13 +460,16 @@ class TestViews(TestFlaskApplication):
         self.logout()
 
     def test_api_post_review_youtube_link_at_end_of_body(self):
-        self.helper_api_post_review_youtube_link(testing_constants.NEW_REVIEW_BODY + ' ' + testing_constants.NEW_REVIEW_YOUTUBE_LINK)
+        self.helper_api_post_review_youtube_link(
+            testing_constants.NEW_REVIEW_BODY + ' ' + testing_constants.NEW_REVIEW_YOUTUBE_LINK)
 
     def test_api_post_review_youtube_link_at_beginning_of_body(self):
-        self.helper_api_post_review_youtube_link(testing_constants.NEW_REVIEW_YOUTUBE_LINK + ' ' +testing_constants.NEW_REVIEW_BODY)
+        self.helper_api_post_review_youtube_link(
+            testing_constants.NEW_REVIEW_YOUTUBE_LINK + ' ' + testing_constants.NEW_REVIEW_BODY)
 
     def test_api_post_review_youtube_link_middle_of_body(self):
-        self.helper_api_post_review_youtube_link(' ' + testing_constants.NEW_REVIEW_YOUTUBE_LINK + ' ' +testing_constants.NEW_REVIEW_BODY)
+        self.helper_api_post_review_youtube_link(
+            ' ' + testing_constants.NEW_REVIEW_YOUTUBE_LINK + ' ' + testing_constants.NEW_REVIEW_BODY)
 
     def test_api_post_review_shop_owner(self):
         split_frozen_time = testing_constants.NEW_REVIEW_CREATED_TS.split('-')

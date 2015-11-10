@@ -3,39 +3,41 @@
     <div class="container">
         <div class="row">
             <div class="col-md-12">
-                <h1>{{ shop.name }} admin panel</h1>
-
                 <div class="row">
                     <div class="col-sm-3">
+                        <h2>{{ shop.name }} admin panel</h2>
                         <ul class="nav nav-pills nav-stacked" role="tablist">
-                            <li role="presentation"  class="active">
-                                <a href="#tab-general-settings" aria-controls="tab-general-settings" role="tab"
+                            <li role="presentation" class="active">
+                                <a href="#general-settings" aria-controls="tab-general-settings" role="tab"
                                    data-toggle="tab">General settings</a>
                             </li>
                             <li role="presentation">
-                                <a href="#tab-products" aria-controls="tab-products" role="tab"
+                                <a href="#products" aria-controls="tab-products" role="tab"
                                    data-toggle="tab">Products</a>
                             </li>
                             <li role="presentation">
-                                <a href="#tab-orders" aria-controls="tab-orders" role="tab"
+                                <a href="#orders" aria-controls="tab-orders" role="tab"
                                    data-toggle="tab">Orders</a>
                             </li>
                             <li role="presentation">
-                                <a href="#tab-reviews" aria-controls="tab-reviews" role="tab"
+                                <a href="#reviews" aria-controls="tab-reviews" role="tab"
                                    data-toggle="tab">Reviews</a>
                             </li>
                         </ul>
                     </div>
                     <div class="col-sm-9">
                         <div class="tab-content">
-                            <div role="tabpanel" class="tab-pane active" id="tab-general-settings">
+                            <div role="tabpanel" class="tab-pane active" id="general-settings">
                               {% include "shop_admin/general_settings.html" %}
                             </div>
-                            <div role="tabpanel" class="tab-pane" id="tab-products">
+                            <div role="tabpanel" class="tab-pane" id="products">
+                                <img src="/static/img/ajax-loader.gif" alt="loading"/>
                             </div>
-                            <div role="tabpanel" class="tab-pane" id="tab-orders">
+                            <div role="tabpanel" class="tab-pane" id="orders">
+                                <img src="/static/img/ajax-loader.gif" alt="loading"/>
                             </div>
-                            <div role="tabpanel" class="tab-pane" id="tab-reviews">
+                            <div role="tabpanel" class="tab-pane" id="reviews">
+                                <img src="/static/img/ajax-loader.gif" alt="loading"/>
                             </div>
                         </div>
                     </div>
@@ -46,4 +48,8 @@
         </div>
     </div>
 
+{% endblock %}
+
+{% block script %}
+    <script type="text/javascript" src="{{ url_for('static', filename='js/shop_dashboard.js') }}"></script>
 {% endblock %}

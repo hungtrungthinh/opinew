@@ -74,6 +74,17 @@ $('.review-like-form').on('submit', function (e) {
   return false;
 });
 
+// Javascript to enable link to tab
+var url = document.location.toString();
+if (url.match('#')) {
+    $('.nav-pills a[href=#'+url.split('#')[1]+']').tab('show') ;
+}
+
+// Change hash for page-reload
+$('.nav-pills a').on('shown.bs.tab', function (e) {
+    window.location.hash = e.target.hash;
+});
+
 $(document).ready(function () {
   $('.review-body-content').each(function () {
     var finalText = $(this).text();

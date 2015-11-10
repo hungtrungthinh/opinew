@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 import re
 from sqlalchemy import and_
 from webapp import db, admin
@@ -9,7 +9,7 @@ from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
-from webapp.common import generate_temp_password
+from webapp.common import generate_temp_password, random_pwd
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
@@ -25,7 +25,7 @@ roles_users_table = db.Table('roles_users',
 class Repopulatable(object):
     def _is_datetime(self, value):
         try:
-            return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+            return datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         except ValueError:
             return value
 
@@ -182,7 +182,7 @@ class Subscription(db.Model, Repopulatable):
     stripe_subscription_id = db.Column(db.String)
 
     def create(self):
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.datetime.utcnow()
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
         stripe_opinew_adapter.create_subscription(self)
         return self
@@ -245,6 +245,21 @@ class Notification(db.Model):
             raise DbException(message="User doesnt exist", status_code=400)
         return cls.query.filter_by(user=user).order_by(Notification.id.desc()).all()
 
+    @classmethod
+    def create(cls, for_user, token, for_product=None, for_shop=None):
+        if for_product:
+            n_message = 'We hope you love your new <b>%s</b>. <br> Could do you like it?' % for_product.name
+        elif for_shop:
+            n_message = 'Thank you for shopping at <b>%s</b>. How did you like the experience?' % for_shop.name
+        else:
+            n_message = 'Up for some fun?'
+
+        notification = cls(user=for_user,
+                           content=n_message,
+                           url='/%s' % token)
+        db.session.add(notification)
+        db.session.commit()
+
 
 class Order(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -263,7 +278,8 @@ class Order(db.Model, Repopulatable):
     delivery_tracking_number = db.Column(db.String)
     discount = db.Column(db.String)
 
-    status = db.Column(db.String, default=Constants.ORDER_STATUS_PURCHASED)  # ['PURCHASED', 'SHIPPED', 'DELIVERED', 'NOTIFIED', 'REVIEWED']
+    status = db.Column(db.String,
+                       default=Constants.ORDER_STATUS_PURCHASED)  # ['PURCHASED', 'SHIPPED', 'DELIVERED', 'NOTIFIED', 'REVIEWED']
 
     purchase_timestamp = db.Column(db.DateTime)
     shipment_timestamp = db.Column(db.DateTime)
@@ -288,7 +304,7 @@ class Order(db.Model, Repopulatable):
 
     def ship(self, delivery_tracking_number=None):
         self.status = Constants.ORDER_STATUS_SHIPPED
-        self.shipment_timestamp = datetime.utcnow()
+        self.shipment_timestamp = datetime.datetime.utcnow()
         self.delivery_tracking_number = delivery_tracking_number
         # Delivery timestamp = shipment + 5
         delivery_dt = self.shipment_timestamp + datetime.timedelta(days=Constants.DIFF_SHIPMENT_DELIVERY)
@@ -302,21 +318,22 @@ class Order(db.Model, Repopulatable):
 
     def deliver(self):
         self.status = Constants.ORDER_STATUS_DELIVERED
-        self.delivery_timestamp = datetime.utcnow()
+        self.delivery_timestamp = datetime.datetime.utcnow()
         notify_dt = self.delivery_timestamp + datetime.timedelta(days=Constants.DIFF_DELIVERY_NOTIFY)
         self.to_notify_timestamp = notify_dt
 
+    def legacy(self):
+        self.status = Constants.ORDER_STATUS_NOTIFIED
+
     def notify(self):
-        # TODO
-        self.status = Constants.ORDER_STATUS_LEGACY
-        self.notification_timestamp = datetime.utcnow()
+        self.status = Constants.ORDER_STATUS_NOTIFIED
+        self.notification_timestamp = datetime.datetime.utcnow()
         for product in self.products:
-            notification = Notification(user=self.user,
-                                        content='We hope you love your new <b>%s</b>. <br>'
-                                                'Could you spend a minute reviewing it?' % product.name,
-                                        url='https://opinew.com/add-review?product_id=%s' % product.id)
-            db.session.add(notification)
-            db.session.commit()
+            token = ReviewRequest.create(to_user=self.user,
+                                         from_customer=self.shop.owner.customer[0],
+                                         for_product=product,
+                                         for_order=self)
+            Notification.create(for_user=self.user, token=token, for_product=product)
 
     def cancel_review(self):
         # TODO
@@ -327,7 +344,7 @@ class Order(db.Model, Repopulatable):
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String)
-    created_ts = db.Column(db.DateTime, default=datetime.utcnow())
+    created_ts = db.Column(db.DateTime, default=datetime.datetime.utcnow())
     image_url = db.Column(db.String)
     by_customer_support = db.Column(db.Boolean, default=False)
 
@@ -359,7 +376,7 @@ class ReviewRequest(db.Model):
     task_status = db.Column(db.String)
 
     from_customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
-    from_customer = db.relationship('Customer', backref=db.backref('review_requests'))
+    from_customer = db.relationship('Customer')
 
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     to_user = db.relationship('User', backref=db.backref('review_requests'))
@@ -370,8 +387,29 @@ class ReviewRequest(db.Model):
     for_shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     for_shop = db.relationship('Shop', backref=db.backref('reviews_requests'))
 
-    received = db.Column(db.Boolean)
-    completed = db.Column(db.Boolean)
+    for_order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+    for_order = db.relationship('Order', backref=db.backref('reviews_requests'))
+
+    received = db.Column(db.Boolean, default=False)
+    completed = db.Column(db.Boolean, default=False)
+
+    @classmethod
+    def create(cls, to_user, from_customer, for_product=None, for_shop=None, for_order=None):
+        while True:
+            token = random_pwd(5)
+            rrold = ReviewRequest.query.filter_by(token=token).first()
+            if not rrold:
+                break
+        rr = cls(created_ts=datetime.datetime.utcnow(),
+                 token=token,
+                 from_customer=from_customer,
+                 to_user=to_user,
+                 for_shop=for_shop,
+                 for_order=for_order,
+                 for_product=for_product)
+        db.session.add(rr)
+        db.session.commit()
+        return token
 
 
 class Review(db.Model, Repopulatable):
@@ -412,7 +450,7 @@ class Review(db.Model, Repopulatable):
 
     youtube_video = db.Column(db.String)
 
-    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, **kwargs):
+    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None, **kwargs):
         self.body = unicode(body)
         self.image_url = image_url
         self.star_rating = star_rating
@@ -420,20 +458,16 @@ class Review(db.Model, Repopulatable):
             raise DbException(message="[consistency: Can't set both shop_id and product_id]", status_code=400)
         self.product_id = product_id
         self.shop_id = shop_id
-
+        self.verified_review = verified_review
         # Set automatic variables
         if current_user and current_user.is_authenticated():
             self.user = current_user
-        self.created_ts = datetime.utcnow()
+        self.created_ts = datetime.datetime.utcnow()
         # Is it by shop owner?
         if product_id:
             product = Product.query.filter_by(id=product_id).first()
             if product and product.shop and product.shop.owner and product.shop.owner == current_user:
                 self.by_shop_owner = True
-        # Is it verified review?
-        review_request_id = kwargs.get('review_request_id')
-        if review_request_id and self.verify_review_request(kwargs):
-            self.verified_review = True
         # Should we include youtube link?
         if Constants.YOUTUBE_WATCH_LINK in self.body or Constants.YOUTUBE_SHORT_LINK in self.body:
             # we have youtube video somewhere in the body, let's extract it
@@ -461,7 +495,7 @@ class Review(db.Model, Repopulatable):
                 raise DbException(message='Review request token required', status_code=401)
 
             review_request = ReviewRequest.query.filter_by(id=review_request_id).first()
-            if not review_request or not review_request.for_user == current_user:
+            if not review_request or not review_request.to_user == current_user:
                 raise DbException(message='Not your review request', status_code=401)
             if not review_request_token == review_request.token:
                 raise DbException(message='Wrong review request token', status_code=401)

@@ -247,6 +247,7 @@ def shop_dashboard_id(shop_id):
                            review_request_form=review_request_form, platforms=platforms)
 
 
+@client.route('/dashboard', defaults={'shop_id': 0})
 @client.route('/dashboard/<int:shop_id>/orders')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
@@ -259,6 +260,7 @@ def shop_dashboard_orders(shop_id):
     return render_template("shop_admin/orders.html", orders=orders)
 
 
+@client.route('/dashboard', defaults={'shop_id': 0})
 @client.route('/dashboard/<int:shop_id>/products')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
@@ -271,6 +273,7 @@ def shop_dashboard_products(shop_id):
     return render_template("shop_admin/products.html", products=products)
 
 
+@client.route('/dashboard', defaults={'shop_id': 0})
 @client.route('/dashboard/<int:shop_id>/reviews')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
@@ -481,7 +484,7 @@ def update_order():
     state = param_required('state', post)
     shops = Shop.query.filter_by(owner_id=current_user.id).all()
     order = Order.query.filter_by(id=order_id).first()
-    failure = False
+    failure, delete = False, False
     if order.shop_id not in [s.id for s in shops]:
         flash('Not your shop')
         failure = True
@@ -499,10 +502,12 @@ def update_order():
         flash('Canceled review on order %s' % order_id)
     if state == Constants.ORDER_ACTION_DELETE:
         db.session.delete(order)
+        delete = True
         flash('Deleted order %s' % order_id)
     if not failure:
-        db.session.add(order)
+        if not delete:
+            db.session.add(order)
         db.session.commit()
         return redirect(url_for('client.shop_dashboard'))
     flash('Invalid state %s' % state)
-    return redirect(url_for('client.shop_dashboard'))
+    return redirect(url_for('client.shop_dashboard', _anchor='orders'))

@@ -87,15 +87,17 @@ $('#review-form').bind('submit', function (e) {
     $('#ajax-status')
         .removeClass('alert-danger')
         .addClass('alert-success')
-        .html('<p>Thank you for posting review</p>')
+        .html('<p>Thank you for posting review. Redirecting you to product page...</p>')
         .slideDown();
-    if (inIframe) {
-      document.location.href = document.location.href;
-    }
     if ($('#in-mobile-next')) {
-      console.log($('#in-mobile-next').val());
       document.location.href = $('#in-mobile-next').val();
     }
+    if (inIframe()) {
+      document.location.href = document.location.href;
+    } else {
+      document.location.href = '/product/' + r.product.id;
+    }
+
   }).fail(function (r) {
     var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
     $('#ajax-status')

@@ -39,6 +39,10 @@
     <form class="action" method="post" action="{{ g.constants.API_V1_URL_PREFIX }}/review" id="review-form">
         <input type="hidden" name="_csrf_token" class="form-serialize" value="{{ csrf_token() }}">
         <input type="hidden" name="api_next" value="{{ url_for('client.reviews') }}"/>
+      {% if request.args.get('review_request_id') and request.args.get('review_request_token') %}
+          <input type="hidden" name="review_request_id" class="form-serialize" value="{{ request.args.get('review_request_id') }}">
+          <input type="hidden" name="review_request_token" class="form-serialize" value="{{ request.args.get('review_request_token') }}">
+      {% endif %}
       {% if product %}
           <input type="hidden" class="form-serialize" name="product_id" value="{{ product.id }}">
       {% else %}

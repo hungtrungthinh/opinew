@@ -87,6 +87,15 @@ def is_shop_owned_by_user(instance_id, *args, **kwargs):
     if not shop or not shop.owner == current_user:
         raise ProcessingException(description='Not your shop', code=401)
 
+def is_verified_review(data, *args, **kwargs):
+    # Is it verified review?
+    review_request_id = data.get('review_request_id')
+    if review_request_id and models.Review.verify_review_request(data):
+        data['verified_review'] = True
+        del data['review_request_id']
+        del data['review_request_token']
+    return data
+
 
 api_manager.create_api(models.Product,
                        url_prefix=Constants.API_V1_URL_PREFIX,
@@ -105,7 +114,7 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [del_csrf, auth_func],
+                           'POST': [del_csrf, auth_func, is_verified_review],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.Review.exclude_fields(),

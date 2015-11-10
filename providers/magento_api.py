@@ -91,7 +91,7 @@ class API(object):
             order.delivery_timestamp = delivery_dt
             if diff.days >= (Constants.DIFF_SHIPMENT_DELIVERY + Constants.DIFF_DELIVERY_NOTIFY):
                 # there has been more than 3 days since delivery, notify for review...
-                order.notify()
+                order.legacy()
         return order
 
     def update_order(self, morder, order, mshipment):
