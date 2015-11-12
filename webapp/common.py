@@ -6,7 +6,7 @@ import hmac
 import hashlib
 import datetime
 from functools import wraps
-from flask import jsonify, abort, request, url_for
+from flask import jsonify, abort, request, url_for, current_app
 from flask.ext.login import current_user
 from werkzeug.exceptions import HTTPException
 from webapp.exceptions import ParamException, ApiException, DbException
@@ -62,7 +62,7 @@ def param_required(name=None, parameters=None):
 def build_created_response(url_for_name, **kwargs):
     response = jsonify()
     response.status_code = 201
-    response.headers['Location'] = url_for(url_for_name, **kwargs)
+    response.headers['Location'] = current_app.config.get('OPINEW_API_SERVER') + url_for(url_for_name, **kwargs)
     response.autocorrect_location_header = False
     return response
 

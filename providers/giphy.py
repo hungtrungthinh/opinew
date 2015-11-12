@@ -15,4 +15,7 @@ def get_trending(api_key, limit=Constants.REVIEWS_PER_PAGE):
     r = requests.get(GIPHY_URL + "/trending", {"limit": limit, "api_key": api_key})
     if r.status_code != 200:
         return {'ERROR': r.text}
-    return r.json()
+    try:
+        return r.json()
+    except:
+        return ''

@@ -335,6 +335,19 @@ def get_product(product_id):
                            product=product, reviews=reviews)
 
 
+@client.route('/get_order', defaults={'order_id': 0})
+@client.route('/get_order/<int:order_id>')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def get_order(order_id):
+    shop = Shop.query.filter_by(owner_id=current_user.id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    order = Order.get_by_id(order_id)
+    return jsonify({'order_id': order.id})
+
+
 @client.route('/read-notification')
 @login_required
 @catch_exceptions

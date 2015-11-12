@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from webapp import db, models
+from webapp import db, models, exceptions
 from webapp.api import api
 from webapp.common import get_post_payload, catch_exceptions, verify_webhook, build_created_response
 
@@ -16,7 +16,9 @@ def platform_shopify_create_product():
     payload = get_post_payload()
 
     shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
-    shop = models.Shop.get_by_shop_domain(shopify_shop_domain)
+    shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
+    if not shop:
+        raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
     platform_product_id = payload.get('id')
     product_title = payload.get('title')
@@ -41,8 +43,15 @@ def platform_shopify_update_product():
     platform_product_id = payload.get('id')
     product_title = payload.get('title')
 
-    product = models.Product.query.filter_by(platform_product_id=platform_product_id).first()
-    product.label = product_title
+    shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+    shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
+    if not shop:
+        raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
+
+    product = models.Product.query.filter_by(platform_product_id=platform_product_id, shop_id=shop.id).first()
+    if not product:
+        raise exceptions.DbException('no such product %s in shop %s' % (platform_product_id, shop.id))
+    product.name = product_title
 
     db.session.add(product)
     db.session.commit()
@@ -61,8 +70,16 @@ def platform_shopify_delete_product():
     payload = get_post_payload()
 
     platform_product_id = payload.get('id')
+    shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
 
-    product = models.Product.query.filter_by(platform_product_id=platform_product_id).first()
+    shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
+    if not shop:
+        raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
+
+    product = models.Product.query.filter_by(platform_product_id=platform_product_id, shop_id=shop.id).first()
+    if not product:
+        raise exceptions.DbException('no such product %s in shop %s' % (platform_product_id, shop.id))
+
     db.session.delete(product)
     db.session.commit()
     return jsonify({}), 200
@@ -74,8 +91,10 @@ def platform_shopify_delete_product():
 def platform_shopify_create_order():
     payload = get_post_payload()
 
-    shop_domain = request.headers.get('X-Shopify-Shop-Domain')
-    shop = models.Shop.get_by_shop_domain(shop_domain)
+    shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+    shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
+    if not shop:
+        raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
     customer_email = payload.get('customer', {}).get('email')
     opinew_user, _ = models.User.get_or_create_by_email(customer_email)
@@ -87,12 +106,12 @@ def platform_shopify_create_order():
     line_items = payload.get('line_items', [])
     for line_item in line_items:
         platform_product_id = line_item.get('product_id')
-        product = models.Product.query.filter_by(platform_product_id=platform_product_id).first()
+        product = models.Product.query.filter_by(platform_product_id=platform_product_id, shop_id=shop.id).first()
         order.products.append(product)
 
     db.session.add(order)
     db.session.commit()
-    return build_created_response('.get_order', order_id=order.id)
+    return build_created_response('client.get_order', order_id=order.id)
 
 
 @api.route('/platform/shopify/orders/fulfill', methods=['POST'])
@@ -100,12 +119,20 @@ def platform_shopify_create_order():
 @catch_exceptions
 def platform_shopify_fulfill_order():
     payload = get_post_payload()
+
+    shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+
+    shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
+    if not shop:
+        raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
+
     platform_order_id = payload.get('order_id')
 
-    order = models.Order.query.filter_by(platform_order_id=platform_order_id).first()
+    order = models.Order.query.filter_by(platform_order_id=platform_order_id, shop_id=shop.id).first()
     delivery_tracking_number = payload.get('tracking_number')
-    order.ship(delivery_tracking_number)
+    if order:
+        order.ship(delivery_tracking_number)
 
-    db.session.add(order)
-    db.session.commit()
+        db.session.add(order)
+        db.session.commit()
     return jsonify({}), 200

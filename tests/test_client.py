@@ -1,15 +1,19 @@
 import json
 import os
 import datetime
+import base64
+import hmac
+import hashlib
 from flask import url_for
 from freezegun import freeze_time
 from unittest import TestCase
 from webapp import create_app, db
-from webapp.models import User, Role, Shop, Review
+from webapp.models import User, Role, Shop, Review, Product, Order
 from tests import testing_constants
 from config import Constants, basedir
 import sensitive
 from repopulate import import_tables
+from config import Config
 
 
 class TestFlaskApplication(TestCase):
@@ -564,3 +568,124 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('modal-signup' not in response_actual.data)
         self.assertTrue('Rose Castro' in response_actual.data)
         self.logout()
+
+    def test_shopify_create_product(self):
+        data = json.dumps({
+            'id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
+            'title': testing_constants.NEW_PRODUCT_NAME
+        })
+        sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
+        response_actual = self.client.post(url_for('api.platform_shopify_create_product'),
+                                           data=data,
+                                           content_type="application/json",
+                                           headers={
+                                               'X-Shopify-Hmac-SHA256': sha256,
+                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+        self.assertEquals(response_actual.status_code, 201)
+        product = Product.query.filter_by(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                                          shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
+        location_expected = url_for('client.get_product', product_id=product.id)
+        self.assertEquals(location_expected, response_actual.headers.get('Location'))
+        self.assertEquals(product.name, testing_constants.NEW_PRODUCT_NAME)
+        db.session.delete(product)
+        db.session.commit()
+
+    def test_shopify_update_product(self):
+        product = Product(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                          name=testing_constants.NEW_PRODUCT_NAME,
+                          shop_id=testing_constants.SHOPIFY_SHOP_ID)
+        db.session.add(product)
+        db.session.commit()
+        data = json.dumps({
+            'id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
+            'title': testing_constants.CHANGED_PRODUCT_NAME
+        })
+        sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
+        response_actual = self.client.post(url_for('api.platform_shopify_update_product'),
+                                           data=data,
+                                           content_type="application/json",
+                                           headers={
+                                               'X-Shopify-Hmac-SHA256': sha256,
+                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+        self.assertEquals(response_actual.status_code, 200)
+        product = Product.query.filter_by(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                                          shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
+        self.assertEquals(product.name, testing_constants.CHANGED_PRODUCT_NAME)
+        db.session.delete(product)
+        db.session.commit()
+
+    def test_shopify_delete_product(self):
+        product = Product(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                          name=testing_constants.NEW_PRODUCT_NAME,
+                          shop_id=testing_constants.SHOPIFY_SHOP_ID)
+        db.session.add(product)
+        db.session.commit()
+        data = json.dumps({
+            'id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
+        })
+        sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
+        response_actual = self.client.post(url_for('api.platform_shopify_delete_product'),
+                                           data=data,
+                                           headers={
+                                               'X-Shopify-Hmac-SHA256': sha256,
+                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+        self.assertEquals(response_actual.status_code, 200)
+        product = Product.query.filter_by(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                                          shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
+        self.assertIsNone(product)
+
+    def test_shopify_create_order(self):
+        product = Product(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                          name=testing_constants.NEW_PRODUCT_NAME,
+                          shop_id=testing_constants.SHOPIFY_SHOP_ID)
+        db.session.add(product)
+        db.session.commit()
+        data = json.dumps({
+            'id': testing_constants.NEW_ORDER_PLATFORM_ID,
+            'customer': {
+                'email': testing_constants.ORDER_USER_EMAIL
+            },
+            'line_items': [
+                {
+                    'product_id': testing_constants.NEW_PRODUCT_PLATFORM_ID
+                }
+            ]
+        })
+        sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
+        response_actual = self.client.post(url_for('api.platform_shopify_create_order'),
+                                           data=data,
+                                           headers={
+                                               'X-Shopify-Hmac-SHA256': sha256,
+                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+        self.assertEquals(response_actual.status_code, 201)
+        product = Product.query.filter_by(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                                          shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
+        order = Order.query.filter_by(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID,
+                                      shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
+        self.assertEquals(order.user.email, testing_constants.ORDER_USER_EMAIL)
+        self.assertIn(product, order.products)
+        db.session.delete(order)
+        db.session.delete(product)
+        db.session.commit()
+
+    def test_shopify_fulfill_order(self):
+        order = Order(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID,
+                      shop_id=testing_constants.SHOPIFY_SHOP_ID)
+        db.session.add(order)
+        db.session.commit()
+        data = json.dumps({
+            'order_id': testing_constants.NEW_ORDER_PLATFORM_ID,
+            'tracking_number': testing_constants.ORDER_TRACKING_NUMBER
+        })
+        sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
+        response_actual = self.client.post(url_for('api.platform_shopify_fulfill_order'),
+                                           data=data,
+                                           headers={
+                                               'X-Shopify-Hmac-SHA256': sha256,
+                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+        self.assertEquals(response_actual.status_code, 200)
+        order = Order.query.filter_by(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID,
+                                      shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
+        self.assertEquals(order.status, Constants.ORDER_STATUS_SHIPPED)
+        db.session.delete(order)
+        db.session.commit()
