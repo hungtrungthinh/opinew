@@ -318,3 +318,8 @@ blockquote p {
 .btn {
   border-radius: 0;
 }
+
+.per-month-price-plan {
+    color: #b6b6b6;
+    font-size: 12px;
+}
