@@ -702,6 +702,11 @@ class Product(db.Model, Repopulatable):
                             return product_candidate
 
 
+class FuturePlanSubscriber(db.Model):
+    email = db.Column(db.String, primary_key=True)
+    website = db.Column(db.String)
+
+
 class ProductUrl(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
     url = db.Column(db.String)

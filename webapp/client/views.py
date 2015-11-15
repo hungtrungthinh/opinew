@@ -8,7 +8,7 @@ from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, \
-    Role, Customer, Notification, Subscription, Plan, ReviewRequest, ProductUrl
+    Role, Customer, Notification, Subscription, Plan, ReviewRequest, ProductUrl, FuturePlanSubscriber
 from webapp.common import param_required, catch_exceptions, generate_temp_password, get_post_payload
 from webapp.exceptions import ParamException, DbException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -28,6 +28,17 @@ def install():
     if ref == 'shopify':
         return install_shopify_step_one()
     return redirect('/register', **request.args)
+
+
+@client.route('/fp_subscribe')
+@catch_exceptions
+def future_plan_subscribe():
+    email = request.args.get('email')
+    website = request.args.get('website')
+    fp_subscriber = FuturePlanSubscriber(email, website)
+    db.session.add(fp_subscriber)
+    db.session.commit()
+    return jsonify({}), 200
 
 
 def install_shopify_step_one():

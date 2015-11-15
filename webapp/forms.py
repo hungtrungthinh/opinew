@@ -10,6 +10,9 @@ class LoginForm(Form):
     remember = BooleanField('Keep me logged in')
     submit = SubmitField('Log in')
 
+class SubscribeForm(Form):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    website = StringField('Your Website', validators=[])
 
 class ExtendedRegisterForm(RegisterForm):
     name = StringField('Name', [DataRequired()])

@@ -114,7 +114,7 @@ class ConfigTest(Config):
 class ConfigDev(Config):
     MODE = Constants.MODE_DEVELOPMENT
     DEBUG = True
-    OPINEW_API_SERVER = 'http://localhost:5000'
+    OPINEW_API_SERVER = 'http://172.30.82.249:5000'
     DATABASE_LOCATION = '/tmp/ecommerce_api.db'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
 
