@@ -355,13 +355,6 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('<h2>Orders</h2>' in response_actual.data)
         self.logout()
 
-    def test_dashboard_products(self):
-        self.login(self.shop_onwer_user.email, self.shop_owner_password)
-        response_actual = self.client.get("/dashboard/2/products", follow_redirects=True)
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h2>Products</h2>' in response_actual.data)
-        self.logout()
-
     def test_dashboard_reviews(self):
         self.login(self.shop_onwer_user.email, self.shop_owner_password)
         response_actual = self.client.get("/dashboard/2/reviews", follow_redirects=True)

@@ -1,11 +1,11 @@
 <div class="media-left media-top">
   {% if review.youtube_video %}
       <br>
-      <iframe width="240" height="180" src="{{ review.youtube_video }}" frameborder="0"
+      <iframe width="240" height="180" style="width: 100%" src="{{ review.youtube_video }}" frameborder="0"
               allowfullscreen></iframe>
   {% endif %}
-    <a href="#">
-        <img class="img-responsive" src="{{ review.image_url }}"
-             alt="{{ review.product.name }} review by {{ review.user.name }}">
-    </a>
+  {% if review.image_url %}
+      <img class="img-responsive" src="{{ review.image_url }}"
+           alt="{{ review.product.name }} review by {{ review.user.name }}">
+  {% endif %}
 </div>

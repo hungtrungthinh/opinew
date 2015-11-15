@@ -323,7 +323,7 @@ class Order(db.Model, Repopulatable):
         self.to_notify_timestamp = notify_dt
 
     def legacy(self):
-        self.status = Constants.ORDER_STATUS_NOTIFIED
+        self.status = Constants.ORDER_STATUS_LEGACY
 
     def notify(self):
         self.status = Constants.ORDER_STATUS_NOTIFIED
@@ -385,10 +385,10 @@ class ReviewRequest(db.Model):
     for_product = db.relationship('Product', backref=db.backref('review_requests'))
 
     for_shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
-    for_shop = db.relationship('Shop', backref=db.backref('reviews_requests'))
+    for_shop = db.relationship('Shop', backref=db.backref('review_requests'))
 
     for_order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
-    for_order = db.relationship('Order', backref=db.backref('reviews_requests'))
+    for_order = db.relationship('Order', backref=db.backref('review_requests'))
 
     received = db.Column(db.Boolean, default=False)
     completed = db.Column(db.Boolean, default=False)

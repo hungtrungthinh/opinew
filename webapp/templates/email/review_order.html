@@ -11,18 +11,30 @@
 </head>
 <body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
 <div style="padding: 50px;">
-    <h1>Did you like your {{ order.product.name }}?</h1>
-    <p>Help 5000 other people find the right {{ order.product.product_type }}</p>
-    <a href="{{ g.constants.OPINEW_API_SERVER }}/{{ order.token }}?like=0" style="color: white;">
-        <div style="width: 49%; height: 100px; background-color: #fb412d; display: inline-block; text-align: center; font-size: 2em;">
-            <p> ✗ no</p>
-        </div>
-    </a>
-    <a href="{{ g.constants.OPINEW_API_SERVER }}/{{ order.token }}?like=1" style="color: white;">
-        <div style="width:49%; height: 100px; background-color: #22be44; display: inline-block; text-align: center; font-size: 2em;">
-            <p> ✓ yes</p>
-        </div>
-    </a>
+    <h1>Did you like your {{ review_request.for_product.name }}?</h1>
+  {% if review_request.for_product.product_type %}
+      <p>Help 236 other people find the right {{ review_request.for_product.product_type }}</p>
+  {% endif %}
+  {% if not enable == "false" %}
+      <a href="https://opinew.com/{{ review_request.token }}?like=0" target="_blank"
+         style="color: white;">
+  {% endif %}
+    <div style="width: 49%; height: 100px; background-color: #fb412d; display: inline-block; text-align: center; font-size: 2em;">
+        <p> ✗ no</p>
+    </div>
+  {% if not enable == "false" %}
+      </a>
+  {% endif %}
+  {% if not enable == "false" %}
+      <a href="https://opinew.com/{{ review_request.token }}?like=1" target="_blank"
+         style="color: white;">
+  {% endif %}
+    <div style="width:49%; height: 100px; background-color: #22be44; display: inline-block; text-align: center; font-size: 2em;">
+        <p> ✓ yes</p>
+    </div>
+  {% if not enable == "false" %}
+      </a>
+  {% endif %}
 </div>
 </body>
 </html>

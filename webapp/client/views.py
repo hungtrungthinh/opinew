@@ -116,13 +116,13 @@ def shopify_plugin_callback():
 
         from async import tasks
 
-        tasks.send_email(recipients=[shop_owner_email],
-                         template='email/new_user.html',
-                         template_ctx={'user_email': shop_owner_email,
-                                       'user_temp_password': temp_password,
-                                       'user_name': shop_owner_name
-                                       },
-                         subject="Welcome to Opinew!")
+        tasks.send_email.delay(recipients=[shop_owner_email],
+                               template='email/new_user.html',
+                               template_ctx={'user_email': shop_owner_email,
+                                             'user_temp_password': temp_password,
+                                             'user_name': shop_owner_name
+                                             },
+                               subject="Welcome to Opinew!")
         shop_owner.roles.append(shop_owner_role)
         db.session.add(shop_owner)
 
@@ -258,19 +258,6 @@ def shop_dashboard_orders(shop_id):
         return redirect(url_for('client.shop_dashboard'))
     orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
     return render_template("shop_admin/orders.html", orders=orders)
-
-
-@client.route('/dashboard', defaults={'shop_id': 0})
-@client.route('/dashboard/<int:shop_id>/products')
-@roles_required(Constants.SHOP_OWNER_ROLE)
-@login_required
-def shop_dashboard_products(shop_id):
-    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
-    if not shop:
-        flash('Not your shop')
-        return redirect(url_for('client.shop_dashboard'))
-    products = Product.query.filter_by(shop_id=shop_id).all()
-    return render_template("shop_admin/products.html", products=products)
 
 
 @client.route('/dashboard', defaults={'shop_id': 0})
@@ -465,8 +452,11 @@ def sitemapxml():
 def render_email(filename):
     if not filename:
         abort(404)
-    return render_template('email/%s' % filename,
-                           **{k: (w[0] if len(w) else w) for k, w in dict(request.args).iteritems()})
+    review_request_id = request.args.get('review_request')
+    review_request = ReviewRequest.query.filter_by(id=review_request_id).first()
+    kwargs = {k: (w[0] if len(w) else w) for k, w in dict(request.args).iteritems()}
+    kwargs['review_request'] = review_request
+    return render_template('email/%s' % filename, **kwargs)
 
 
 @client.route('/fake-shopify-api', defaults={'shop': None})
@@ -503,24 +493,66 @@ def update_order():
         failure = True
     if state == Constants.ORDER_STATUS_SHIPPED:
         order.ship()
+        db.session.add(order)
         flash('Shipped order %s' % order_id)
     elif state == Constants.ORDER_STATUS_DELIVERED:
         order.deliver()
+        db.session.add(order)
         flash('Delivered order %s' % order_id)
     elif state == Constants.ORDER_ACTION_NOTIFY:
         order.notify()
-        flash('Notified for order %s' % order_id)
+        db.session.add(order)
+        db.session.commit()
+        return redirect(url_for('client.review_notification', order_id=order.id))
     elif state == Constants.ORDER_ACTION_CANCEL_REVIEW:
         order.cancel_review()
+        db.session.add(order)
         flash('Canceled review on order %s' % order_id)
     if state == Constants.ORDER_ACTION_DELETE:
         db.session.delete(order)
-        delete = True
         flash('Deleted order %s' % order_id)
     if not failure:
-        if not delete:
-            db.session.add(order)
         db.session.commit()
         return redirect(url_for('client.shop_dashboard'))
     flash('Invalid state %s' % state)
-    return redirect(url_for('client.shop_dashboard', _anchor='orders'))
+    return redirect(url_for('client.shop_dashboard'))
+
+
+@client.route('/review-notification', defaults={'order_id': None})
+@client.route('/review-notification/<int:order_id>')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def review_notification(order_id):
+    shops = Shop.query.filter_by(owner_id=current_user.id).all()
+    order = Order.query.filter_by(id=order_id).first()
+    if order.shop_id not in [s.id for s in shops]:
+        flash('Not your shop')
+        return redirect('client.dashboard')
+    return render_template('shop_admin/send_notification.html', review_requests=order.review_requests)
+
+
+@client.route('/send-notification', defaults={'review_request_id': None})
+@client.route('/send-notification/<int:review_request_id>', methods=["POST"])
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def send_notification(review_request_id):
+    shops = Shop.query.filter_by(owner_id=current_user.id).all()
+    review_request = ReviewRequest.query.filter_by(id=review_request_id).first()
+    if not review_request:
+        return redirect('client.shop_dashboard')
+    if review_request.for_product.shop.id not in [s.id for s in shops]:
+        flash('Not your shop')
+        return redirect('client.shop_dashboard')
+    post = get_post_payload()
+    recipients = [review_request.to_user.email]
+    template = 'email/review_order.html'
+    template_ctx = {'review_request': review_request}
+    subject = post.get('subject')
+    from async import tasks
+
+    tasks.send_email.delay(recipients=recipients,
+                           template=template,
+                           template_ctx=template_ctx,
+                           subject=subject)
+    flash('email to %s sent' % recipients)
+    return redirect(url_for('client.shop_dashboard'))
