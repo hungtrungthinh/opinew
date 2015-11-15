@@ -5,6 +5,7 @@ from celery.schedules import crontab
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+
 class Constants(object):
     MODE_DEVELOPMENT = 'development'
     MODE_PRODUCTION = 'production'
@@ -71,10 +72,10 @@ class Config(object):
     SECURITY_CONFIRMABLE = False
     SECURITY_TRACKABLE = True
     SECURITY_REGISTERABLE = True
-    SECURITY_RECOVERABLE  = True
+    SECURITY_RECOVERABLE = True
     SECURITY_CHANGEABLE = True
 
-    CELERY_BROKER_URL='amqp://guest:guest@localhost:5672//'
+    CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
     CELERY_RESULT_BACKEND = 'amqp://guest:guest@localhost:5672//'
 
     STRIPE_API_KEY = sensitive.STRIPE_TEST_API_KEY
@@ -98,16 +99,16 @@ class Config(object):
         },
     }
 
+
 class ConfigTest(Config):
     MODE = Constants.MODE_TESTING
     WTF_CSRF_ENABLED = False
     TESTING = True
     SERVER_NAME = 'localhost:5000'
     OPINEW_API_SERVER = 'http://localhost:5000'
-    DATABASE_LOCATION = '/tmp/ecommerce_api_test.db'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
+    SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew_test' % sensitive.ADMIN_PASSWORD
 
-    UPLOADED_USERIMAGES_DEST  = os.path.join('tmp', 'media', 'user')
+    UPLOADED_USERIMAGES_DEST = os.path.join('tmp', 'media', 'user')
     UPLOADED_REVIEIMAGES_DEST = os.path.join('tmp', 'media', 'review')
 
 
@@ -115,16 +116,14 @@ class ConfigDev(Config):
     MODE = Constants.MODE_DEVELOPMENT
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
-    DATABASE_LOCATION = '/tmp/ecommerce_api.db'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
+    SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew_dev' % sensitive.ADMIN_PASSWORD
 
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION
     SESSION_COOKIE_HTTPONLY = False
     SESSION_COOKIE_SECURE = True
-    DATABASE_LOCATION = '/home/opinew_server/db/ecommerce_api.db'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_LOCATION
+    SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
 
 

@@ -22,10 +22,6 @@ class TestFlaskApplication(TestCase):
         cls.app = create_app('testing')
         cls.client = cls.app.test_client()
         cls.app.app_context().push()
-        try:
-            os.remove(cls.app.config.get('DATABASE_LOCATION'))
-        except OSError:
-            pass
         db.create_all()
 
         db_dir = os.path.join(basedir, 'install', 'db', cls.app.config.get('MODE'))

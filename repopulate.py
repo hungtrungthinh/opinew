@@ -18,6 +18,8 @@ def import_tables(db_instance, db_dir):
             for row in csv_reader:
                 record = {}
                 for i, column in enumerate(headers):
+                    if column == 'id':
+                        continue
                     record[column] = row[i]
                 model_class = getattr(models, model_name)
                 model_instance = model_class().from_repopulate(**record)
@@ -51,11 +53,6 @@ if __name__ == '__main__':
     app = create_app(option)
 
     db.init_app(app)
-
-    try:
-        os.remove(app.config.get('DATABASE_LOCATION'))
-    except OSError:
-        pass
 
     ###############################
     # INIT DB

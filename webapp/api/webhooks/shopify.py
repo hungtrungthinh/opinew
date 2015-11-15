@@ -105,7 +105,7 @@ def platform_shopify_create_order():
 
     line_items = payload.get('line_items', [])
     for line_item in line_items:
-        platform_product_id = line_item.get('product_id')
+        platform_product_id = str(line_item.get('product_id'))
         product = models.Product.query.filter_by(platform_product_id=platform_product_id, shop_id=shop.id).first()
         order.products.append(product)
 

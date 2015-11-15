@@ -661,7 +661,7 @@ class Product(db.Model, Repopulatable):
     product_type = db.Column(db.String)
     category = db.Column(db.String)
     image_url = db.Column(db.String)
-    platform_product_id = db.Column(db.Integer)
+    platform_product_id = db.Column(db.String)
     plugin_views = db.Column(db.Integer, default=0)
     review_help = db.Column(db.String)
 

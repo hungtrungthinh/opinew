@@ -3,6 +3,8 @@ from flask_admin import Admin
 from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
 from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.script import Manager
+from flask.ext.migrate import Migrate, MigrateCommand
 from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required, roles_required
 from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
@@ -22,6 +24,8 @@ class MyHomeView(AdminIndexView):
 
 csrf = CsrfProtect()
 db = SQLAlchemy()
+migrate = Migrate()
+
 mail = Mail()
 admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
 security = Security()
@@ -54,6 +58,7 @@ def create_app(option):
     db.init_app(app)
     admin.init_app(app)
     mail.init_app(app)
+    migrate.init_app(app, db)
     from models import User, Role
     from webapp.forms import ExtendedRegisterForm
 
