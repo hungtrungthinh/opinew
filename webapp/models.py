@@ -450,7 +450,8 @@ class Review(db.Model, Repopulatable):
 
     youtube_video = db.Column(db.String)
 
-    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None, **kwargs):
+    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None,
+                 **kwargs):
         self.body = unicode(body)
         self.image_url = image_url
         self.star_rating = star_rating
@@ -701,11 +702,6 @@ class Product(db.Model, Repopulatable):
                         match = re.match(url_regex, product_url)
                         if match:
                             return product_candidate
-
-
-class FuturePlanSubscriber(db.Model):
-    email = db.Column(db.String, primary_key=True)
-    website = db.Column(db.String)
 
 
 class ProductUrl(db.Model, Repopulatable):

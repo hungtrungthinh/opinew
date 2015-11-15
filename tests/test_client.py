@@ -343,7 +343,6 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('<h3>Plugin code</h3>' in response_actual.data)
         self.assertTrue('<h3>Shop settings</h3>' in response_actual.data)
         self.assertTrue('General settings' in response_actual.data)
-        self.assertTrue('Products' in response_actual.data)
         self.assertTrue('Orders' in response_actual.data)
         self.assertTrue('Reviews' in response_actual.data)
         self.logout()
