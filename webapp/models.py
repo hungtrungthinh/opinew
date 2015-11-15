@@ -594,6 +594,7 @@ class Shop(db.Model, Repopulatable):
 
     automatically_approve_reviews = db.Column(db.Boolean, default=True)
 
+    access_user = db.Column(db.String)
     access_token = db.Column(db.String)
     products_imported = db.Column(db.Boolean, default=False)
 

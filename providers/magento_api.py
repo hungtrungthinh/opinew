@@ -127,15 +127,11 @@ class API(object):
         return updated_orders
 
 
-if __name__ == '__main__':
-    SHOP_ID = 3
-    app = create_app('db_dev')
-    app.app_context().push()
-
-    api = API("www.beautykitchen.co.uk", "opinew", sensitive.ADMIN_PASSWORD)
+def init(shop):
+    api = API(shop.domain, shop.access_user, shop.access_token)
 
     # Update orders that are already on their way....
-    to_update_orders = models.Order.query.filter(and_(models.Order.shop_id == SHOP_ID,
+    to_update_orders = models.Order.query.filter(and_(models.Order.shop_id == shop.id,
                                                       models.Order.status.in_([
                                                           Constants.ORDER_STATUS_SHIPPED,
                                                           Constants.ORDER_STATUS_DELIVERED
@@ -151,7 +147,7 @@ if __name__ == '__main__':
     morders = api.magento.sales_order.list()
 
     # Update orders that are waiting to be dispatched...
-    current_orders = models.Order.query.filter_by(shop_id=SHOP_ID, status=Constants.ORDER_STATUS_PURCHASED).all()
+    current_orders = models.Order.query.filter_by(shop_id=shop.id, status=Constants.ORDER_STATUS_PURCHASED).all()
     updated_orders = api.update_orders(morders, current_orders)
     db.session.add_all(updated_orders)
 
@@ -159,8 +155,8 @@ if __name__ == '__main__':
     db.session.commit()
 
     # Create new orders
-    last_order = models.Order.query.filter_by(shop_id=SHOP_ID).order_by(models.Order.platform_order_id.desc()).first()
-    new_orders = api.create_new_orders(morders, last_order.platform_order_id, SHOP_ID)
+    last_order = models.Order.query.filter_by(shop_id=shop.id).order_by(models.Order.platform_order_id.desc()).first()
+    new_orders = api.create_new_orders(morders, last_order.platform_order_id, shop.id)
     db.session.add_all(new_orders)
 
     # Flush to db

@@ -1,8 +1,5 @@
 import datetime
 from celery.result import AsyncResult
-
-from flask import current_app
-from webapp import create_app
 from celery import Celery
 
 
@@ -20,10 +17,6 @@ def make_celery(app):
 
     celery.Task = ContextTask
     return celery
-
-# Create celery app based on flask app configurations
-app = current_app or create_app('dummy')
-this_celery = make_celery(app)
 
 
 def schedule_task_at(task, args, at_time):
@@ -46,7 +39,7 @@ def get_revoked_tasks():
     from scheduled methods for optimization purposes)
     :return:
     """
-    return this_celery.control.inspect().revoked().values()[0]
+    return celery.control.inspect().revoked().values()[0]
 
 
 def get_task_status(task_id):
@@ -67,7 +60,7 @@ def get_scheduled_tasks():
     Get scheduled tasks which are not revoked.
     :return: A dict of task_id(string): task_eta(datetime.datetime)
     """
-    scheduled = this_celery.control.inspect().scheduled().values()[0]
+    scheduled = celery.control.inspect().scheduled().values()[0]
     revoked_tasks = get_revoked_tasks()
     scheduled_dict = {}
     for task in scheduled:

@@ -92,8 +92,8 @@ class Config(object):
     CELERYBEAT_SCHEDULE = {
         # Every day at 00:00
         'update_orders': {
-            'task': 'tasks.update_orders',
-            'schedule': crontab(minute=0, hour=0),
+            'task': 'async.tasks.update_orders',
+            'schedule': crontab(minute=13, hour=18),
             'args': (),
         },
     }
