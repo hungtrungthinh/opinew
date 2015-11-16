@@ -1,3 +1,4 @@
+import datetime
 import os
 from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
@@ -83,6 +84,7 @@ def shopify_plugin_callback():
     # Get shop and products info from API
     shopify_shop = shopify_api.get_shop()
     shopify_products = shopify_api.get_products()
+    shopify_orders = shopify_api.get_orders()
 
     # Create webhooks
     shopify_api.create_webhook("products/create",
@@ -145,6 +147,30 @@ def shopify_plugin_callback():
             product_url = ProductUrl(url=product_url)
             product.urls.append(product_url)
             db.session.add(product)
+        db.session.commit()
+
+        for order_j in shopify_orders:
+            user_name = "%s %s" % (order_j.get('customer', {}).get('first_name'), order_j.get('customer', {}).get('last_name'))
+            user, _ = User.get_or_create_by_email(email=order_j.get('email'), name=user_name)
+            try:
+                created_at_dt = datetime.datetime.strptime(order_j.get('created_at')[:-6], "%Y-%m-%dT%H:%M:%S")
+            except:
+                created_at_dt = datetime.datetime.utcnow()
+            order = Order(
+                purchase_timestamp=created_at_dt,
+                platform_order_id=order_j.get('id'),
+                shop_id=shop.id,
+                user=user
+            )
+            if order_j.get('fulfillment_status'):
+                order.status = Constants.ORDER_STATUS_SHIPPED
+            if order_j.get('cancelled_at'):
+                order.status = Constants.ORDER_STATUS_FAILED
+            for product_j in order_j.get('line_items', []):
+                product = Product.query.filter_by(platform_product_id=product_j.get('id')).first()
+                if product:
+                    order.products.append(product)
+            db.session.add(order)
         db.session.commit()
 
         # Login shop_user

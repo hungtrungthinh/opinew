@@ -71,14 +71,14 @@ class API(object):
         if current_app.config.get('TESTING'):
             return
         requests.post("https://%s/admin/webhooks.json" % self.shop_domain,
-                          headers={'X-Shopify-Access-Token': self.access_token},
-                          json={
-                              "webhook": {
-                                  "topic": topic,
-                                  "address": address,
-                                  "format": "json"
-                              }
-                          })
+                      headers={'X-Shopify-Access-Token': self.access_token},
+                      json={
+                          "webhook": {
+                              "topic": topic,
+                              "address": address,
+                              "format": "json"
+                          }
+                      })
 
     def get_shop(self):
         if current_app.config.get('TESTING'):
@@ -103,3 +103,24 @@ class API(object):
             raise ApiException(r.text, r.status_code)
         response = r.json()
         return response.get('products', [])
+
+    def get_orders(self):
+        if current_app.config.get('TESTING'):
+            return [{
+                'id': testing_constants.NEW_ORDER_PLATFORM_ID,
+                'fulfillment_status': None,
+                'cancelled_at': None,
+                'line_items': [{
+                    'id': testing_constants.NEW_PRODUCT_PLATFORM_ID
+                }],
+                'customer': {
+                    'first_name': '',
+                    'last_name': ''
+                }
+            }]
+        r = requests.get("https://%s/admin/orders.json" % self.shop_domain,
+                         headers={'X-Shopify-Access-Token': self.access_token})
+        if not r.status_code == 200:
+            raise ApiException(r.text, r.status_code)
+        response = r.json()
+        return response.get('orders', [])
