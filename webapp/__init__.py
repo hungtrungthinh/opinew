@@ -31,7 +31,7 @@ admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
 security = Security()
 api_manager = APIManager()
 compress = Compress()
-gravatar = Gravatar(size=100, rating='g', default='wavatar', force_default=False, use_ssl=True, base_url=None)
+gravatar = Gravatar(size=100, rating='g', default='mm', force_default=False, use_ssl=True, base_url=None)
 
 user_images = UploadSet('userimages', IMAGES)
 review_images = UploadSet('reviewimages', IMAGES)

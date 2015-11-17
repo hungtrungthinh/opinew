@@ -354,3 +354,7 @@ blockquote p {
 .modal-body .form-horizontal .col-sm-offset-2 {
     margin-left: 15px;
 }
+
+.small-logo {
+  height: 50px;
+}

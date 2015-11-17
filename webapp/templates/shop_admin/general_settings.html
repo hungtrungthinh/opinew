@@ -1,9 +1,10 @@
 <h2>General settings</h2>
 
+<a href="/change" class="btn btn-default">Change password</a>
 <h3>Plugin code</h3>
 
 {% if shop.platform.name == 'shopify' %}
-    {% include "user_setup/shopify.html" %}
+  {% include "user_setup/shopify.html" %}
 {% endif %}
 
 <p>Copy the following code below the last line on your product page:</p>
@@ -12,3 +13,4 @@
 
 <h3>Shop settings</h3>
 {% include "forms/shop.html" %}
+
