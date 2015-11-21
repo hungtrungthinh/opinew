@@ -1,10 +1,10 @@
-from flask import Flask, g, request, redirect, flash
+from flaskopinewext import FlaskOpinewExt
+from flask import g, request, redirect, flash, render_template
 from flask_admin import Admin
 from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.script import Manager
-from flask.ext.migrate import Migrate, MigrateCommand
+from flask.ext.migrate import Migrate
 from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required, roles_required
 from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
@@ -13,6 +13,9 @@ from flask_mail import Mail
 from werkzeug.exceptions import default_exceptions
 from config import config_factory, Constants
 from flask.ext.compress import Compress
+import logging
+from logging.handlers import SMTPHandler
+from logging import Formatter
 
 
 class MyHomeView(AdminIndexView):
@@ -21,6 +24,7 @@ class MyHomeView(AdminIndexView):
     @roles_required(Constants.ADMIN_ROLE)
     def index(self):
         return self.render('admin/index.html')
+
 
 csrf = CsrfProtect()
 db = SQLAlchemy()
@@ -38,7 +42,7 @@ review_images = UploadSet('reviewimages', IMAGES)
 
 
 def create_app(option):
-    app = Flask(__name__)
+    app = FlaskOpinewExt(__name__)
     config = config_factory.get(option)
     app.config.from_object(config)
     from common import create_jinja_filters, random_pwd
@@ -94,17 +98,19 @@ def create_app(option):
         app.error_handler_spec[None][code] = make_json_error
 
     configure_uploads(app, (user_images, review_images,))
-    
-    ADMINS = ['danieltcv@gmail.com'] 
+
+    ADMINS = ['danieltcv@gmail.com']
     if not app.debug:
-        import logging
-        from logging.handlers import SMTPHandler
-        from logging import Formatter
+        @app.errorhandler(500)
+        def internal_error(exception):
+            app.logger.error(exception)
+            return render_template('errors/500.html'), 500
+
         mail_handler = SMTPHandler(app.config.get('MAIL_SERVER'),
-                                    'server-error@opinew.com',
-                                    ADMINS, 
-                                    'YourApplication Failed',
-                                    credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')))
+                                   'server-error@opinew.com',
+                                   ADMINS,
+                                   'YourApplication Failed',
+                                   credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')))
         mail_handler.setLevel(logging.ERROR)
         mail_handler.setFormatter(Formatter('''
         Message type:       %(levelname)s
@@ -112,8 +118,6 @@ def create_app(option):
         Module:             %(module)s
         Function:           %(funcName)s
         Time:               %(asctime)s
-
-        Message:
 
         %(message)s
         '''))

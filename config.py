@@ -131,6 +131,7 @@ class ConfigProd(Config):
     SESSION_COOKIE_SECURE = True
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
+    PROPAGATE_EXCEPTIONS = True
 
 
 config_factory = {
