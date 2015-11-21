@@ -129,6 +129,17 @@ class User(db.Model, UserMixin, Repopulatable):
         return '<User %r>' % self.email
 
 
+class UserLegacy(db.Model):
+    """
+    For the purposes of an order
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String)
+    is_shop_owner = db.Column(db.Boolean, default=False)
+    name = db.Column(db.String)
+    image_url = db.Column(db.String)
+
+
 class Customer(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -268,6 +279,9 @@ class Order(db.Model, Repopulatable):
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("orders"))
+
+    user_legacy_id = db.Column(db.Integer, db.ForeignKey('user_legacy.id'))
+    user_legacy = db.relationship("UserLegacy", backref=db.backref("orders"))
 
     products = db.relationship('Product', secondary=order_products_table,
                                backref=db.backref('orders', lazy='dynamic'))
@@ -739,6 +753,7 @@ class AdminModelView(ModelView):
 # Setup Flask-Admin
 admin.add_view(AdminModelView(Role, db.session))
 admin.add_view(AdminModelView(User, db.session))
+admin.add_view(AdminModelView(UserLegacy, db.session))
 admin.add_view(AdminModelView(Customer, db.session))
 admin.add_view(AdminModelView(Plan, db.session))
 admin.add_view(AdminModelView(Subscription, db.session))

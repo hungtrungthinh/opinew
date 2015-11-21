@@ -9,7 +9,8 @@ tar_self() {
     tar -czf opinew_ecommerce_api.tar.gz *   --exclude ".git" \
                                --exclude ".idea" \
                                --exclude "venv" \
-                               --exclude "*.pyc"
+                               --exclude "*.pyc" \
+                               --exclude "*.pgsql"
 }
 
 send_tar_prod() {
