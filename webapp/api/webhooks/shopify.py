@@ -20,7 +20,7 @@ def platform_shopify_create_product():
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
-    platform_product_id = payload.get('id')
+    platform_product_id = str(payload.get('id', ''))
     product_title = payload.get('title')
 
     product = models.Product(name=product_title, shop=shop, platform_product_id=platform_product_id)
@@ -40,7 +40,7 @@ def platform_shopify_update_product():
     """
     payload = get_post_payload()
 
-    platform_product_id = payload.get('id')
+    platform_product_id = str(payload.get('id', ''))
     product_title = payload.get('title')
 
     shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
@@ -69,7 +69,7 @@ def platform_shopify_delete_product():
     """
     payload = get_post_payload()
 
-    platform_product_id = payload.get('id')
+    platform_product_id = str(payload.get('id', ''))
     shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
 
     shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
@@ -99,7 +99,7 @@ def platform_shopify_create_order():
     customer_email = payload.get('customer', {}).get('email')
     opinew_user, _ = models.User.get_or_create_by_email(customer_email)
 
-    platform_order_id = payload.get('id')
+    platform_order_id = str(payload.get('id', ''))
 
     order = models.Order(platform_order_id=platform_order_id, user=opinew_user, shop=shop)
 
@@ -126,7 +126,7 @@ def platform_shopify_fulfill_order():
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
-    platform_order_id = payload.get('order_id')
+    platform_order_id = str(payload.get('order_id', ''))
 
     order = models.Order.query.filter_by(platform_order_id=platform_order_id, shop_id=shop.id).first()
     delivery_tracking_number = payload.get('tracking_number')

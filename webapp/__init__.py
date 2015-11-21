@@ -31,7 +31,7 @@ admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
 security = Security()
 api_manager = APIManager()
 compress = Compress()
-gravatar = Gravatar(size=100, rating='g', default='wavatar', force_default=False, use_ssl=True, base_url=None)
+gravatar = Gravatar(size=100, rating='g', default='mm', force_default=False, use_ssl=True, base_url=None)
 
 user_images = UploadSet('userimages', IMAGES)
 review_images = UploadSet('reviewimages', IMAGES)
@@ -94,5 +94,29 @@ def create_app(option):
         app.error_handler_spec[None][code] = make_json_error
 
     configure_uploads(app, (user_images, review_images,))
+    
+    ADMINS = ['danieltcv@gmail.com'] 
+    if not app.debug:
+        import logging
+        from logging.handlers import SMTPHandler
+        from logging import Formatter
+        mail_handler = SMTPHandler(app.config.get('MAIL_SERVER'),
+                                    'server-error@opinew.com',
+                                    ADMINS, 
+                                    'YourApplication Failed',
+                                    credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')))
+        mail_handler.setLevel(logging.ERROR)
+        mail_handler.setFormatter(Formatter('''
+        Message type:       %(levelname)s
+        Location:           %(pathname)s:%(lineno)d
+        Module:             %(module)s
+        Function:           %(funcName)s
+        Time:               %(asctime)s
+
+        Message:
+
+        %(message)s
+        '''))
+        app.logger.addHandler(mail_handler)
 
     return app

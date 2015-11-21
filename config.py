@@ -48,11 +48,13 @@ class Constants(object):
 
 class Config(object):
     MAIL_SERVER = "smtpout.europe.secureserver.net"
-    MAIL_DEFAULT_SENDER = 'noreply@opinew.com'
+    MAIL_DEFAULT_SENDER = 'team@opinew.com'
     MAIL_PORT = 465
     MAIL_USE_SSL = True
     MAIL_USERNAME = "team@opinew.com"
     MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
+
+    SECURITY_SEND_REGISTER_EMAIL = False
 
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY

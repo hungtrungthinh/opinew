@@ -1,0 +1,16 @@
+<div class="review-container">
+    <div class="media">
+      {% if product.image_url %}
+          <div class="col-sm-4">
+              <img class="img-responsive" src="{{ product.image_url }}"
+                   alt="{{ product.name }}">
+          </div>
+      {% endif %}
+        <div>
+            <h4>{{ product.name }}</h4>
+          {% for review in product.reviews %}
+              <p>{{ review.body }}</p>
+          {% endfor %}
+        </div>
+    </div>
+</div>
