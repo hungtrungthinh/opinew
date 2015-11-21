@@ -100,7 +100,7 @@ def create_app(option):
     configure_uploads(app, (user_images, review_images,))
 
     ADMINS = ['danieltcv@gmail.com']
-    if not app.debug:
+    if not app.debug and not app.testing:
         @app.errorhandler(500)
         def internal_error(exception):
             app.logger.error(exception)

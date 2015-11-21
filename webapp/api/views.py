@@ -1,5 +1,5 @@
 import datetime
-from flask import jsonify, request, redirect
+from flask import jsonify
 from flask_wtf.csrf import generate_csrf
 from flask.ext.security import login_user, current_user, login_required
 from flask.ext.security.utils import verify_password
@@ -14,6 +14,7 @@ from config import Constants
 def del_csrf(data, *args, **kwargs):
     if '_csrf_token' in data:
         del data['_csrf_token']
+
 
 def auth_func(*args, **kwargs):
     if not current_user.is_authenticated():
@@ -86,6 +87,7 @@ def is_shop_owned_by_user(instance_id, *args, **kwargs):
     shop = models.Shop.query.filter_by(id=instance_id).first()
     if not shop or not shop.owner == current_user:
         raise ProcessingException(description='Not your shop', code=401)
+
 
 def is_verified_review(data, *args, **kwargs):
     # Is it verified review?
@@ -163,6 +165,7 @@ api_manager.create_api(models.Shop,
                        },
                        validation_exceptions=[DbException])
 
+
 @login_required
 @api.route('/token')
 def token():
@@ -188,7 +191,6 @@ def authenticate():
         raise DbException('invalid password', 400)
     login_user(user)
     return jsonify({})
-
 
 
 from webapp.api.webhooks import shopify
