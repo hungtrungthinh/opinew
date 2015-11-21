@@ -512,6 +512,7 @@ class TestViews(TestFlaskApplication):
             shop_id=2, platform_product_id=1, get_by='platform_id'
         ))
         self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('href="/plugin-logout"' in response_actual.data)
         self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)
@@ -549,6 +550,7 @@ class TestViews(TestFlaskApplication):
             shop_id=2, product_url='opinew_shop.local:5001/product/1', get_by='url'
         ))
         self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('href="/plugin-logout"' in response_actual.data)
         self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)

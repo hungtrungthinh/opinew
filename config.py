@@ -7,6 +7,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Constants(object):
+    META_DEFAULT_TITLE = "Opinew"
+    META_DEFAULT_DESCRIPTION = "Opinew is the photo review platform for the new generation"
+    META_DEFAULT_PRERENDER = "/reviews"
+
     MODE_DEVELOPMENT = 'development'
     MODE_PRODUCTION = 'production'
     MODE_TESTING = 'testing'

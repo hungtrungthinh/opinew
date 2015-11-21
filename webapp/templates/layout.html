@@ -1,34 +1,40 @@
 <!doctype html>
 <html class="no-js" lang="">
 <head>
+    {# DNS Prefetch hints #}
+    <link rel="dns-prefetch" href="maxcdn.bootstrapcdn.com">
+    <link rel="dns-prefetch" href="ajax.googleapis.com">
+    {# Hints for CURRENT page #}
+    <link rel="subresource" href="/static/js/main.js">
+    {# Hints for FUTURE navigation #}
+    <link rel="prefetch" href="/static/js/post_review.js">
+    {# Chrome prerenders this ONE page in the background for INSTANT click - ONLY GET #}
+    <link rel="prerender" href="https://opinew.com{{ page_prerender or g.constants.META_DEFAULT_PRERENDER }}">
+    {# standart HTML Meta tags #}
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>{% if page_title %}{{ page_title }}{% endif %}Opinew</title>
-    <meta name="description"
-          content="Opinew is the photo review platform for the new generation">
+    <title>{{ page_title or g.constants.META_DEFAULT_TITLE }}</title>
+    <meta name="description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="fragment" content="!">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/opinew32.ico') }}"/>
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon192.png') }}"/>
+    {# Facebook's open graph things #}
     <meta property="og:url" content="https://opinew.com/"/>
     <meta property="og:title" content="Opinew"/>
-    <meta property="og:description"
-          content="Opinew is the photo review platform for the new generation"/>
-    <meta property="og:image"
-          content="http://opinew.com/static/opinew/img/opinew_diamond.png"/>
-    <meta property="og:image"
-          content="http://opinew.com/static/opinew/img/opinew_square.png"/>
-    <link rel="shortcut icon"
-          href="{{ url_for('static', filename='icons/opinew32.ico') }}"/>
-    <link rel="apple-touch-icon"
-          href="{{ url_for('static', filename='icons/apple-touch-icon192.png') }}"/>
-  {#  Stylesheets #}
-  {% if g.mode == 'production' %}
-      <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-  {% elif g.mode in ['development', 'testing'] %}
-      <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}"/>
-  {% endif %}
+    <meta property="og:description" content="Opinew is the photo review platform for the new generation"/>
+    <meta property="og:image" content="https://opinew.com/static/img/opinew_square.png"/>
+    {# Set the theme color on android devices #}
+    <meta name="theme-color" content="#2c54a8">
+    {#  Stylesheets #}
+    {% if g.mode == 'production' %}
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    {% elif g.mode in ['development', 'testing'] %}
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}"/>
+    {% endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}"/>
-  {# Place per-page styles #}
-  {% block style %}{% endblock %}
+    {# Place per-page styles #}
+    {% block style %}{% endblock %}
+
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
@@ -48,13 +54,13 @@
 {% endif %}
 {# /End of main content #}
 {% if g.mode == 'production' %}
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script defer src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script defer src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 {% elif g.mode in ['development', 'testing'] %}
-    <script src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
 {# Place per-page scripts #}
 {% block script %}{% endblock %}
 {# Include Google analytics if in production mode #}

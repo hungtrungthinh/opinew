@@ -235,7 +235,9 @@ def reviews():
     start = Constants.REVIEWS_PER_PAGE * (page - 1)
     end = start + Constants.REVIEWS_PER_PAGE
     reviews = Review.get_latest(start, end)
-    return render_template('reviews.html', page_title="Reviews - ",
+    return render_template('reviews.html',
+                           page_title="Reviews - Opinew",
+                           page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
                            reviews=reviews, page=page)
 
 
@@ -331,7 +333,7 @@ def get_plugin():
     return render_template('plugin/plugin.html', product=product, reviews=reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
                            review_image_form=review_image_form, next_arg=next_arg,
-                           own_reviews=own_reviews)
+                           own_reviews=own_reviews, in_plugin=True)
 
 
 @client.route('/product', defaults={'product_id': 0})
