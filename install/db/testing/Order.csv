@@ -1,5 +1,2 @@
-id,name,description,amount,interval,trial_period_days,active,stripe_plan_id
-1,Free,,0,month,0,1,Free
-2,Micro,,900,month,7,1,Micro
-3,Pro,,1900,month,7,1,Pro
-4,Premium,,3900,month,7,1,Premium
+id,platform_order_id,user_legacy_id,user_id,shop_id,delivery_tracking_number,status,purchase_timestamp,shipment_timestamp,to_deliver_timestamp,delivery_timestamp,to_notify_timestamp,notification_timestamp
+1,1,1,,1,,PURCHASED,,,,,,

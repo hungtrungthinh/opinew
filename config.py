@@ -75,11 +75,12 @@ class Config(object):
 
     SECURITY_PASSWORD_HASH = 'bcrypt'
     SECURITY_PASSWORD_SALT = sensitive.SECURITY_PASSWORD_SALT
-    SECURITY_CONFIRMABLE = False
+    SECURITY_CONFIRMABLE = True
     SECURITY_TRACKABLE = True
     SECURITY_REGISTERABLE = True
     SECURITY_RECOVERABLE = True
     SECURITY_CHANGEABLE = True
+    SECURITY_POST_REGISTER_VIEW = '/confirm'
 
     CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
     CELERY_RESULT_BACKEND = 'amqp://guest:guest@localhost:5672//'
@@ -131,7 +132,6 @@ class ConfigProd(Config):
     SESSION_COOKIE_SECURE = True
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
-    PROPAGATE_EXCEPTIONS = True
 
 
 config_factory = {

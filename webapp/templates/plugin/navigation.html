@@ -13,7 +13,7 @@
                 {% include "navigation_notifications.html" %}
                 {% include "navigation_profile.html" %}
               {% endif %}
-                <li class="btn-info btn-write-review" style="position: relative; right: 0;">
+                <li class="btn-info btn-write-review">
                     <a href="#" data-toggle="modal"
                        data-target="{% if current_user.is_authenticated() %}#modal-review{% else %}#modal-signup{% endif %}"
                        style="color: white;">Write a review</a>

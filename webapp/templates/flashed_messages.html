@@ -1,11 +1,9 @@
-<div style="color: red">
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <ul>
-          {% for message in messages %}
-              <li>{{ message|safe }}</li>
-          {% endfor %}
-        </ul>
-    {% endif %}
-  {% endwith %}
-</div>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+      <div class="alert alert-info">
+        {% for message in messages %}
+          {{ message|safe }}<br>
+        {% endfor %}
+      </div>
+  {% endif %}
+{% endwith %}

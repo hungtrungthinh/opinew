@@ -320,21 +320,32 @@ blockquote p {
 }
 
 .btn-write-review {
-
+  position: relative;
+  right: 0;
 }
 
-.btn-write-reviewa:hover {
-    background-color: #14676c;
+.btn-write-review:hover {
+  background-color: #14676c;
 }
 
 .per-month-price-plan {
-    color: #b6b6b6;
-    font-size: 12px;
+  color: #b6b6b6;
+  font-size: 12px;
+}
+
+.nav-register-btn {
+  color:white;
+}
+
+.nav-register-btn:hover {
+  color:white;
+  background-color: #74d474 !important;
 }
 
 .strikethrough {
   position: relative;
 }
+
 .strikethrough:before {
   position: absolute;
   content: "";
@@ -344,23 +355,24 @@ blockquote p {
   border-top: 3px solid;
   border-color: inherit;
 
-  -webkit-transform:rotate(-20deg);
-  -moz-transform:rotate(-20deg);
-  -ms-transform:rotate(-20deg);
-  -o-transform:rotate(-20deg);
-  transform:rotate(20deg);
+  -webkit-transform: rotate(-20deg);
+  -moz-transform: rotate(-20deg);
+  -ms-transform: rotate(-20deg);
+  -o-transform: rotate(-20deg);
+  transform: rotate(20deg);
 }
 
 .modal-body .form-horizontal .col-sm-2,
 .modal-body .form-horizontal .col-sm-10 {
-    width: 100%
+  width: 100%
 }
 
 .modal-body .form-horizontal .control-label {
-    text-align: left;
+  text-align: left;
 }
+
 .modal-body .form-horizontal .col-sm-offset-2 {
-    margin-left: 15px;
+  margin-left: 15px;
 }
 
 .small-logo {

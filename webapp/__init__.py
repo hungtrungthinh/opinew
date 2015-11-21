@@ -67,7 +67,7 @@ def create_app(option):
     from webapp.forms import ExtendedRegisterForm
 
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
-    security.init_app(app, user_datastore, register_form=ExtendedRegisterForm)
+    security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
     with app.app_context():
         api_manager.init_app(app, flask_sqlalchemy_db=db)
 

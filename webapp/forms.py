@@ -1,7 +1,7 @@
 from flask.ext.wtf import Form
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, FileField, HiddenField
-from wtforms.validators import DataRequired, Email, Length
-from flask_security.forms import RegisterForm
+from wtforms.validators import DataRequired, Email, Length, EqualTo
+from flask_security.forms import ConfirmRegisterForm
 
 
 class LoginForm(Form):
@@ -16,8 +16,11 @@ class SubscribeForm(Form):
     website = StringField('Your Website', validators=[])
 
 
-class ExtendedRegisterForm(RegisterForm):
+class ExtendedRegisterForm(ConfirmRegisterForm):
     name = StringField('Name', [DataRequired()])
+    password_confirm = PasswordField(
+        'Retype Password',
+        validators=[EqualTo('password', message='Passwords do not match')])
     is_shop_owner = BooleanField('I am a shop owner')
 
 

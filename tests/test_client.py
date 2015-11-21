@@ -65,7 +65,7 @@ class TestViews(TestFlaskApplication):
             if "GET" in rule.methods:
                 if rule.endpoint in ['static', 'admin.static', 'security.reset_password']:
                     continue
-                if rule.endpoint == 'client.shop_dashboard_products':
+                if rule.endpoint in ['security.confirm_email']:
                     continue
                 url = url_for(rule.endpoint, **(rule.defaults or {}))
                 if 'admin' in url:
@@ -228,7 +228,7 @@ class TestViews(TestFlaskApplication):
                                                               'email': testing_constants.NEW_USER_EMAIL,
                                                               'password': testing_constants.NEW_USER_PWD,
                                                               'password_confirm': testing_constants.NEW_USER_PWD})
-        location_expected = url_for('client.index')
+        location_expected = 'http://localhost:5000/confirm'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
@@ -247,7 +247,7 @@ class TestViews(TestFlaskApplication):
                                                               'password': testing_constants.NEW_USER_PWD,
                                                               'password_confirm': testing_constants.NEW_USER_PWD,
                                                               'is_shop_owner': True})
-        location_expected = url_for('client.index')
+        location_expected = 'http://localhost:5000/confirm'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
