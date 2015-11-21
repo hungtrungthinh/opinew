@@ -319,6 +319,14 @@ blockquote p {
   border-radius: 0;
 }
 
+.btn-write-review {
+
+}
+
+.btn-write-reviewa:hover {
+    background-color: #14676c;
+}
+
 .per-month-price-plan {
     color: #b6b6b6;
     font-size: 12px;
