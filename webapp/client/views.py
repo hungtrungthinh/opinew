@@ -264,7 +264,7 @@ def shop_dashboard_id(shop_id):
     if not shop:
         flash('Not your shop')
         return redirect(url_for('client.shop_dashboard'))
-    if shop.platform.name == 'shopify':
+    if shop.platform and shop.platform.name == 'shopify':
         code = render_template('user_setup/shopify_code.html', shop=shop)
     else:
         code = render_template('user_setup/code.html', shop=shop)
