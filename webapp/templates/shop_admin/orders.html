@@ -13,7 +13,11 @@
           <tr>
               <td>{{ order.platform_order_id }}</td>
               <td>
-                {{ order.user.email }}<br>
+                {% if order.user %}
+                  {{ order.user.email }}<br>
+                {% elif order.user_legacy %}
+                  {{ order.user_legacy.email }}<br>
+                {% endif %}
                   <ul>
                     {% for product in order.products %}
                         <li><a href="{{ url_for('client.get_product', product_id=product.id) }}"

@@ -1,5 +1,5 @@
 var shop_id = document.location.pathname.split('/')[2];
-var pages = ["products", "orders", "reviews"];
+var pages = ["orders", "reviews"];
 
 function getPage(page) {
   $.ajax("/dashboard/" + shop_id + "/" + page, {

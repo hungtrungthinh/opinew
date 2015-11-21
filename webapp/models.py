@@ -129,7 +129,7 @@ class User(db.Model, UserMixin, Repopulatable):
         return '<User %r>' % self.email
 
 
-class UserLegacy(db.Model):
+class UserLegacy(db.Model, Repopulatable):
     """
     For the purposes of an order
     """
@@ -342,8 +342,14 @@ class Order(db.Model, Repopulatable):
     def notify(self):
         self.status = Constants.ORDER_STATUS_NOTIFIED
         self.notification_timestamp = datetime.datetime.utcnow()
+        if self.user:
+            the_user = self.user
+        elif self.user_legacy:
+            the_user = self.user_legacy
+        else:
+            the_user = None
         for product in self.products:
-            token = ReviewRequest.create(to_user=self.user,
+            token = ReviewRequest.create(to_user=the_user,
                                          from_customer=self.shop.owner.customer[0],
                                          for_product=product,
                                          for_order=self)
