@@ -150,7 +150,8 @@ def shopify_plugin_callback():
         db.session.commit()
 
         for order_j in shopify_orders:
-            user_name = "%s %s" % (order_j.get('customer', {}).get('first_name'), order_j.get('customer', {}).get('last_name'))
+            user_name = "%s %s" % (
+            order_j.get('customer', {}).get('first_name'), order_j.get('customer', {}).get('last_name'))
             user, _ = User.get_or_create_by_email(email=order_j.get('email'), name=user_name)
             try:
                 created_at_dt = datetime.datetime.strptime(order_j.get('created_at')[:-6], "%Y-%m-%dT%H:%M:%S")
@@ -206,11 +207,17 @@ def index():
     if 'mobile' in g and g.mobile:
         login_form = LoginForm()
         if current_user.is_authenticated():
-            return redirect(url_for('client.reviews'))
-        return render_template('mobile_index.html', login_user_form=login_form)
+            page = 1
+            start = Constants.REVIEWS_PER_PAGE * (page - 1)
+            end = start + Constants.REVIEWS_PER_PAGE
+            reviews = Review.get_latest(start, end)
+            return render_template('mobile/index.html', page_title="Reviews - Opinew",
+                                   page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
+                                   reviews=reviews, page=page)
+        return render_template('mobile/login.html', login_user_form=login_form)
     if current_user.is_authenticated():
         if current_user.temp_password:
-           return redirect('/change')
+            return redirect('/change')
         if current_user.has_role(Constants.ADMIN_ROLE):
             return redirect('/admin')
         elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
@@ -232,6 +239,16 @@ def get_by_review_request_token(review_request_token):
 
 @client.route('/reviews')
 def reviews():
+    if 'mobile' in g and g.mobile:
+        page = request.args.get('page', '1')
+        page = int(page) if page.isdigit() else 1
+        start = Constants.REVIEWS_PER_PAGE * (page - 1)
+        end = start + Constants.REVIEWS_PER_PAGE
+        reviews = Review.get_latest(start, end)
+        return render_template('mobile/reviews.html',
+                               page_title="Reviews - Opinew",
+                               page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
+                               reviews=reviews, page=page)
     page = request.args.get('page', '1')
     page = int(page) if page.isdigit() else 1
     start = Constants.REVIEWS_PER_PAGE * (page - 1)
@@ -241,6 +258,27 @@ def reviews():
                            page_title="Reviews - Opinew",
                            page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
                            reviews=reviews, page=page)
+
+
+@client.route('/settings')
+def settings():
+    if 'mobile' in g and g.mobile:
+        return render_template('mobile/settings.html')
+    return redirect(url_for('client.index'))
+
+
+@client.route('/notifications')
+def notifications():
+    if 'mobile' in g and g.mobile:
+        return render_template('mobile/notifications.html')
+    return redirect(url_for('client.index'))
+
+
+@client.route('/user_profile')
+def user_profile():
+    if 'mobile' in g and g.mobile:
+        return render_template('mobile/user_profile.html')
+    return redirect(url_for('client.index'))
 
 
 @client.route('/dashboard')

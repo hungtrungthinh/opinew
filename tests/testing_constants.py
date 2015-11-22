@@ -28,10 +28,11 @@ NEW_REVIEW_YOUTUBE_LINK = "https://www.youtube.com/watch?v=" + NEW_REVIEW_YOUTUB
 NEW_REVIEW_YOUTUBE_SHORT = "https://www.youtu.be/"  + NEW_REVIEW_YOUTUBE_VIDEO_ID
 
 RENDERED_STARS = """<span class="star-rating star-active">☆</span>
-    <span class="star-rating star-active">☆</span>
-    <span class="star-rating star-active">☆</span>
-    <span class="star-rating star-active">☆</span>
-    <span class="star-rating ">☆</span>"""
+                <span class="star-rating star-active">☆</span>
+                <span class="star-rating star-active">☆</span>
+                <span class="star-rating star-active">☆</span>
+                <span class="star-rating ">☆</span>
+                <span style="color: #fb8c2d">  4/5</span>"""
 
 RENDERED_YOUTUBE = """<iframe height="180" style="width: 100%" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0"
               allowfullscreen></iframe>"""

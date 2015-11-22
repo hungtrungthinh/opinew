@@ -17,12 +17,10 @@
   {% endif %}
 {% endif %}
 
-{% if user_image_url %}
-    <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
-{% endif %}
-<div class="review-author-name">{{ user_name }} <span class="small-screen text-muted">{% if show_product_info %}
-                reviewed {% include "review/product_name.html" %}
-            {% endif %}</span></div>
-
-
-<div>1 reviews</div>
+<header class="review-header">
+  {% if user_image_url %}
+      <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
+  {% endif %}
+    <div class="review-author-name">{{ user_name }}</div>
+    <div class="review-time-posted">{{ review.created_ts | timesince }}</div>
+</header>

@@ -297,15 +297,12 @@ class TestViews(TestFlaskApplication):
     def test_get_index_mobile_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
         response_actual = self.client.get("/", headers={'mobile': 'true'})
-        location_expected = url_for('client.reviews')
-        self.assertEquals(response_actual.status_code, 302)
-        self.assertEquals(location_expected, response_actual.location)
+        self.assertEquals(response_actual.status_code, 200)
         self.logout()
 
     def test_get_index_mobile_not_logged_in_reviews(self):
         response_actual = self.client.get(url_for('client.reviews'), headers={'mobile': 'true'})
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('Register' in response_actual.data)
         self.assertTrue('<footer' not in response_actual.data)
 
     def test_get_index_mobile_product_page(self):

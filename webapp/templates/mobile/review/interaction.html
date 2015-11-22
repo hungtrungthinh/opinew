@@ -1,0 +1,21 @@
+{% if not hide_buy_button %}
+    <a class="btn btn-primary pull-right" href="http://{{ review.product.url }}">Buy</a>
+{% endif %}
+{% if current_user.is_authenticated() %}
+    <form class="review-like-form pull-right" style="margin-right: 10px; display:inline;"
+          action="{{ g.constants.API_V1_URL_PREFIX }}/review_like{% if review.liked_by_current_user %}/{{ review.liked_by_current_user.id }}{% endif %}"
+          method="{% if review.liked_by_current_user %}patch{% else %}post{% endif %}">
+        <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
+        <input type="hidden" name="review_id" class="form-serialize" value="{{ review.id }}"/>
+        <input type="hidden" name="action" class="form-serialize like-action-input"
+               value="{{ review.next_like_action }}"/>
+        <button class="btn {% if review.liked_by_current_user and review.liked_by_current_user.action %}btn-success{% else %}btn-default{% endif %}"
+                type="submit">
+            <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
+        </button>
+    </form>
+{% else %}
+    <a class="btn btn-default pull-right" style="margin-right: 10px;" href="/login">
+        <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
+    </a>
+{% endif %}

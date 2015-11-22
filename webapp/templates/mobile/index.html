@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "mobile/layout.html" %}
 {% block content %}
     <div class="container-fluid">
         <div class="row">
@@ -13,7 +13,7 @@
             <div class="reviews-container col-md-8 col-sm-12">
               {% set show_product_info = True %}
               {% for review in reviews %}
-                {% include "review/review.html" %}
+                {% include "mobile/review/review.html" %}
               {% endfor %}
               {% if page and page > 1 %}
                   <a class="btn btn-default btn-lg" href="{{ url_for('.reviews', page=1) }}">
