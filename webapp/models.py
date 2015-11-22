@@ -224,6 +224,20 @@ class ReviewLike(db.Model):
     review = db.relationship("Review", backref=db.backref("review_likes"))
 
 
+class ReviewReport(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    action = db.Column(db.Integer, default=1)
+    timestamp = db.Column(db.DateTime)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
+                        default=current_user.id if current_user and current_user.is_authenticated() else 0)
+    user = db.relationship("User", backref=db.backref("review_reports"))
+
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship("Review", backref=db.backref("review_reports"))
+
+
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -552,6 +566,10 @@ class Review(db.Model, Repopulatable):
         return sum([rl.action for rl in ReviewLike.query.filter_by(review_id=self.id).all()])
 
     @property
+    def reports(self):
+        return sum([rr.action for rr in ReviewReport.query.filter_by(review_id=self.id).all()])
+
+    @property
     def liked_by_current_user(self):
         if current_user and current_user.is_authenticated():
             rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
@@ -559,10 +577,24 @@ class Review(db.Model, Repopulatable):
         return False
 
     @property
+    def reported_by_current_user(self):
+        if current_user and current_user.is_authenticated():
+            rr = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            return rr
+        return False
+
+    @property
     def next_like_action(self):
         if current_user and current_user.is_authenticated():
             rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
             return (0 if rl.action == 1 else 1) if rl else 1
+        return 1
+
+    @property
+    def next_report_action(self):
+        if current_user and current_user.is_authenticated():
+            rr = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            return (0 if rr.action == 1 else 1) if rr else 1
         return 1
 
     def __repr__(self):

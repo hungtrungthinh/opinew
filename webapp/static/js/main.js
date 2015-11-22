@@ -1,5 +1,7 @@
 var csrftoken = $('meta[name=csrf-token]').attr('content');
 
+var ASYNC_SCRIPTS = ASYNC_SCRIPTS || [];
+
 var EMOJIS = {
   ":joy:": "1f602.png",
   ":hearts:": "2665.png",
@@ -31,59 +33,22 @@ $.ajaxSetup({
   }
 });
 
-$('.review-like-form').on('submit', function (e) {
-  e.preventDefault();
-  var $form = $(this);
-  var $likeActionInput = $($form.children('.like-action-input'));
-  var $likeButton = $($form.children('.btn'));
-  var $likeCountEl = $($likeButton.children('.like-count'));
-  var formData = {};
-
-  $form.find(".form-serialize").each(function () {
-    formData[this.name] = $(this).val();
-  });
-  $.ajax({
-    type: $form.attr('method'),
-    url: $form.attr('action'),
-    data: JSON.stringify(formData),
-    contentType: 'application/json'
-  }).done(function (r) {
-    if ($form.attr('method') == 'post') {
-      var formAction = $form.attr('action');
-      $form.attr('method', 'patch').attr('action', formAction + '/' + r.id);
-    }
-
-    if (r.action == 1) {
-      $likeActionInput.val(0);
-      $likeButton.addClass('btn-success').removeClass('btn-default');
-      $likeCountEl.text(parseInt($likeCountEl.text()) + 1);
-    } else {
-      $likeActionInput.val(1);
-      $likeButton.addClass('btn-default').removeClass('btn-success');
-      $likeCountEl.text(parseInt($likeCountEl.text()) - 1);
-    }
-
-  }).fail(function (r) {
-    var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
-    $('#product-post-status')
-        .addClass('alert-danger')
-        .html('<p><strong>Something went wrong</strong>: ' + errors + '</p>')
-        .slideDown();
-
-  });
-  return false;
-});
-
 // Javascript to enable link to tab
 var url = document.location.toString();
 if (url.match('#')) {
-    $('.nav-pills a[href=#'+url.split('#')[1]+']').tab('show') ;
+  $('.nav-pills a[href=#' + url.split('#')[1] + ']').tab('show');
 }
 
 // Change hash for page-reload
 $('.nav-pills a').on('shown.bs.tab', function (e) {
-    window.location.hash = e.target.hash;
+  window.location.hash = e.target.hash;
 });
+
+function loadAsync() {
+  for (var i = 0; i < ASYNC_SCRIPTS.length; i++) {
+    $.getScript(ASYNC_SCRIPTS[i]);
+  }
+}
 
 $(document).ready(function () {
   $('.review-body-content').each(function () {
@@ -94,5 +59,6 @@ $(document).ready(function () {
       }
     }
     $(this).html(finalText);
-  })
+  });
+
 });

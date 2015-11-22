@@ -41,6 +41,20 @@ def pre_review_like_post(data, *args, **kwargs):
     return data
 
 
+def pre_review_report_post(data, *args, **kwargs):
+    review_id = data.get('review_id')
+    if not review_id:
+        raise ProcessingException(description='Review id requried!', code=401)
+    review = models.Review.query.filter_by(id=review_id).first()
+    if not review:
+        raise ProcessingException(description='Review doesnt exist', code=401)
+    review_report = models.ReviewReport.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+    if review_report:
+        raise ProcessingException(description='You have already reported this review', code=401)
+    data['user_id'] = current_user.id
+    return data
+
+
 def pre_create_order(data, *args, **kwargs):
     shop_id = data.get('shop_id')
     if not shop_id:
@@ -89,19 +103,21 @@ def is_shop_owned_by_user(instance_id, *args, **kwargs):
     if not shop or not shop.owner == current_user:
         raise ProcessingException(description='Not your shop', code=401)
 
+
 def del_user_id(data, *args, **kwargs):
     if 'user_id' in data:
         del data['user_id']
+
 
 def check_recaptcha(data, *args, **kwargs):
     if not current_user.is_authenticated():
         recaptcha = data['g-recaptcha-response']
         r = requests.post("https://www.google.com/recaptcha/api/siteverify",
-                      data={
-                          'secret': current_app.config.get("RECAPTCHA_SECRET"),
-                          'response': recaptcha,
-                          'remoteip': request.remote_addr
-                      })
+                          data={
+                              'secret': current_app.config.get("RECAPTCHA_SECRET"),
+                              'response': recaptcha,
+                              'remoteip': request.remote_addr
+                          })
         if r and r.json():
             if not r.json().get('success'):
                 if not current_app.debug and not current_app.testing:
@@ -115,7 +131,7 @@ def check_recaptcha(data, *args, **kwargs):
             raise ProcessingException(description='User name required.', code=401)
 
         if not user_email:
-           raise ProcessingException(description='User email required.', code=401)
+            raise ProcessingException(description='User email required.', code=401)
 
         user, is_new = models.User.get_or_create_by_email(email=user_email, name=user_name)
         if not is_new:
@@ -125,6 +141,7 @@ def check_recaptcha(data, *args, **kwargs):
         db.session.commit()
 
         from async import tasks
+
         tasks.send_email.delay(recipients=[user_email],
                                template='email/new_user.html',
                                template_ctx={'user_email': user_email,
@@ -137,6 +154,7 @@ def check_recaptcha(data, *args, **kwargs):
         del data['user_email']
         data['user_id'] = user.id
     return data
+
 
 def is_verified_review(data, *args, **kwargs):
     # Is it verified review?
@@ -176,6 +194,16 @@ api_manager.create_api(models.ReviewLike,
                        methods=['POST', 'PATCH'],
                        preprocessors={
                            'POST': [del_csrf, auth_func, pre_review_like_post],
+                           'PATCH_SINGLE': [del_csrf, auth_func]
+                       },
+                       exclude_columns=models.User.exclude_fields(),
+                       validation_exceptions=[DbException])
+
+api_manager.create_api(models.ReviewReport,
+                       url_prefix=Constants.API_V1_URL_PREFIX,
+                       methods=['POST', 'PATCH'],
+                       preprocessors={
+                           'POST': [del_csrf, auth_func, pre_review_report_post],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.User.exclude_fields(),

@@ -9,21 +9,20 @@
             <th>Body</th>
             <th>Picture</th>
             <th>Badges</th>
-            <th>Approved?</th>
+            <th>Actions</th>
         </tr>
       {% for review in reviews %}
           <tr>
               <td>
-                  <a href="{{ review.product.url }}"
+                  <a href="http://{{ review.product.url }}"
                      target="_blank"><span class="glyphicon glyphicon-link"></span> {{ review.product.name }}</a>
               </td>
               <td>{{ review.star_rating }}</td>
               <td>{{ review.body }}</td>
               <td>
-                  {% if review.image_url %}
-                  <img style="max-height:50px;" class="img-responsive"
-                       src="{{review.image_url}}"/>
-                  {% endif %}
+                {% if review.image_url %}
+                    <img style="max-height:50px;" class="img-responsive" src="{{ review.image_url }}"/>
+                {% endif %}
               </td>
               <td>
                 {% if review.verified_review %}
@@ -35,11 +34,8 @@
                 {% endif %}
               </td>
               <td>
-                {% if review.approved_by_shop %}
-                    <button class="btn btn-danger">Disapprove</button>
-                {% else %}
-                    <button class="btn btn-success">Approve</button>
-                {% endif %}
+                {% include "forms/like_review.html" %}
+                {% include "forms/report_review.html" %}
               </td>
           </tr>
       {% endfor %}

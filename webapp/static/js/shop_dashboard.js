@@ -5,6 +5,7 @@ function getPage(page) {
   $.ajax("/dashboard/" + shop_id + "/" + page, {
     success: function (r) {
       $('#' + page).html(r);
+      loadAsync();
     }
   });
 }
@@ -45,3 +46,5 @@ $('#shop-form').bind('submit', function (e) {
   });
   return false;
 });
+
+
