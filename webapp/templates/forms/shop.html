@@ -1,7 +1,9 @@
 {% import "_macros.html" as macros %}
-<form action="{{ g.constants.API_V1_URL_PREFIX }}/shop{% if shop %}/{{ shop.id }}{% endif %}" method="{% if shop %}patch{% else %}post{% endif %}" id="shop-form">
+<div id="ajax-status" hidden class="alert"></div>
+<form action="{{ g.constants.API_V1_URL_PREFIX }}/shop{% if shop %}/{{ shop.id }}{% endif %}"
+      method="{% if shop %}patch{% else %}post{% endif %}" id="shop-form">
     <input type="hidden" name="next" value="{{ url_for('client.shop_dashboard') }}"/>
-  <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
+    <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
   {{ macros.form_field(shop_form, shop_form.name, class="form-control form-serialize", placeholder='Name of your shop') }}<br>
   {{ macros.form_field(shop_form, shop_form.domain, class="form-control form-serialize", placeholder='http://') }}<br>
   {{ macros.form_field(shop_form, shop_form.description, class="form-control form-serialize", placeholder='What is your shop mission?') }}<br>
