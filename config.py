@@ -81,6 +81,7 @@ class Config(object):
     SECURITY_RECOVERABLE = True
     SECURITY_CHANGEABLE = True
     SECURITY_POST_REGISTER_VIEW = '/confirm'
+    SECURITY_POST_CHANGE_VIEW = '/post-change'
 
     CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
     CELERY_RESULT_BACKEND = 'amqp://guest:guest@localhost:5672//'

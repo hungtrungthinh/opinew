@@ -3,18 +3,14 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
-    <!-- Facebook sharing information tags -->
-    <meta property="og:title" content="subject">
-
     <title>{{ subject }}</title>
 </head>
 <body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
 <h1>{{ user_name }}, welcome to Opinew</h1>
-<p>We just registered your online shop on opinew. You can now go to <a href="http://opinew.com/login?email={{ user_email }}">http://opinew.com</a> and login to manage your reviews.</p>
+<p>We just registered your online shop on opinew. You can now go to <a href="http://opinew.com/login?email={{ user_email }}&password={{ user_temp_password }}">http://opinew.com</a> and login to see your reviews.</p>
 
 Email: {{ user_email }}
-<p>Your password is:</p>
+<p>Your <strong>temporary</strong> password is:</p>
     <h2 style="padding: 10px; background-color: yellow;">{{ user_temp_password }}</h2>
 </body>
 </html>

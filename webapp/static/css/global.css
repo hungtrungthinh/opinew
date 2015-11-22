@@ -246,7 +246,8 @@ blockquote p {
 }
 
 .rating {
-  float: left;
+  margin: 0 auto;
+  width: 300px
 }
 
 /* :not(:checked) is a filter, so that browsers that don’t support :checked don’t
@@ -264,7 +265,7 @@ blockquote p {
   overflow: hidden;
   white-space: nowrap;
   cursor: pointer;
-  font-size: 200%;
+  font-size: 400%;
   line-height: 1.2;
   color: #666;
 }
@@ -299,7 +300,7 @@ blockquote p {
 .emoji-wysiwyg-editor {
   display: block;
   width: 100%;
-  height: 6em;
+  height: 9em;
   padding: 6px 12px;
   font-size: 1.5em;
   line-height: 1.42857143;
@@ -335,11 +336,11 @@ blockquote p {
 }
 
 .nav-register-btn {
-  color:white;
+  color: white;
 }
 
 .nav-register-btn:hover {
-  color:white;
+  color: white;
   background-color: #74d474 !important;
 }
 
@@ -392,7 +393,21 @@ blockquote p {
   padding: 0 15px 0 15px;
 }
 
-#emoji-button {
-  position: relative;
-  top: 21px;
+.review-add-button {
+  height: 3em;
+  width: 60px;
+  font-size: 1.5em;
+}
+
+#giphy-container {
+  margin: 20px 0 0 20px;
+}
+
+#submit-review-form {
+  font-size: 2em;
+  height: 2em;
+}
+
+.emoji-menu {
+  z-index: 1051 !important; /* higher than bootstrap-modal 1050*/
 }

@@ -1,14 +1,16 @@
-<fieldset class="rating">
-    <input type="radio" id="star5" name="star_rating" value="5" class="form-serialize"
-           {% if request.args.get('like') == '1' %}checked="checked"{% endif %}/>
-    <label for="star5" title="Rocks!">5 stars</label>
-    <input type="radio" id="star4" name="star_rating" value="4" class="form-serialize"/>
-    <label for="star4" title="Pretty good">4 stars</label>
-    <input type="radio" id="star3" name="star_rating" value="3" class="form-serialize"/>
-    <label for="star3" title="Meh">3 stars</label>
-    <input type="radio" id="star2" name="star_rating" value="2" class="form-serialize"/>
-    <label for="star2" title="Kinda bad">2 stars</label>
-    <input type="radio" id="star1" name="star_rating" value="1" class="form-serialize"
-           {% if request.args.get('like') == '0' %}checked="checked"{% endif %}/>
-    <label for="star1" title="Sucks big time">1 star</label>
-</fieldset>
+<div class="row">
+    <fieldset class="rating">
+        <input type="radio" id="star5" name="star_rating" value="5" class="form-serialize"
+               {% if request.args.get('like') == '1' %}checked="checked"{% endif %}/>
+        <label for="star5" title="Rocks!">5 stars</label>
+        <input type="radio" id="star4" name="star_rating" value="4" class="form-serialize"/>
+        <label for="star4" title="Pretty good">4 stars</label>
+        <input type="radio" id="star3" name="star_rating" value="3" class="form-serialize"/>
+        <label for="star3" title="Meh">3 stars</label>
+        <input type="radio" id="star2" name="star_rating" value="2" class="form-serialize"/>
+        <label for="star2" title="Kinda bad">2 stars</label>
+        <input type="radio" id="star1" name="star_rating" value="1" class="form-serialize"
+               {% if request.args.get('like') == '0' %}checked="checked"{% endif %}/>
+        <label for="star1" title="Sucks big time">1 star</label>
+    </fieldset>
+</div>

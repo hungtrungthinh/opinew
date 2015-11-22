@@ -1,5 +1,6 @@
 import datetime
-from flask import jsonify
+import requests
+from flask import jsonify, current_app, request
 from flask_wtf.csrf import generate_csrf
 from flask.ext.security import login_user, current_user, login_required
 from flask.ext.security.utils import verify_password
@@ -88,6 +89,54 @@ def is_shop_owned_by_user(instance_id, *args, **kwargs):
     if not shop or not shop.owner == current_user:
         raise ProcessingException(description='Not your shop', code=401)
 
+def del_user_id(data, *args, **kwargs):
+    if 'user_id' in data:
+        del data['user_id']
+
+def check_recaptcha(data, *args, **kwargs):
+    if not current_user.is_authenticated():
+        recaptcha = data['g-recaptcha-response']
+        r = requests.post("https://www.google.com/recaptcha/api/siteverify",
+                      data={
+                          'secret': current_app.config.get("RECAPTCHA_SECRET"),
+                          'response': recaptcha,
+                          'remoteip': request.remote_addr
+                      })
+        if r and r.json():
+            if not r.json().get('success'):
+                if not current_app.debug and not current_app.testing:
+                    raise ProcessingException(description='CAPTCHA Failed :(', code=401)
+        del data['g-recaptcha-response']
+
+        user_name = data['user_name']
+        user_email = data['user_email']
+
+        if not user_name:
+            raise ProcessingException(description='User name required.', code=401)
+
+        if not user_email:
+           raise ProcessingException(description='User email required.', code=401)
+
+        user, is_new = models.User.get_or_create_by_email(email=user_email, name=user_name)
+        if not is_new:
+            raise ProcessingException(description='User %s already exists.' % user_email, code=401)
+
+        db.session.add(user)
+        db.session.commit()
+
+        from async import tasks
+        tasks.send_email.delay(recipients=[user_email],
+                               template='email/new_user.html',
+                               template_ctx={'user_email': user_email,
+                                             'user_temp_password': user.temp_password,
+                                             'user_name': user_name
+                                             },
+                               subject="Thank you for posting a review! Welcome to Opinew!")
+
+        del data['user_name']
+        del data['user_email']
+        data['user_id'] = user.id
+    return data
 
 def is_verified_review(data, *args, **kwargs):
     # Is it verified review?
@@ -116,7 +165,7 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [del_csrf, auth_func, is_verified_review],
+                           'POST': [del_csrf, del_user_id, check_recaptcha, is_verified_review],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.Review.exclude_fields(),

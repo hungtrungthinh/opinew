@@ -503,8 +503,7 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)
-        self.assertTrue('modal-review' not in response_actual.data)
-        self.assertTrue('modal-signup' in response_actual.data)
+        self.assertTrue('modal-review' in response_actual.data)
 
     def test_plugin_get_by_platform_id_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
@@ -517,7 +516,6 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)
         self.assertTrue('modal-review' in response_actual.data)
-        self.assertTrue('modal-signup' not in response_actual.data)
         self.assertTrue('Rose Castro' in response_actual.data)
         self.assertTrue('https://opinew.com/media/user/3_rose_castro.jpg' in response_actual.data)
         self.logout()
@@ -530,8 +528,7 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)
-        self.assertTrue('modal-review' not in response_actual.data)
-        self.assertTrue('modal-signup' in response_actual.data)
+        self.assertTrue('modal-review' in response_actual.data)
 
     def test_plugin_get_by_url_regex_not_logged_in(self):
         response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
@@ -541,8 +538,7 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('<h4>See all Ear rings reviews on Opinew</h4>' in response_actual.data)
         self.assertTrue('Perfect unusual accessory for a normal day' in response_actual.data)
         self.assertTrue('Write a review' in response_actual.data)
-        self.assertTrue('modal-review' not in response_actual.data)
-        self.assertTrue('modal-signup' in response_actual.data)
+        self.assertTrue('modal-review' in response_actual.data)
 
     def test_plugin_get_by_url_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)

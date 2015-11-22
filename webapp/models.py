@@ -116,6 +116,7 @@ class User(db.Model, UserMixin, Repopulatable):
             instance = cls(email=email,
                            temp_password=temp_password,
                            password=encr_password,
+                           confirmed_at=datetime.datetime.utcnow(),
                            **kwargs)
             instance.roles.append(reviewer_role)
         return instance, is_new
@@ -470,7 +471,8 @@ class Review(db.Model, Repopulatable):
 
     youtube_video = db.Column(db.String)
 
-    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None, **kwargs):
+    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None,
+                 user_id=None, **kwargs):
         self.body = unicode(body) if body else None
         self.image_url = image_url
         self.star_rating = star_rating
@@ -482,6 +484,8 @@ class Review(db.Model, Repopulatable):
         # Set automatic variables
         if current_user and current_user.is_authenticated():
             self.user = current_user
+        if user_id:
+            self.user = user_id
         self.created_ts = datetime.datetime.utcnow()
         # Is it by shop owner?
         if product_id:
@@ -489,7 +493,7 @@ class Review(db.Model, Repopulatable):
             if product and product.shop and product.shop.owner and product.shop.owner == current_user:
                 self.by_shop_owner = True
         # Should we include youtube link?
-        if Constants.YOUTUBE_WATCH_LINK in self.body or Constants.YOUTUBE_SHORT_LINK in self.body:
+        if self.body and (Constants.YOUTUBE_WATCH_LINK in self.body or Constants.YOUTUBE_SHORT_LINK in self.body):
             # we have youtube video somewhere in the body, let's extract it
             if Constants.YOUTUBE_WATCH_LINK in self.body:
                 youtube_link = Constants.YOUTUBE_WATCH_LINK

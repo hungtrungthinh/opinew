@@ -26,7 +26,7 @@
     <span class="star-rating {% if review.star_rating == 5 %}star-active{% endif %}">☆</span>
 </div>
 {% if review.body %}
-    <blockquote>
+    <blockquote class="review-body-content">
       {{ review.body }}
     </blockquote>
 {% endif %}

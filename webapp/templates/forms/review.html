@@ -1,71 +1,101 @@
 {% import "_macros.html" as macros %}
 <div class="alert" id="ajax-status" hidden xmlns="http://www.w3.org/1999/html"></div>
-<div class="row" id="product-review">
-  {% if g.mobile %}
-      <button class="btn btn-success btn-block btn-lg" onclick="launchCamera()" id="launch-mobile-camera">
-          <span class="glyphicon glyphicon-camera" style="font-size: 5em;"></span><br>
-          <span style="font-size: 1em;">take a picture</span>
-      </button>
-      <script type="text/javascript">
-          function launchCamera() {
-              $('#launch-mobile-camera').hide();
-              $('#tab-giphy').hide();
-              $('#review-image').attr('src', "/static/img/ajax-loader.gif");
-              Android.launchCamera();
-          }
-      </script>
-  {% else %}
+{% if g.mobile %}
+    <button class="btn btn-success btn-block btn-lg" onclick="launchCamera()" id="launch-mobile-camera">
+        <span class="glyphicon glyphicon-camera" style="font-size: 5em;"></span><br>
+        <span style="font-size: 1em;">take a picture</span>
+    </button>
+    <script type="text/javascript">
+        function launchCamera() {
+            $('#launch-mobile-camera').hide();
+            $('#tab-giphy').hide();
+            $('#review-image').attr('src', "/static/img/ajax-loader.gif");
+            Android.launchCamera();
+        }
+    </script>
+{% endif %}
 
+<form class="action" method="post" action="{{ g.constants.API_V1_URL_PREFIX }}/review" id="review-form">
+  {#    VERIFICATION STUFF #}
+    <input type="hidden" name="_csrf_token" class="form-serialize" value="{{ csrf_token() }}">
+    <input type="hidden" name="api_next" value="{{ url_for('client.reviews') }}"/>
+  {#   / VERIFICATION STUFF #}
+
+  {#    SELECT PRODUCT IF NOT THERE #}
+  {% if request.args.get('review_request_id') and request.args.get('review_request_token') %}
+      <input type="hidden" name="review_request_id" class="form-serialize"
+             value="{{ request.args.get('review_request_id') }}">
+      <input type="hidden" name="review_request_token" class="form-serialize"
+             value="{{ request.args.get('review_request_token') }}">
   {% endif %}
+  {% if product %}
+      <input type="hidden" class="form-serialize" name="product_id" value="{{ product.id }}">
+  {% else %}
+      <div class="form-group">
+          <label for="sel_product">Select product</label>
+          <select class="form-control form-serialize" name="product_id" id="sel_product">
+            {% for product in products %}
+                <option value="{{ product.id }}">{{ product.name }}</option>
+            {% endfor %}
+          </select>
+      </div>
+  {% endif %}
+    <br>
+  {# /SELECT PRODUCT IF NOT THERE #}
 
-    <form class="action" method="post" action="{{ g.constants.API_V1_URL_PREFIX }}/review" id="review-form">
-        <input type="hidden" name="_csrf_token" class="form-serialize" value="{{ csrf_token() }}">
-        <input type="hidden" name="api_next" value="{{ url_for('client.reviews') }}"/>
-      {% if request.args.get('review_request_id') and request.args.get('review_request_token') %}
-          <input type="hidden" name="review_request_id" class="form-serialize"
-                 value="{{ request.args.get('review_request_id') }}">
-          <input type="hidden" name="review_request_token" class="form-serialize"
-                 value="{{ request.args.get('review_request_token') }}">
-      {% endif %}
-      {% if product %}
-          <input type="hidden" class="form-serialize" name="product_id" value="{{ product.id }}">
-      {% else %}
-          <div class="form-group">
-              <label for="sel_product">Select product</label>
-              <select class="form-control form-serialize" name="product_id" id="sel_product">
-                {% for product in products %}
-                    <option value="{{ product.id }}">{{ product.name }}</option>
-                {% endfor %}
-              </select>
-          </div>
-      {% endif %}
-        <br>
+  {% include "forms/review_stars.html" %}
 
-        <div class="row">
-          {% include "forms/review_stars.html" %}
-            <img src="" class="img-thumbnail img-responsive"
-                 style="max-height:200px; max-width:300px; margin: 10px 0 10px 0;"
-                 hidden id="review-image"/>
-        </div>
-    </form>
     <div class="row">
-
-        <div class="col-xs-10" style="padding:0;">
+        <div id="review-img-container">
+            <img src="" class="img-thumbnail img-responsive img-review" hidden id="review-image"/>
           {{ review_form.image_url(class="form-control form-serialize hidden") }}<br>
-          {{ review_form.body(id='textarea-body',
-              class="form-control form-serialize",
-              placeholder='Write your review...') }}<br>
+        </div>
+        <div class="col-xs-10" id="review-body-container" style="padding:0;">
+          {{ review_form.body(id='textarea-body', class="form-control form-serialize", placeholder='Write your review...') }}<br>
         </div>
         <div class="col-xs-2">
-            <a id="emoji-button" class="btn btn-default">
+            <a id="emoji-button" class="btn btn-default review-add-button ">
                 <img src="http://twemoji.maxcdn.com/36x36/1f602.png"/>
+            </a>
+            <br>
+            <a id="image-button" class="btn btn-default review-add-button ">
+                <span class="glyphicon glyphicon-camera"></span><br>
+                <small>Pic</small>
+            </a>
+            <br>
+            <a id="giphy-button" class="btn btn-default review-add-button ">
+                <span class="glyphicon glyphicon glyphicon-picture"></span><br>
+                <small>GIFs</small>
             </a>
         </div>
     </div>
-  {% include "addons/review_tabs.html" %}
-<br>
-  <button id="submit-review-form" class="btn btn-primary form-control">
-      Post Review
-  </button>
+</form>
+<div class="row">
 
+  {% include "forms/review_giphy.html" %}
+  {% include "forms/review_image_upload.html" %}
 </div>
+
+{% if not current_user.is_authenticated() %}
+    <br>
+    <div class="input-group">
+        <span class="input-group-addon" id="basic-addon1">Name: </span>
+        <input type="text" class="form-control" id="input-user-name" name="name"
+               placeholder="Please type your name here"/>
+    </div>
+    <br>
+    <div class="input-group">
+        <span class="input-group-addon" id="basic-addon1">Email: </span>
+        <input type="email" class="form-control" id="input-user-email" name="email"
+               placeholder="Please type your email here"/>
+    </div>
+    <br>
+    <div class="g-recaptcha" data-sitekey="6LdafxETAAAAABCLBbhvuRX-qhgJH8SJOCOPf5-C"></div>
+    <br>
+{% endif %}
+<div class="row">
+    <button id="submit-review-form" class="btn btn-primary form-control">
+        Post Review
+    </button>
+</div>
+

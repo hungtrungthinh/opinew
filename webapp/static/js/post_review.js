@@ -6,8 +6,16 @@ function inIframe() {
   }
 }
 
-$('input[type=file]').change(function (e) {
-  $('#review-image').attr('src', "/static/img/ajax-loader.gif");
+$('#giphy-button').on('click', function() {
+  $('#giphy-container').slideToggle();
+});
+
+$('#image-button').on('click', function() {
+    $('#review-img-upload-input').trigger('click');
+});
+
+$('#review-img-upload-input').change(function (e) {
+  setImageUrl("/static/img/ajax-loader.gif");
   e.preventDefault(); // Prevent the form from submitting via the browser.
   // select the form and submit
   var form = $(this).parent()[0];
@@ -29,7 +37,8 @@ $('input[type=file]').change(function (e) {
 });
 
 function setImageUrl(imageUrl) {
-  console.log('fdsafs');
+  $('#review-img-container').addClass('col-md-4');
+  $('#review-body-container').removeClass('col-md-10').addClass('col-md-6');
   $('#image_url').val(imageUrl);
   $('#review-image').attr('src', imageUrl).show();
 }
@@ -60,7 +69,7 @@ function giphyLabel(button) {
 }
 
 $('#review-giphy-form').on("submit", function (e) {
-  $('#giphy-images').attr('src', "/static/img/ajax-loader.gif");
+  setImageUrl("/static/img/ajax-loader.gif");
   e.preventDefault(); // Prevent the form from submitting via the browser.
   // select the form and submit
   var $form = $(this);
@@ -76,6 +85,16 @@ $('#submit-review-form').bind('click', function (e) {
     formData[this.name] = $(this).val();
   });
   formData['star_rating'] = $('input:radio[name=star_rating]:checked').val();
+  if ($('#g-recaptcha-response')) {
+    formData['g-recaptcha-response'] = $('#g-recaptcha-response').val();
+  }
+  if ($('#input-user-name')) {
+    formData['user_name'] = $('#input-user-name').val();
+  }
+  if ($('#input-user-email')) {
+    formData['user_email'] = $('#input-user-email').val();
+  }
+
   $.ajax({
     type: $form.attr('method'),
     url: $form.attr('action'),
@@ -110,8 +129,9 @@ $('#submit-review-form').bind('click', function (e) {
 
 $.emojiarea.path = 'http://twemoji.maxcdn.com/36x36/';
 $.emojiarea.icons = EMOJIS;
-$('textarea').emojiarea({button: '#emoji-button'});
+$('#textarea-body').emojiarea({button: '#emoji-button'});
 
 $(document).ready(function () {
+  $('.emoji-wysiwyg-editor').focus();
   getGiphyImages($('#review-giphy-form'));
 });

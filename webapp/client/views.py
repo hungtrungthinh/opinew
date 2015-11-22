@@ -209,6 +209,8 @@ def index():
             return redirect(url_for('client.reviews'))
         return render_template('mobile_index.html', login_user_form=login_form)
     if current_user.is_authenticated():
+        if current_user.temp_password:
+           return redirect('/change')
         if current_user.has_role(Constants.ADMIN_ROLE):
             return redirect('/admin')
         elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
@@ -376,7 +378,6 @@ def read_notification():
 
 @client.route('/add-review', methods=['GET'])
 @catch_exceptions
-@login_required
 def add_review():
     """
     /add_review renders a form for logged in users to post a review.
@@ -584,3 +585,13 @@ def send_notification(review_request_id):
                            subject=subject)
     flash('email to %s sent' % recipients)
     return redirect(url_for('client.shop_dashboard'))
+
+
+@client.route('/post-change')
+@login_required
+def post_change():
+    if current_user.is_authenticated() and current_user.temp_password:
+        current_user.temp_password = None
+        db.session.add(current_user)
+        db.session.commit()
+    return redirect(url_for('client.index'))
