@@ -1,0 +1,61 @@
+<div class="container"
+         style="padding: 10px 0 5px 10px; position: fixed; z-index: 50; background-color: rgba(44, 84, 168, 1);; display:block; width: 100%;">
+        <div class="row">
+            <div class="col-xs-2">
+                <a href="/" id="nav-opinew-diamond" style="margin: 10px;">
+                    <img alt="Opinew logo" id="logo-image"
+                         src="{{ url_for('static', filename='img/opinew_diamond.png') }}">
+                </a>
+            </div>
+            <div class="col-xs-8">
+              {% if current_user.is_authenticated() %}
+                {% if product %}
+                    <a href="{{ url_for('client.add_review', product_id=product.id) }}" class="btn btn-primary"
+                       style="float:right;">
+                        <span class="glyphicon glyphicon-edit"></span> Review
+                    </a>
+                {% endif %}
+                  <div class="col-xs-6">
+                      <span id="nav-notifications-btn" class="glyphicon glyphicon-globe" style="font-size: 30px"></span>
+                        {% if current_user.unread_notifications() %}
+                            <span class="label label-danger"
+                                  style="margin: 18px 0 0 -13px; z-index: 0; position: relative; float: right;">
+                              {{ current_user.unread_notifications() }}
+                            </span>
+                        {% endif %}
+                  </div>
+                  <div class="col-xs-6">
+                    {% if  current_user.image_url %}
+                      {% set user_image_url = current_user.image_url %}
+                    {% elif current_user.email | gravatar %}
+                      {% set user_image_url = current_user.email | gravatar %}
+                    {% else %}
+                      {% set user_image_url = url_for('media.get_user_image', filename='%s' % g.constants.DEFAULT_PROFILE_PICTURE) %}
+                    {% endif %}
+                    <span id="nav-user-profile-btn" class="mobile-menu-profile-pic"
+                        role="button"
+                        aria-expanded="false">
+                      <img alt="{{ current_user.name }} profile picture" class="navbar-profile-pic  pull-left"
+                           src="{{ user_image_url }}"/>
+                      <span class="hidden-xs navbar-name">
+                          {{ current_user.name }}
+                        {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
+                            <br><span class="text-muted">(shop owner)</span>
+                        {% endif %}
+                      </span>
+                    </span>
+                  </div>
+
+
+
+              {% else %}
+                  <a class="btn btn-success" href="{{ url_for('security.register') }}" style="float:right;">Register</a>
+                  <a class="btn btn-default" href="{{ url_for('security.login') }}" style="float:right;">Log in</a>
+              {% endif %}
+            </div>
+            <div class="col-xs-2">
+                <span class="glyphicon glyphicon-menu-hamburger" id="nav-settings-btn"></span>
+            </div>
+        </div>
+    </div>
+    <div style="height: 50px;"></div>

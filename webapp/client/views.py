@@ -206,8 +206,14 @@ def index():
     if 'mobile' in g and g.mobile:
         login_form = LoginForm()
         if current_user.is_authenticated():
-            return redirect(url_for('client.reviews'))
-        return render_template('mobile_index.html', login_user_form=login_form)
+            page = 1
+            start = Constants.REVIEWS_PER_PAGE * (page - 1)
+            end = start + Constants.REVIEWS_PER_PAGE
+            reviews = Review.get_latest(start, end)
+            return render_template('mobile/index.html', page_title="Reviews - Opinew",
+                              page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
+                              reviews=reviews, page=page)
+        return render_template('mobile/login.html', login_user_form=login_form)
     if current_user.is_authenticated():
         if current_user.has_role(Constants.ADMIN_ROLE):
             return redirect('/admin')
@@ -230,6 +236,16 @@ def get_by_review_request_token(review_request_token):
 
 @client.route('/reviews')
 def reviews():
+    if 'mobile' in g and g.mobile:
+        page = request.args.get('page', '1')
+        page = int(page) if page.isdigit() else 1
+        start = Constants.REVIEWS_PER_PAGE * (page - 1)
+        end = start + Constants.REVIEWS_PER_PAGE
+        reviews = Review.get_latest(start, end)
+        return render_template('mobile/reviews.html',
+                               page_title="Reviews - Opinew",
+                               page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
+                               reviews=reviews, page=page)
     page = request.args.get('page', '1')
     page = int(page) if page.isdigit() else 1
     start = Constants.REVIEWS_PER_PAGE * (page - 1)
@@ -239,6 +255,25 @@ def reviews():
                            page_title="Reviews - Opinew",
                            page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
                            reviews=reviews, page=page)
+
+
+@client.route('/settings')
+def settings():
+    if 'mobile' in g and g.mobile:
+        return render_template('mobile/settings.html')
+
+@client.route('/notifications')
+def notifications():
+    if 'mobile' in g and g.mobile:
+        return render_template('mobile/notifications.html')
+
+
+@client.route('/user_profile')
+def user_profile():
+    if 'mobile' in g and g.mobile:
+        return render_template('mobile/user_profile.html')
+
+
 
 
 @client.route('/dashboard')

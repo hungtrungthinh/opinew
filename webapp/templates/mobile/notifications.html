@@ -1,0 +1,16 @@
+<div class="list-group settings-menu">
+          {% if not current_user.notifications %}
+              <span class="list-group-item">
+                <h4 class="list-group-item-heading">No notifications yet...</h4>
+              </span>
+          {% else %}
+            {% for notification in current_user.get_notifications(0, g.constants.NOTIFICATIONS_INITIAL) %}
+                <a href="{{ url_for('.read_notification', id=notification.id, next=notification.url) }}"
+                   class="list-group-item">
+                    <li style="padding:10px; {% if not notification.is_read %} background-color: #eef;{% endif %}">
+                      {{ notification.content|safe }}
+                    </li>
+                </a>
+            {% endfor %}
+          {% endif %}
+</div>

@@ -134,12 +134,13 @@ body {
   float: left;
   max-height: 40px;
   max-width: 40px;
+  margin-right: 5px;
 }
 
 .review-author-name {
   font-size: 1em;
   font-weight: bold;
-  margin: 0 0 0 50px;
+  margin: 0 0 0 10px;
 }
 
 .review-time-posted {
@@ -202,7 +203,6 @@ footer .nav > li > a:hover {
 
 .navbar-profile-pic {
   height: 30px;
-  margin: 3px 10px 0 0;
 }
 
 .navbar-name {
@@ -332,6 +332,11 @@ blockquote p {
     font-size: 12px;
 }
 
+.reviews-container{
+    padding-left: 1px;
+    padding-right: 1px;
+}
+
 .strikethrough {
   position: relative;
 }
@@ -365,4 +370,21 @@ blockquote p {
 
 .small-logo {
   height: 50px;
+}
+
+.no-padding {
+    padding: 0px;
+}
+
+@media all and (max-width: 768px) {
+    .big-screen{display:none;}
+    .small-screen{display:inline;}
+}
+@media all and (min-width: 768px) {
+    .big-screen{display:block;}
+    .small-screen{display:none;}
+}
+
+@media all and (min-width: 720px) {
+
 }
