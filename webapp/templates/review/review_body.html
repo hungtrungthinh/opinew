@@ -1,6 +1,7 @@
 {% if show_product_info %}
     <div>
-        <a {% if g.mobile %}class="btn btn-default"{% endif %} href="{{ url_for('client.get_product', product_id=review.product.id) }}">
+        <a {% if g.mobile %}class="btn btn-default"{% endif %}
+           href="{{ url_for('client.get_product', product_id=review.product.id) }}">
             <h4>
                 <b>{{ review.product.name }}</b>
                 from
@@ -24,6 +25,8 @@
     <span class="star-rating {% if review.star_rating >= 4 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating == 5 %}star-active{% endif %}">☆</span>
 </div>
-<blockquote>
-    {{ review.body }}
-</blockquote>
+{% if review.body %}
+    <blockquote>
+      {{ review.body }}
+    </blockquote>
+{% endif %}

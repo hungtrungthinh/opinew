@@ -68,9 +68,8 @@ $('#review-giphy-form').on("submit", function (e) {
 });
 
 
-$('#review-form').bind('submit', function (e) {
-  e.preventDefault();
-  var $form = $(this);
+$('#submit-review-form').bind('click', function (e) {
+  var $form = $("#review-form");
   var formData = {};
 
   $form.find(".form-serialize").each(function () {

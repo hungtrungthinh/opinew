@@ -38,6 +38,6 @@
 
 {% block script %}
     <link rel="stylesheet" href="/static/css/jquery.emojiarea.css">
-    <script src="/static/js/jquery.emojiarea.js"></script>
-    <script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
+    <script defer src="/static/js/jquery.emojiarea.js"></script>
+    <script defer src="{{ url_for('static', filename='js/post_review.js') }}"></script>
 {% endblock %}

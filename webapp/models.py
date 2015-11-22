@@ -470,9 +470,8 @@ class Review(db.Model, Repopulatable):
 
     youtube_video = db.Column(db.String)
 
-    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None,
-                 **kwargs):
-        self.body = unicode(body)
+    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None, **kwargs):
+        self.body = unicode(body) if body else None
         self.image_url = image_url
         self.star_rating = star_rating
         if shop_id and product_id:

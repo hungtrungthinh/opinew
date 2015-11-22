@@ -299,15 +299,14 @@ blockquote p {
 .emoji-wysiwyg-editor {
   display: block;
   width: 100%;
-  height: 68px;
+  height: 6em;
   padding: 6px 12px;
-  font-size: 14px;
+  font-size: 1.5em;
   line-height: 1.42857143;
   color: #555;
   background-color: #fff;
   background-image: none;
   border: 1px solid #ccc;
-  border-radius: 4px;
   -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
   -webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;
@@ -320,12 +319,14 @@ blockquote p {
 }
 
 .btn-write-review {
+  color: white;
   position: relative;
   right: 0;
 }
 
 .btn-write-review:hover {
-  background-color: #14676c;
+  color: white;
+  background-color: #14676c !important;
 }
 
 .per-month-price-plan {
@@ -377,4 +378,21 @@ blockquote p {
 
 .small-logo {
   height: 50px;
+}
+
+.modal-dialog {
+  width: initial;
+}
+
+.modal-content {
+  border-radius: initial;
+}
+
+.modal {
+  padding: 0 15px 0 15px;
+}
+
+#emoji-button {
+  position: relative;
+  top: 21px;
 }
