@@ -60,5 +60,6 @@ $(document).ready(function () {
     }
     $(this).html(finalText);
   });
+  loadAsync();
 
 });
