@@ -1,4 +1,4 @@
-<a {% if g.mobile %}class="btn btn-default"{% endif %} href="{{ url_for('client.get_product', product_id=review.product.id) }}">
+<a href="{{ url_for('client.get_product', product_id=review.product.id) }}">
                 <span>
                     <b>{{ review.product.name }}</b>
                     from

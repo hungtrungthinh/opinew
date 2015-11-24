@@ -97,6 +97,10 @@ class User(db.Model, UserMixin, Repopulatable):
     def get_by_email_no_exception(cls, email):
         return cls.query.filter_by(email=email).first()
 
+    @property
+    def reviews_count(self):
+        return len(self.reviews)
+
     @classmethod
     def get_by_email(cls, email):
         user = cls.query.filter_by(email=email).first()
@@ -639,6 +643,11 @@ class Review(db.Model, Repopulatable):
     @classmethod
     def get_latest(cls, start, end):
         reviews = cls.query.order_by(Review.id.desc()).all()[start:end]
+        return reviews
+
+    @classmethod
+    def get_by_user(cls, user_id):
+        reviews = cls.query.filter_by(user_id=user_id).order_by(Review.id.desc()).all()
         return reviews
 
 

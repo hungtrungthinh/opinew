@@ -32,7 +32,7 @@
             {% endif %}</span>
 
             {% if review.image_url or review.youtube_video %}
-            <div class="col-sm-12 no-padding">
+            <div class="col-sm-12">
                 {% include "review/review_image.html" %}
             </div>
             {% endif %}
@@ -51,39 +51,3 @@
 
     </div>
 </div>
-
-
-
-{#<div class="review-container">#}
-{#    <div class="media">#}
-{#    <div class="col-xs-3 no-padding">#}
-{#                  {% include "review/review_author.html" %}#}
-{#                </div>#}
-{#    <div class="col-xs-9">#}
-{#        {% if show_product_info %}#}
-{#        <div class="col-xs-12 no-padding">#}
-{#            <a {% if g.mobile %}class="btn btn-default"{% endif %} href="{{ url_for('client.get_product', product_id=review.product.id) }}">#}
-{#                <h5>#}
-{#                    <b>{{ review.product.name }}</b>#}
-{#                    from#}
-{#                    <b>{{ review.product.shop.name }}</b>#}
-{#                </h5>#}
-{#            </a>#}
-{#        </div>#}
-{#        {% endif %}#}
-{#    </div>#}
-{#      {% if review.image_url or review.youtube_video %}#}
-{#          <div class="col-sm-4">#}
-{#            {% include "review/review_image.html" %}#}
-{#          </div>#}
-{#      {% endif %}#}
-{#        <div class="{% if review.image_url or review.youtube_video%}col-sm-8{% else %}col-md-12{% endif %}">#}
-{#          {% include "review/review_body.html" %}#}
-{#            <div class="row">#}
-{#                <div class="col-sm-12">#}
-{#                  {% include "review/interaction.html" %}#}
-{#                </div>#}
-{#            </div>#}
-{#        </div>#}
-{#    </div>#}
-{#</div>#}

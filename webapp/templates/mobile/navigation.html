@@ -9,20 +9,17 @@
             </div>
             <div class="col-xs-8">
               {% if current_user.is_authenticated() %}
-                {% if product %}
-                    <a href="{{ url_for('client.add_review', product_id=product.id) }}" class="btn btn-primary"
-                       style="float:right;">
-                        <span class="glyphicon glyphicon-edit"></span> Review
-                    </a>
-                {% endif %}
                   <div class="col-xs-6">
-                      <span id="nav-notifications-btn" class="glyphicon glyphicon-globe" style="font-size: 30px"></span>
+                    <a href="{{ url_for('client.notifications') }}">
+                        <span id="nav-notifications-btn" class="glyphicon glyphicon-globe" style="font-size: 30px"></span>
                         {% if current_user.unread_notifications() %}
                             <span class="label label-danger"
                                   style="margin: 18px 0 0 -13px; z-index: 0; position: relative; float: right;">
                               {{ current_user.unread_notifications() }}
                             </span>
                         {% endif %}
+                    </a>
+
                   </div>
                   <div class="col-xs-6">
                     {% if  current_user.image_url %}
@@ -32,18 +29,21 @@
                     {% else %}
                       {% set user_image_url = url_for('media.get_user_image', filename='%s' % g.constants.DEFAULT_PROFILE_PICTURE) %}
                     {% endif %}
-                    <span id="nav-user-profile-btn" class="mobile-menu-profile-pic"
-                        role="button"
-                        aria-expanded="false">
-                      <img alt="{{ current_user.name }} profile picture" class="navbar-profile-pic  pull-left"
-                           src="{{ user_image_url }}"/>
-                      <span class="hidden-xs navbar-name">
-                          {{ current_user.name }}
-                        {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
-                            <br><span class="text-muted">(shop owner)</span>
-                        {% endif %}
-                      </span>
-                    </span>
+                    <a href="{{ url_for('client.user_profile', user_id=current_user.id) }}">
+                        <span id="nav-user-profile-btn" class="mobile-menu-profile-pic"
+                            role="button"
+                            aria-expanded="false">
+                          <img alt="{{ current_user.name }} profile picture" class="navbar-profile-pic  pull-left"
+                               src="{{ user_image_url }}"/>
+                          <span class="hidden-xs navbar-name">
+                              {{ current_user.name }}
+                            {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
+                                <br><span class="text-muted">(shop owner)</span>
+                            {% endif %}
+                          </span>
+                        </span>
+                    </a>
+
                   </div>
 
 
@@ -54,7 +54,9 @@
               {% endif %}
             </div>
             <div class="col-xs-2">
-                <span class="glyphicon glyphicon-menu-hamburger" id="nav-settings-btn"></span>
+                <a href="{{ url_for('client.settings') }}">
+                    <span class="glyphicon glyphicon-menu-hamburger" id="nav-settings-btn"></span>
+                </a>
             </div>
         </div>
     </div>

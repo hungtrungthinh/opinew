@@ -8,3 +8,11 @@
     font-size: 30px;
     padding-right: 10px;
 }
+
+#nav-notifications-btn.a:link {
+    color: #000000;
+}
+
+#nav-notifications-btn.a:active {
+    color: gray;
+}

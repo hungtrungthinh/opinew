@@ -214,7 +214,7 @@ def index():
             return render_template('mobile/index.html', page_title="Reviews - Opinew",
                                    page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
                                    reviews=reviews, page=page)
-        return render_template('mobile/login.html', login_user_form=login_form)
+        return redirect(url_for('client.reviews'))
     if current_user.is_authenticated():
         if current_user.temp_password:
             return redirect('/change')
@@ -245,7 +245,7 @@ def reviews():
         start = Constants.REVIEWS_PER_PAGE * (page - 1)
         end = start + Constants.REVIEWS_PER_PAGE
         reviews = Review.get_latest(start, end)
-        return render_template('mobile/reviews.html',
+        return render_template('reviews.html',
                                page_title="Reviews - Opinew",
                                page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
                                reviews=reviews, page=page)
@@ -274,11 +274,23 @@ def notifications():
     return redirect(url_for('client.index'))
 
 
-@client.route('/user_profile')
-def user_profile():
+@client.route('/user_profile/<int:user_id>')
+def user_profile(user_id):
     if 'mobile' in g and g.mobile:
-        return render_template('mobile/user_profile.html')
-    return redirect(url_for('client.index'))
+        page = 1
+        user = User.get_by_id(user_id)
+        reviews = Review.get_by_user(user_id)
+        return render_template('mobile/user_profile.html',
+                               page_title="Reviews - Opinew",
+                               page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
+                               reviews=reviews, page=page, user=user)
+    page = 1
+    user = User.get_by_id(user_id)
+    reviews = Review.get_by_user(user_id)
+    return render_template('mobile/user_profile.html',
+                            page_title="Reviews - Opinew",
+                            page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
+                            reviews=reviews, page=page, user=user)
 
 
 @client.route('/dashboard')

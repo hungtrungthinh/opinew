@@ -16,13 +16,32 @@
     {% set user_image_url = url_for('media.get_user_image', filename=g.constants.DEFAULT_PROFILE_PICTURE) %}
   {% endif %}
 {% endif %}
-
 {% if user_image_url %}
-    <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
+    {% if review.user_id %}
+        <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
+            <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
+        </a>
+    {% else %}
+            <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
+    {% endif %}
 {% endif %}
-<div class="review-author-name">{{ user_name }} <span class="small-screen text-muted">{% if show_product_info %}
+<div class="review-author-name">
+    {% if review.user_id %}
+        <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
+            {{ user_name }}
+        </a>
+    {% else %}
+            {{ user_name }}
+    {% endif %}
+     {% if show_product_info %}
+         <span class="small-screen text-muted">
                 reviewed {% include "review/product_name.html" %}
-            {% endif %}</span></div>
+         </span>
+     {% endif %}
+</div>
 
-
-<div>1 reviews</div>
+{% if review.user %}
+        <div>{{ review.user.reviews_count }} reviews</div>
+    {% else %}
+        <div>&nbsp;</div>
+{% endif %}

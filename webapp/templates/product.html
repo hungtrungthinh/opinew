@@ -23,6 +23,7 @@
                       </div>
                   {% endif %}
                 <h3>Reviews</h3>
+                <a class="btn btn-default btn-block btn-info" style="margin-bottom: 15px" href="{{ url_for('client.add_review', product_id=product.id) }}">Add a review</a>
               {% if not reviews %}
                   <h4>No reviews yet</h4>
               {% else %}
@@ -30,7 +31,7 @@
                   {% include "review/review.html" %}
                 {% endfor %}
               {% endif %}
-            <a class="btn btn-default btn-block" href="{{ url_for('client.add_review', product_id=product.id) }}">Add a review</a>
+
             </div>
         </div>
     </div>
