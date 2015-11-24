@@ -72,7 +72,10 @@ class API(object):
         shipment_dt = order.shipment_timestamp
 
         now = datetime.datetime.utcnow()
-        diff = now - shipment_dt
+        if shipment_dt:
+            diff = now - shipment_dt
+        else:
+            diff = now - now
 
         # Delivery timestamp = shipment + 5
         delivery_dt = shipment_dt + datetime.timedelta(days=Constants.DIFF_SHIPMENT_DELIVERY)

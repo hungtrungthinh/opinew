@@ -256,7 +256,7 @@ class Slot(db.Model, Repopulatable):
     customer = db.relationship("Customer", backref=db.backref("customer"), uselist=False)
 
     def __repr__(self):
-        return '<Slot %r>' % self.shop
+        return '<Slot %r>' % self.customer
 
 
 class Plan(db.Model, Repopulatable):
