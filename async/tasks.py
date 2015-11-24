@@ -14,6 +14,11 @@ this_celery = make_celery(app)
 def add_together(a, b):
     return a + b
 
+@this_celery.task()
+def delete(a, b):
+    # used for testing failing tasks like division/0
+    return a / b
+
 
 @this_celery.task()
 def send_email(*args, **kwargs):

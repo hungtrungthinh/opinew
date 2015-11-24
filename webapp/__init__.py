@@ -99,8 +99,7 @@ def create_app(option):
         app.error_handler_spec[None][code] = make_json_error
 
     configure_uploads(app, (user_images, review_images, shop_images, ))
-
-    ADMINS = ['danieltcv@gmail.com']
+    admins = [email for name, email in config.ADMINS]
     if not app.debug and not app.testing:
         @app.errorhandler(500)
         def internal_error(exception):
@@ -109,7 +108,7 @@ def create_app(option):
 
         mail_handler = SMTPHandler(app.config.get('MAIL_SERVER'),
                                    'server-error@opinew.com',
-                                   ADMINS,
+                                   admins,
                                    'YourApplication Failed',
                                    credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')))
         mail_handler.setLevel(logging.ERROR)

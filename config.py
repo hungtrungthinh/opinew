@@ -51,12 +51,17 @@ class Constants(object):
 
 
 class Config(object):
-    MAIL_SERVER = "smtpout.europe.secureserver.net"
+    ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),
+              ("Tomasz Sadowski", 'tomsz.sadowski@gmail.com')]
+
+    # Double assignment because of selery
+    EMAIL_HOST = MAIL_SERVER = "smtpout.europe.secureserver.net"
+    SERVER_EMAIL = 'celery-error@opinew.com'  # celery
     MAIL_DEFAULT_SENDER = 'team@opinew.com'
-    MAIL_PORT = 465
-    MAIL_USE_SSL = True
-    MAIL_USERNAME = "team@opinew.com"
-    MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
+    EMAIL_PORT = MAIL_PORT = 465
+    EMAIL_USE_SSL = MAIL_USE_SSL = True
+    EMAIL_HOST_USER = MAIL_USERNAME = "team@opinew.com"
+    EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
 
     SECURITY_SEND_REGISTER_EMAIL = False
 
@@ -88,6 +93,7 @@ class Config(object):
 
     CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
     CELERY_RESULT_BACKEND = 'amqp://guest:guest@localhost:5672//'
+    CELERY_SEND_TASK_ERROR_EMAILS = True
 
     STRIPE_PUBLISHABLE_API_KEY = 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_TEST_API_KEY
