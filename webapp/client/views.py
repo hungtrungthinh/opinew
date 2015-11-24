@@ -114,9 +114,10 @@ def shopify_plugin_callback():
     db.session.commit()
 
     # asyncronously create all products, orders and webhooks
-    from async import tasks
-    tasks.create_shopify_shop.delay(shopify_api=shopify_api,
-                                    shop_id=shop.id)
+    if not current_app.config.get('TESTING'):
+        from async import tasks
+        tasks.create_shopify_shop.delay(shopify_api=shopify_api,
+                                        shop_id=shop.id)
 
     # Login shop_user
     login_user(shop_owner)

@@ -69,13 +69,10 @@ class API(object):
         return order
 
     def update_order_status(self, order):
-        shipment_dt = order.shipment_timestamp
-
         now = datetime.datetime.utcnow()
-        if shipment_dt:
-            diff = now - shipment_dt
-        else:
-            diff = now - now
+        shipment_dt = order.shipment_timestamp or now
+
+        diff = now - shipment_dt
 
         # Delivery timestamp = shipment + 5
         delivery_dt = shipment_dt + datetime.timedelta(days=Constants.DIFF_SHIPMENT_DELIVERY)
