@@ -60,16 +60,23 @@ To push to production server `opinew.com`:
 
 1. Connect to opinew.com via ssh
 
-    ssh opinew_server@opinew_api.com
+    ssh opinew_server@opinew.com
 
 1. Dump the db
 
-    pg_dump -U opinew_user -h opinew.com opinew > dbexport.pgsql
+    pg_dump -U opinew_user -h localhost opinew > ~/dbexport.pgsql
 
 1. Back on local, copy
 
-    scp opinew_server@opinew.com:/home/opinew_server/opinew_ecommerce_api/dbexport.pgsql ./
+    scp opinew_server@opinew.com:/home/opinew_server/dbexport.pgsql ./
+
+1. Recreate db - Disconnect from all db instances, login as postgres user and recreate opinew
+    
+    sudo su - postgres
+    dropdb opinew
+    createdb opinew
 
 1. Import locally 
 
-    psql -U opinew_user -h localhost opinew_dev < dbexport.pgsql
+    psql -U opinew_user -h localhost opinew < dbexport.pgsql
+    

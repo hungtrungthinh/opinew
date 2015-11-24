@@ -7,8 +7,10 @@ from webapp import review_images, user_images
 def upload_user_image():
     if 'image' in request.files:
         filename = user_images.save(request.files['image'])
-        return jsonify({'image_url': g.config.get('OPINEW_API_SERVER') + url_for('media.get_user_image', filename=filename)})
+        return jsonify(
+            {'image_url': g.config.get('OPINEW_API_SERVER') + url_for('media.get_user_image', filename=filename)})
     return '', 400
+
 
 @media.route('/user/', defaults={'filename': None})
 @media.route('/user/<path:filename>')
@@ -22,7 +24,8 @@ def get_user_image(filename):
 def upload_review_image():
     if 'image' in request.files:
         filename = review_images.save(request.files['image'])
-        return jsonify({'image_url': g.config.get('OPINEW_API_SERVER') + url_for('media.get_review_image', filename=filename)})
+        return jsonify(
+            {'image_url': g.config.get('OPINEW_API_SERVER') + url_for('media.get_review_image', filename=filename)})
     return '', 400
 
 
@@ -32,3 +35,20 @@ def get_review_image(filename):
     if not filename:
         abort(404)
     return send_from_directory(g.config.get('UPLOADED_REVIEWIMAGES_DEST'), filename)
+
+
+@media.route('/upload/shop', methods=['POST'])
+def upload_shop_image():
+    if 'image' in request.files:
+        filename = review_images.save(request.files['image'])
+        return jsonify(
+            {'image_url': g.config.get('OPINEW_API_SERVER') + url_for('media.get_shop_image', filename=filename)})
+    return '', 400
+
+
+@media.route('/shop/', defaults={'filename': None})
+@media.route('/shop/<path:filename>')
+def get_shop_image(filename):
+    if not filename:
+        abort(404)
+    return send_from_directory(g.config.get('UPLOADED_SHOPIMAGES_DEST'), filename)

@@ -22,7 +22,7 @@ def auth_func(*args, **kwargs):
         raise ProcessingException(description='Not authenticated!', code=401)
 
 
-def req_shop_owner(*args, **kwargs):
+def req_shop_owner(data, *args, **kwargs):
     if not current_user.is_authenticated() or not current_user.has_role(Constants.SHOP_OWNER_ROLE):
         raise ProcessingException(description='Not authenticated!', code=401)
 

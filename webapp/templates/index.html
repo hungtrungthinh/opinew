@@ -9,9 +9,9 @@
                     <h1>Opinew - Photo Product Reviews</h1>
 
                     <p class="lead">Add a product reviews widget to any site in minutes with no coding required.</p>
-                    <a href="{{ url_for('security.register') }}" class="btn btn-block btn-primary btn-lg">Get
-                        started</a>
-                    <small class="text-center">7 days free trial</small>
+                    <a href="{{ url_for('security.register', shop_owner=1) }}" class="btn btn-block btn-primary btn-lg">Get
+                        started - {{ slots_remaining }} slots available!</a>
+                    <small class="text-center">30 days free trial</small>
                 </div>
                 <div class="col-sm-6">
                     <h1 class="text-center v-center">
@@ -52,6 +52,27 @@
                     </div>
                 </div>
             </div>
+            <div class="row col-sm-offset-1">
+                <h2>Choose your slot:</h2>
+              {% for slot in slots %}
+                {% if not slot.customer %}
+                    <a href="{{ url_for('security.register', shop_owner=1, slot_number=slot.number, slot_color=slot.color) }}">
+                {% elif slot.display_url %}
+                    <a href="{{ slot.display_url }}" target="_blank">
+                    {% else %}
+                {% endif %}
+              <div class="col-xs-4 col-sm-2 col-md-2 slot opinew-{{ slot.color }}">
+                {% if slot.customer %}
+                  {% if slot.customer.user.image_url %}
+                      <img class="slot-image" src="{{ slot.customer.user.image_url }}"/>
+                  {% else %}
+                      <p style="color: white; font-size:2em;">{{ slot.customer.user.name }}</p>
+                  {% endif %}
+                {% endif %}
+              </div>
+              </a>
+              {% endfor %}
+            </div>
         </div>
         <!--/row-->
         <div class="row"><br></div>
@@ -76,7 +97,8 @@
                              alt="reviews screenshot"/>
                     </div>
                 </a>
-                <a href="{{ url_for('.reviews') }}" class="btn btn-block btn-lg btn-info" style="clear:both; margin-left: 15px;margin-right: 15px;">View our
+                <a href="{{ url_for('.reviews') }}" class="btn btn-block btn-lg btn-info"
+                   style="clear:both; margin-left: 15px;margin-right: 15px;">View our
                     reviews</a>
             </div>
         </div>
@@ -119,7 +141,8 @@
 
                     <p class="lead">Works everywhere</p>
 
-                    <p>Cross-browser and looks great on Shopify & Magento. WooCommerce & Squarespace are coming soon!</p>
+                    <p>Cross-browser and looks great on Shopify & Magento. WooCommerce & Squarespace are coming
+                        soon!</p>
                 </div>
                 <div class="col-md-4" style="text-align: center">
                     <span class="glyphicon glyphicon-comment glyphicon-5x"></span>
@@ -147,7 +170,7 @@
         <div class="col-sm-12">
             <div class="container">
                 <div class="row">
-                    {% include "/pricing_plans/pricing_plans.html" %}
+                  {% include "/pricing_plans/pricing_plans.html" %}
                 </div>
                 <!--/row-->
             </div>

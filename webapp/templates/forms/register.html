@@ -1,6 +1,9 @@
 {% import "_macros.html" as macros %}
 <form method="post" action="/register">
     <input type="hidden" name="next" value="{{ request.args.next }}"/>
+  {% if request.args.slot_number %}
+      <input type="hidden" name="slot_number" value="{{ request.args.slot_number }}"/>
+  {% endif %}
   {{ signup_form.csrf_token() }}
   {{ macros.form_field(signup_form, signup_form.name, class="form-control") }}<br>
   {{ macros.form_field(signup_form, signup_form.email, class="form-control") }}<br>

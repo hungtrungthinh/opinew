@@ -1,16 +1,29 @@
-<h2>General settings</h2>
+{% if request.args.get('first') %}
+    <h3>Plugin code</h3>
 
-<a href="/change" class="btn btn-default">Change password</a>
-<h3>Plugin code</h3>
+  {% if shop.platform.name == 'shopify' %}
+    {% include "user_setup/shopify.html" %}
+  {% endif %}
 
-{% if shop.platform.name == 'shopify' %}
-  {% include "user_setup/shopify.html" %}
+    <p>Copy the following code below the last line on your product page:</p>
+
+    <textarea disabled style="margin: 0; width: 800px; height: 150px;">{{ code }}</textarea>
+
+    <br>
+    <a href="{{ request.path }}" class="btn btn-default">Click here when you are done.</a>
+{% else %}
+    <h2>General settings</h2>
+  {% if current_user.temp_password %}
+      <div class="alert alert-danger">
+          Your <strong>temporary</strong> password is {{ current_user.temp_password }}. Please change it now:
+      </div>
+  {% endif %}
+
+    <a href="/change" class="btn btn-default">Change password</a>
+
+    <h3>Shop settings</h3>
+  {% include "forms/shop.html" %}
+
+    <a href="?first=1" class="btn btn-default">View plugin installation instructions</a>
 {% endif %}
-
-<p>Copy the following code below the last line on your product page:</p>
-
-<textarea disabled style="margin: 0; width: 800px; height: 150px;">{{ code }}</textarea>
-
-<h3>Shop settings</h3>
-{% include "forms/shop.html" %}
 

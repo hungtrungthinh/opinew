@@ -12,6 +12,10 @@
                                    data-toggle="tab">General settings</a>
                             </li>
                             <li role="presentation">
+                                <a href="#account" aria-controls="tab-reviews" role="tab"
+                                   data-toggle="tab">Account</a>
+                            </li>
+                            <li role="presentation">
                                 <a href="#orders" aria-controls="tab-orders" role="tab"
                                    data-toggle="tab">Orders</a>
                             </li>
@@ -22,9 +26,24 @@
                         </ul>
                     </div>
                     <div class="col-sm-9">
+                      {% if not current_user.customer[0].last4 %}
+                          <div class="alert alert-warning">
+                              <p class="lead">
+                                  Your trial expires in {{ expiry_days }} days
+                              </p>
+
+                              <a href="#account" data-toggle="tab" class="btn btn-primary pull-right">
+                                  Add payment details
+                              </a>
+                              <span>To continue using Opinew after that you need to add payment details.</span>
+                          </div>
+                      {% endif %}
                         <div class="tab-content">
                             <div role="tabpanel" class="tab-pane active" id="general-settings">
                               {% include "shop_admin/general_settings.html" %}
+                            </div>
+                            <div role="tabpanel" class="tab-pane" id="account">
+                              {% include "shop_admin/account.html" %}
                             </div>
                             <div role="tabpanel" class="tab-pane" id="orders">
                                 <img src="/static/img/ajax-loader.gif" alt="loading"/>
@@ -44,5 +63,7 @@
 {% endblock %}
 
 {% block script %}
+    <script defer type="text/javascript" src="https://js.stripe.com/v2/"></script>
+    <span id="STRIPE_PUBLISHABLE_API_KEY" data-key="{{ g.config.STRIPE_PUBLISHABLE_API_KEY }}"></span>
     <script defer type="text/javascript" src="{{ url_for('static', filename='js/shop_dashboard.js') }}"></script>
 {% endblock %}

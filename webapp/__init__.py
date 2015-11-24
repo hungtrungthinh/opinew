@@ -39,6 +39,7 @@ gravatar = Gravatar(size=100, rating='g', default='mm', force_default=False, use
 
 user_images = UploadSet('userimages', IMAGES)
 review_images = UploadSet('reviewimages', IMAGES)
+shop_images = UploadSet('shopimages', IMAGES)
 
 
 def create_app(option):
@@ -97,7 +98,7 @@ def create_app(option):
     for code in default_exceptions.iterkeys():
         app.error_handler_spec[None][code] = make_json_error
 
-    configure_uploads(app, (user_images, review_images,))
+    configure_uploads(app, (user_images, review_images, shop_images, ))
 
     ADMINS = ['danieltcv@gmail.com']
     if not app.debug and not app.testing:

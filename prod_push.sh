@@ -42,6 +42,7 @@ pushprod() {
                                       find ./media -type f -exec chmod 664 {} \; &&
                                       find ./webapp/static -type f -exec chmod 664 {} \; &&
                                       sudo chown -R www-data ./media &&
+                                      ./run_production db upgrade &&
                                       sudo service nginx restart &&
                                       sudo service uwsgi restart"
 }

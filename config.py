@@ -69,6 +69,9 @@ class Config(object):
     UPLOADED_REVIEWIMAGES_DEST = os.path.join(basedir, 'media', 'review')
     UPLOADED_REVIEWIMAGES_URL = '/media/review/'
 
+    UPLOADED_SHOPIMAGES_DEST = os.path.join(basedir, 'media', 'shop')
+    UPLOADED_SHOPIMAGES_URL = '/media/shop/'
+
     SHOPIFY_APP_API_KEY = sensitive.SHOPIFY_APP_API_KEY
     SHOPIFY_APP_SECRET = sensitive.SHOPIFY_APP_SECRET
     SHOPIFY_APP_SCOPES = 'read_products,read_orders,read_fulfillments'
@@ -86,6 +89,7 @@ class Config(object):
     CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
     CELERY_RESULT_BACKEND = 'amqp://guest:guest@localhost:5672//'
 
+    STRIPE_PUBLISHABLE_API_KEY = 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_TEST_API_KEY
 
     FB_APP_ID = '1636982329849520'
@@ -117,21 +121,25 @@ class ConfigTest(Config):
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew_test' % sensitive.ADMIN_PASSWORD
 
     UPLOADED_USERIMAGES_DEST = os.path.join('tmp', 'media', 'user')
-    UPLOADED_REVIEIMAGES_DEST = os.path.join('tmp', 'media', 'review')
+    UPLOADED_REVIEWIMAGES_DEST = os.path.join('tmp', 'media', 'review')
+    UPLOADED_SHOPIMAGES_DEST = os.path.join('tmp', 'media', 'shop')
 
 
 class ConfigDev(Config):
     MODE = Constants.MODE_DEVELOPMENT
+    SERVER_NAME = 'localhost:5000'
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
-    SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew_dev' % sensitive.ADMIN_PASSWORD
+    SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
 
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION
+    SERVER_NAME = 'opinew.com'
     SESSION_COOKIE_HTTPONLY = False
     SESSION_COOKIE_SECURE = True
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
+    STRIPE_PUBLISHABLE_API_KEY = 'pk_test_YFZO6qldIQDkOcOQz88TudE3'  # TODO: 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
 
 

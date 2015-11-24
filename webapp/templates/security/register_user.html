@@ -5,13 +5,16 @@
     <div class="container">
         <div class="row">
             <div class="col-xs-12 col-md-4 col-md-offset-4">
-                <h1>Sign Up</h1>
+                <h1>Register {% if request.args.slot_number %} for slot #{{ request.args.slot_number }} {% endif %}</h1>
 
+                <div style="height: 10px;" class="opinew-{{ request.args.slot_color }}"></div>
                 <div class="well">
-                    {% set signup_form = register_user_form %}
+
+                  {% set signup_form = register_user_form %}
                   {% include "forms/register.html" %}
                 </div>
-                <p><a href="/login">Login</a> | <a href="/reset">Forgot your password?</a> | <a href="/confirm">Resend confirmation email</a></p>
+                <p><a href="/login">Login</a> | <a href="/reset">Forgot your password?</a> | <a href="/confirm">Resend
+                    confirmation email</a></p>
             </div>
         </div>
     </div>
