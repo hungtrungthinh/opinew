@@ -291,8 +291,9 @@ class TestViews(TestFlaskApplication):
 
     def test_get_index_mobile(self):
         response_actual = self.client.get("/", headers={'mobile': 'true'})
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('Don\'t have an account?' in response_actual.data)
+        location_expected = url_for('client.reviews')
+        self.assertEquals(response_actual.status_code, 302)
+        self.assertEquals(location_expected, response_actual.location)
 
     def test_get_index_mobile_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
