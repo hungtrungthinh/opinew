@@ -516,6 +516,9 @@ class ReviewRequest(db.Model):
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     to_user = db.relationship('User', backref=db.backref('review_requests'))
 
+    to_user_legacy_id = db.Column(db.Integer, db.ForeignKey('user_legacy.id'))
+    to_user_legacy = db.relationship('UserLegacy', backref=db.backref('review_requests'))
+
     for_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     for_product = db.relationship('Product', backref=db.backref('review_requests'))
 
@@ -535,13 +538,17 @@ class ReviewRequest(db.Model):
             rrold = ReviewRequest.query.filter_by(token=token).first()
             if not rrold:
                 break
-        rr = cls(created_ts=datetime.datetime.utcnow(),
+        kwargs = dict(created_ts=datetime.datetime.utcnow(),
                  token=token,
                  from_customer=from_customer,
-                 to_user=to_user,
                  for_shop=for_shop,
                  for_order=for_order,
                  for_product=for_product)
+        if type(to_user) is UserLegacy:
+            kwargs['to_user_legacy'] = to_user
+        elif type(to_user) is User:
+            kwargs['to_user'] = to_user
+        rr = cls(**kwargs)
         db.session.add(rr)
         db.session.commit()
         return token

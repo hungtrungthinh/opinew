@@ -14,7 +14,11 @@
                           <a href="/{{ review_request.token }}" target="_blank">Review request</a>
 
                           <div style="border: 1px solid black; margin-bottom: 10px; background-color: white; padding:10px; font-size: 1.5em;">
+                              {% if review_request.to_user %}
                               <b>email to: </b>{{ review_request.to_user.email }}
+                              {% elif review_request.to_user_legacy %}
+                              <b>email to: </b>{{ review_request.to_user_legacy.email }}
+                              {% endif %}
                           </div>
                           <div style="border: 1px solid black; margin-bottom: 10px; background-color: white; padding:10px; font-size: 1.5em;">
                               <b>subject: </b><input name="subject" class="form-control" type="text"

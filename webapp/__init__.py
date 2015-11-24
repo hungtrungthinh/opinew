@@ -1,11 +1,11 @@
 from flaskopinewext import FlaskOpinewExt
-from flask import g, request, redirect, flash, render_template
+from flask import g, request, redirect, flash, render_template, url_for
 from flask_admin import Admin
 from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.migrate import Migrate
-from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required, roles_required
+from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required, roles_required, login_user, logout_user
 from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
 from flask.ext.gravatar import Gravatar
@@ -23,7 +23,9 @@ class MyHomeView(AdminIndexView):
     @login_required
     @roles_required(Constants.ADMIN_ROLE)
     def index(self):
-        return self.render('admin/index.html')
+        from webapp import models
+        users = models.User.query.order_by(models.User.id).all()
+        return self.render('admin/index.html', users=users)
 
 
 csrf = CsrfProtect()

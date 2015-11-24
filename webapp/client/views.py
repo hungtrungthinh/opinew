@@ -564,7 +564,10 @@ def send_notification(review_request_id):
         flash('Not your shop')
         return redirect('client.shop_dashboard')
     post = get_post_payload()
-    recipients = [review_request.to_user.email]
+    if review_request.to_user:
+        recipients = [review_request.to_user.email]
+    elif review_request.to_user_legacy:
+        recipients = [review_request.to_user_legacy.email]
     template = 'email/review_order.html'
     template_ctx = {'review_request': review_request}
     subject = post.get('subject')
@@ -586,3 +589,21 @@ def post_change():
         db.session.add(current_user)
         db.session.commit()
     return redirect(url_for('client.index'))
+
+@client.route('/admin-view-as')
+@login_required
+@roles_required(Constants.ADMIN_ROLE)
+def admin_view_as():
+    user_id = request.args.get('user_id')
+    from webapp import models
+    user = models.User.query.filter_by(id=user_id).first()
+    if user:
+        logout_user()
+        login_user(user)
+    return redirect(url_for('client.index'))
+
+@client.route('/tail-uwsgi')
+@login_required
+@roles_required(Constants.ADMIN_ROLE)
+def tail_uwsgi():
+    return ''

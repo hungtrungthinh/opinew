@@ -46,6 +46,8 @@ pushprod() {
                                             screen -S celery -d -m ./run_celery.sh &&
                                       (screen -S beat -X quit && screen -S beat -d -m ./run_celery_beat.sh) ||
                                             screen -S beat -d -m ./run_celery_beat.sh &&
+                                      (screen -S flower -X quit && screen -S flower -d -m ./run_flower.sh) ||
+                                            screen -S flower -d -m ./run_flower.sh &&
                                       ./run_production.py db upgrade &&
                                       sudo service nginx restart &&
                                       sudo service uwsgi restart"

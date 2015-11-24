@@ -63,10 +63,9 @@ class Config(object):
     EMAIL_HOST_USER = MAIL_USERNAME = "team@opinew.com"
     EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
 
-    SECURITY_SEND_REGISTER_EMAIL = False
-
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
+    PROPAGATE_EXCEPTIONS = True
 
     UPLOADED_USERIMAGES_DEST = os.path.join(basedir, 'media', 'user')
     UPLOADED_USERIMAGES_URL = '/media/user/'
@@ -83,6 +82,7 @@ class Config(object):
 
     SECURITY_PASSWORD_HASH = 'bcrypt'
     SECURITY_PASSWORD_SALT = sensitive.SECURITY_PASSWORD_SALT
+    SECURITY_SEND_REGISTER_EMAIL = False
     SECURITY_CONFIRMABLE = True
     SECURITY_TRACKABLE = True
     SECURITY_REGISTERABLE = True

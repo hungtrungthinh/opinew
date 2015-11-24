@@ -331,7 +331,7 @@ class TestViews(TestFlaskApplication):
         self.login(self.admin_user.email, self.admin_password)
         response_actual = self.client.get("/admin/", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h1>Welcome to admin panel</h1>' in response_actual.data)
+        self.assertTrue('<h1>Welcome to admin panel' in response_actual.data)
         self.logout()
 
     def test_dashboard(self):

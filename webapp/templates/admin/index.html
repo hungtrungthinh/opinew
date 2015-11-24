@@ -1,6 +1,25 @@
 {% extends 'admin/master.html' %}
 
 {% block body %}
-  <h1>Welcome to admin panel</h1>
-  <a class="btn btn-primary" href="/logout">Log out</a>
+    <h1>Welcome to admin panel <a class="btn btn-danger" href="/logout">Log out</a></h1>
+
+    <h2>View as</h2>
+    <form method="get" action="/admin-view-as">
+        <div class="col-xs-6">
+            <select class="form-control form-serialize" name="user_id">
+              {% for user in users %}
+                  <option value="{{ user.id }}">
+                    {{ user.name }} | {{ user.email }} | {{ user.roles }}
+                  </option>
+              {% endfor %}
+            </select>
+        </div>
+        <div class="col-xs-6">
+            <button type="submit" class="btn btn-success">View as</button>
+        </div>
+    </form>
+
+    <br><br>
+    <h2>Celery tasks (Flower)</h2>
+    <iframe src="http://localhost:5555" style="width: 100%; height: 500px;"></iframe>
 {% endblock %}
