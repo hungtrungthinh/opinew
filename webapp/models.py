@@ -101,6 +101,11 @@ class User(db.Model, UserMixin, Repopulatable):
     def reviews_count(self):
         return len(self.reviews)
 
+    @property
+    def likes_count(self):
+        return len([rl for rl in ReviewLike.query.filter_by(user_id=self.id).all()])
+
+
     @classmethod
     def get_by_email(cls, email):
         user = cls.query.filter_by(email=email).first()

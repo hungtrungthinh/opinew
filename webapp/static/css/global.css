@@ -95,7 +95,7 @@ body {
 /* /Opinew colors */
 
 .spacer {
-  height: 50px;
+  height: 20px;
 }
 
 .colors-bar {
@@ -465,6 +465,33 @@ blockquote p {
       padding-top: 10px;
       padding-bottom: 5px;
   }
+}
+
+
+
+#profile-header {
+  height: 100px;
+  position: relative;
+    padding-left: 20px;
+}
+
+.profile-user-details{
+    position: relative;
+    top:-10px;
+    padding-left:5px;
+}
+
+
+
+#profile-entity-picture {
+  border: 5px solid white;
+  height: 100px;
+  width: 100px;
+  position: relative;
+  top: 15px;
+  left: 5px;
+  box-shadow: 0 0 10px #000;
+  z-index: 10;
 }
 
 

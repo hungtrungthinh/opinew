@@ -1,23 +1,54 @@
+{% if user.image_url %}
+    {% set user_image_url = user.image_url %}
+  {% else %}
+    {% set user_image_url = url_for('media.get_user_image', filename=g.constants.DEFAULT_PROFILE_PICTURE) %}
+{% endif %}
+
 {% extends "layout.html" %}
 {% block content %}
 <div class="container-fluid">
+
     <div class="row">
 
         {% if user.is_shop_owner %}
 
         {% else %}
-            
+            <div id="profile-header">
+                <div id="profile-entity-picture" class="entity-picture"
+                 style="background: url({{ user_image_url }}) no-repeat scroll center center / cover white;
+                         display: inline-block;">
+
+                </div>
+                <div class="profile-user-details" style="display: inline-block;margin-left: 5px;padding-bottom: 5px">
+                    <h3>{{ user.name }}<br>
+                        <small>Total reviews: {{ user.reviews_count }}</small><br>
+                    <small>Total likes: {{ user.likes_count }}</small>
+                    </h3>
+                </div>
+
+
+            </div>
+            <div>
+            <ul class="colors-bar push-up">
+                <li class="color-bar-element opinew-cherry">
+                <li class="color-bar-element opinew-orange">
+                <li class="color-bar-element opinew-kiwi">
+                <li class="color-bar-element opinew-blueberry">
+                <li class="color-bar-element opinew-aqua">
+            </ul>
+            </div>
+
+            <div class="spacer">
+
+            </div>
         {% endif %}
 
-        <div class="reviews-container col-sm-12">
-            Welcome {{ user.name }}!!
-        </div>
 
 
     </div>
 
         <div class="row">
-            <div class="reviews-container col-md-8 col-sm-12">
+            <div class="reviews-container col-md-8 col-md-offset-2 col-sm-12">
               {% set show_product_info = True %}
               {% for review in reviews %}
                 {% include "review/review.html" %}
