@@ -1,0 +1,28 @@
+{% import "_macros.html" as macros %}
+<a href="http://stripe.com">
+    <img src="/static/img/powered_by_stripe.png" alt="powered by stripe"/>
+</a>
+<br><br>
+<form action="{{ url_for('client.add_payment_card') }}" method="POST" id="payment-form">
+    <div class="payment-errors alert alert-danger" hidden></div>
+    <input name=_csrf_token type=hidden class="form-serialize" value="{{ csrf_token() }}">
+
+    <b>Card Number</b>
+    <input type="text" class="form-control" size="20" data-stripe="number"/><br>
+    <b>CVC</b>
+    <input type="text" class="form-control" size="4" data-stripe="cvc" style="width: 70px;"/><br>
+
+    <b>Card expiration (MM/YYYY)</b>
+
+    <div class="row">
+        <div class="col-xs-6">
+            <input type="text" class="form-control" size="2" data-stripe="exp-month"/>
+        </div>
+        <div class="col-xs-6">
+            <input type="text" class="form-control" size="4" data-stripe="exp-year"/>
+        </div>
+    </div>
+    <br>
+    <img src="/static/img/ajax-loader.gif" hidden id="submiting-card" />
+    <button type="submit" class="btn-primary form-control">Submit</button>
+</form>

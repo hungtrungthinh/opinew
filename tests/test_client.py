@@ -167,7 +167,7 @@ class TestViews(TestFlaskApplication):
                                                                            'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                            'code': 'abc',
                                                                            'signature': 'abc'})
-        location_expected = url_for('client.shop_dashboard')
+        location_expected = url_for('client.shop_dashboard', first=1)
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
@@ -187,7 +187,7 @@ class TestViews(TestFlaskApplication):
     def test_register_get(self):
         response_actual = self.client.get("/register")
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h1>Sign Up</h1>' in response_actual.data)
+        self.assertTrue('<h1>Register' in response_actual.data)
 
     def test_register_post_empty(self):
         response_actual = self.client.post("/register")
@@ -291,8 +291,9 @@ class TestViews(TestFlaskApplication):
 
     def test_get_index_mobile(self):
         response_actual = self.client.get("/", headers={'mobile': 'true'})
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('Don\'t have an account?' in response_actual.data)
+        location_expected = url_for('client.reviews')
+        self.assertEquals(response_actual.status_code, 302)
+        self.assertEquals(location_expected, response_actual.location)
 
     def test_get_index_mobile_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
@@ -330,15 +331,13 @@ class TestViews(TestFlaskApplication):
         self.login(self.admin_user.email, self.admin_password)
         response_actual = self.client.get("/admin/", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h1>Welcome to admin panel</h1>' in response_actual.data)
+        self.assertTrue('<h1>Welcome to admin panel' in response_actual.data)
         self.logout()
 
     def test_dashboard(self):
         self.login(self.shop_onwer_user.email, self.shop_owner_password)
         response_actual = self.client.get("/dashboard/2", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h3>Plugin code</h3>' in response_actual.data)
-        self.assertTrue('<h3>Shop settings</h3>' in response_actual.data)
         self.assertTrue('General settings' in response_actual.data)
         self.assertTrue('Orders' in response_actual.data)
         self.assertTrue('Reviews' in response_actual.data)

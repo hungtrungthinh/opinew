@@ -47,4 +47,37 @@ $('#shop-form').bind('submit', function (e) {
   return false;
 });
 
+// This identifies your website in the createToken call below
+var STRIPE_PUBLISHABLE_API_KEY = $('#STRIPE_PUBLISHABLE_API_KEY').data('key');
+Stripe.setPublishableKey(STRIPE_PUBLISHABLE_API_KEY);
 
+$('#payment-form').submit(function (event) {
+  var $form = $(this);
+
+  // Disable the submit button to prevent repeated clicks
+  $form.find('button').prop('disabled', true);
+  $('#submiting-card').show();
+
+  Stripe.card.createToken($form, stripeResponseHandler);
+
+  // Prevent the form from submitting with the default action
+  return false;
+});
+
+function stripeResponseHandler(status, response) {
+  var $form = $('#payment-form');
+
+  if (response.error) {
+    // Show the errors on the form
+    $form.find('.payment-errors').text(response.error.message).slideDown();
+    $form.find('button').prop('disabled', false);
+    $('#submiting-card').hide();
+  } else {
+    // response contains id and card, which contains additional card details
+    var token = response.id;
+    // Insert the token into the form so it gets submitted to the server
+    $form.append($('<input type="hidden" name="stripe-token" />').val(token));
+    // and submit
+    $form.get(0).submit();
+  }
+};

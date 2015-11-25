@@ -51,17 +51,21 @@ class Constants(object):
 
 
 class Config(object):
-    MAIL_SERVER = "smtpout.europe.secureserver.net"
-    MAIL_DEFAULT_SENDER = 'team@opinew.com'
-    MAIL_PORT = 465
-    MAIL_USE_SSL = True
-    MAIL_USERNAME = "team@opinew.com"
-    MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
+    ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),
+              ("Tomasz Sadowski", 'tomsz.sadowski@gmail.com')]
 
-    SECURITY_SEND_REGISTER_EMAIL = False
+    # Double assignment because of selery
+    EMAIL_HOST = MAIL_SERVER = "smtpout.europe.secureserver.net"
+    SERVER_EMAIL = 'celery-error@opinew.com'  # celery
+    MAIL_DEFAULT_SENDER = 'team@opinew.com'
+    EMAIL_PORT = MAIL_PORT = 465
+    EMAIL_USE_SSL = MAIL_USE_SSL = True
+    EMAIL_HOST_USER = MAIL_USERNAME = "team@opinew.com"
+    EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
 
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
+    PROPAGATE_EXCEPTIONS = True
 
     UPLOADED_USERIMAGES_DEST = os.path.join(basedir, 'media', 'user')
     UPLOADED_USERIMAGES_URL = '/media/user/'
@@ -69,12 +73,16 @@ class Config(object):
     UPLOADED_REVIEWIMAGES_DEST = os.path.join(basedir, 'media', 'review')
     UPLOADED_REVIEWIMAGES_URL = '/media/review/'
 
+    UPLOADED_SHOPIMAGES_DEST = os.path.join(basedir, 'media', 'shop')
+    UPLOADED_SHOPIMAGES_URL = '/media/shop/'
+
     SHOPIFY_APP_API_KEY = sensitive.SHOPIFY_APP_API_KEY
     SHOPIFY_APP_SECRET = sensitive.SHOPIFY_APP_SECRET
     SHOPIFY_APP_SCOPES = 'read_products,read_orders,read_fulfillments'
 
     SECURITY_PASSWORD_HASH = 'bcrypt'
     SECURITY_PASSWORD_SALT = sensitive.SECURITY_PASSWORD_SALT
+    SECURITY_SEND_REGISTER_EMAIL = False
     SECURITY_CONFIRMABLE = True
     SECURITY_TRACKABLE = True
     SECURITY_REGISTERABLE = True
@@ -85,7 +93,9 @@ class Config(object):
 
     CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
     CELERY_RESULT_BACKEND = 'amqp://guest:guest@localhost:5672//'
+    CELERY_SEND_TASK_ERROR_EMAILS = True
 
+    STRIPE_PUBLISHABLE_API_KEY = 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_TEST_API_KEY
 
     FB_APP_ID = '1636982329849520'
@@ -117,21 +127,25 @@ class ConfigTest(Config):
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew_test' % sensitive.ADMIN_PASSWORD
 
     UPLOADED_USERIMAGES_DEST = os.path.join('tmp', 'media', 'user')
-    UPLOADED_REVIEIMAGES_DEST = os.path.join('tmp', 'media', 'review')
+    UPLOADED_REVIEWIMAGES_DEST = os.path.join('tmp', 'media', 'review')
+    UPLOADED_SHOPIMAGES_DEST = os.path.join('tmp', 'media', 'shop')
 
 
 class ConfigDev(Config):
     MODE = Constants.MODE_DEVELOPMENT
+    SERVER_NAME = 'localhost:5000'
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
-    SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew_dev' % sensitive.ADMIN_PASSWORD
+    SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
 
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION
+    SERVER_NAME = 'opinew.com'
     SESSION_COOKIE_HTTPONLY = False
     SESSION_COOKIE_SECURE = True
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
+    STRIPE_PUBLISHABLE_API_KEY = 'pk_test_YFZO6qldIQDkOcOQz88TudE3'  # TODO: 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
 
 

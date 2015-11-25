@@ -7,7 +7,7 @@ from tests import testing_constants
 
 
 class API(object):
-    def __init__(self, client_id, client_secret, shop_domain):
+    def __init__(self, client_id=None, client_secret=None, shop_domain=None, access_token=None):
         self.client_id = client_id
         self.client_secret = client_secret
         self.shop_domain = shop_domain
@@ -15,7 +15,7 @@ class API(object):
             raise ParamException('invalid shop domain', 400)
         self.shop_name = shop_domain[:-14]
 
-        self.access_token = None
+        self.access_token = access_token
 
     def initialize_api(self, nonce_request, hmac_request, code):
         self.verify_nonce(nonce_request)
@@ -66,6 +66,16 @@ class API(object):
             raise ApiException(r.text, r.status_code)
         access_token = r.json().get('access_token')
         self.access_token = access_token
+
+    def check_webhooks_count(self):
+        if current_app.config.get('TESTING'):
+            return 5
+        r = requests.get("https://%s/admin/webhooks/count.json" % self.shop_domain,
+                      headers={'X-Shopify-Access-Token': self.access_token})
+        if not r.status_code == 200:
+            raise ApiException(r.text, r.status_code)
+        response = r.json()
+        return response.get('count', 0)
 
     def create_webhook(self, topic, address):
         if current_app.config.get('TESTING'):

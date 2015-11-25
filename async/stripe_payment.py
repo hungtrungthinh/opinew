@@ -4,7 +4,10 @@ from config import Constants
 
 
 class PaymentInterface(object):
-    def create_customer(self, opinew_customer, stripe_token):
+    def create_paying_customer(self, opinew_customer, stripe_token):
+        raise NotImplementedError()
+
+    def create_customer(self, opinew_customer):
         raise NotImplementedError()
 
     def create_plan(self, opinew_plan):
@@ -24,20 +27,24 @@ class StripeAPI(PaymentInterface):
         self.stripe_proxy = stripe
         self.stripe_proxy.api_key = stripe_api_key
 
-    def create_customer(self, opinew_customer, stripe_token):
+    def create_paying_customer(self, opinew_customer, stripe_token):
         # Get the credit card details submitted by the form
+        # Update the Stripe Customer
+        if current_app.config.get('TESTING'):
+            return opinew_customer
+        customer = stripe.Customer.retrieve(opinew_customer.stripe_customer_id)
+        if customer and 'deleted' not in customer:
+            customer.source = stripe_token
+            customer.save()
+        return customer
+
+    def create_customer(self, opinew_customer):
         # Create a Stripe Customer
         if current_app.config.get('TESTING'):
             return opinew_customer
-        if stripe_token:
-            customer = self.stripe_proxy.Customer.create(
-                source=stripe_token,
-                description=opinew_customer.user.email
-            )
-        else:
-            customer = self.stripe_proxy.Customer.create(
-                description=opinew_customer.user.email
-            )
+        customer = self.stripe_proxy.Customer.create(
+            description=opinew_customer.user.email
+        )
         return customer
 
     def create_plan(self, opinew_plan):
@@ -62,7 +69,7 @@ class StripeAPI(PaymentInterface):
         customer = self.stripe_proxy.Customer.retrieve(opinew_subscription.customer.stripe_customer_id)
         customer.subscriptions.create(plan=opinew_subscription.plan.stripe_plan_id)
         subscription = customer.save()
-        return subscription
+        return subscription.subscriptions.data[0]
 
     def update_subscription(self, opinew_subscription, opinew_new_plan):
         if current_app.config.get('TESTING'):
@@ -96,9 +103,17 @@ class StripeOpinewAdapter(PaymentInterface):
     def __init__(self):
         self.stripe_api = StripeAPI(current_app.config.get('STRIPE_API_KEY'))
 
-    def create_customer(self, opinew_customer, stripe_token):
-        stripe_customer = self.stripe_api.create_customer(opinew_customer, stripe_token)
+    def create_customer(self, opinew_customer):
+        stripe_customer = self.stripe_api.create_customer(opinew_customer)
         opinew_customer.stripe_customer_id = stripe_customer.id
+        return opinew_customer
+
+    def create_paying_customer(self, opinew_customer, stripe_token):
+        stripe_customer = self.stripe_api.create_paying_customer(opinew_customer, stripe_token)
+        if stripe_customer and 'sources' in stripe_customer and \
+            'data' in stripe_customer.sources and type(stripe_customer.sources.data) is list and \
+            len(stripe_customer.sources.data) > 0 and 'last4' in stripe_customer.sources.data[0]:
+            opinew_customer.last4 = stripe_customer.sources.data[0].last4
         return opinew_customer
 
     def create_plan(self, opinew_plan):

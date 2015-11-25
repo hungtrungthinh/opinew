@@ -28,7 +28,7 @@ class ShopForm(Form):
     name = StringField('Shop name', validators=[])
     domain = StringField('Shop Domain', validators=[])
     description = TextAreaField('Description', validators=[])
-    submit = SubmitField('Go')
+    submit = SubmitField('Fire away!')
 
 
 class ReviewImageForm(Form):

@@ -4,14 +4,12 @@ from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort, jsonify
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
-from flask.ext.security.utils import encrypt_password
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
-from webapp.models import Review, Shop, Platform, User, Product, Order, \
-    Role, Customer, Notification, Subscription, Plan, ReviewRequest, ProductUrl
-from webapp.common import param_required, catch_exceptions, generate_temp_password, get_post_payload
-from webapp.exceptions import ParamException, DbException
+from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Slot
+from webapp.common import param_required, catch_exceptions, get_post_payload
+from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
 from providers import giphy
@@ -41,7 +39,19 @@ def install_shopify_step_one():
         raise ParamException('incorrect shop name', 400)
     shop = Shop.query.filter_by(domain=shop_domain).first()
     if shop and shop.access_token:
-        return redirect(url_for('client.shop_dashboard'))
+        # check that the access token is still valid
+        shopify_api = API(shop_domain=shop_domain, access_token=shop.access_token)
+        try:
+            webhooks_count = shopify_api.check_webhooks_count()
+            # okay, the token is still valid!
+            if not webhooks_count == 5:
+                raise DbException('invalid count of webhooks')
+            return redirect(url_for('client.shop_dashboard'))
+        except (ApiException, DbException) as e:
+            # The token is no longer valid, delete
+            shop.access_token = None
+            db.session.add(shop)
+            db.session.commit()
 
     client_id = g.config.get('SHOPIFY_APP_API_KEY')
     scopes = g.config.get('SHOPIFY_APP_SCOPES')
@@ -83,123 +93,39 @@ def shopify_plugin_callback():
 
     # Get shop and products info from API
     shopify_shop = shopify_api.get_shop()
-    shopify_products = shopify_api.get_products()
-    shopify_orders = shopify_api.get_orders()
-
-    # Create webhooks
-    shopify_api.create_webhook("products/create",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_create_product')))
-    shopify_api.create_webhook("products/update",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_update_product')))
-    shopify_api.create_webhook("products/delete",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_delete_product')))
-    shopify_api.create_webhook("orders/create",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_create_order')))
-    shopify_api.create_webhook("fulfillments/create",
-                               "%s%s" % (g.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_fulfill_order')))
 
     # Create db records
     # Create shop user, generate pass
     shop_owner_email = shopify_shop.get('email', '')
-    shop_owner = User.get_by_email_no_exception(shop_owner_email)
-    shop_owner_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
-    if not shop_owner:
-        shop_owner_name = shopify_shop.get('shop_owner', '')
-        temp_password = generate_temp_password()
-        shop_owner = User(email=shop_owner_email,
-                          temp_password=temp_password,
-                          password=encrypt_password(temp_password),
-                          name=shop_owner_name)
+    shop_owner_name = shopify_shop.get('shop_owner', '')
+    shop_owner, is_new = User.get_or_create_by_email(shop_owner_email,
+                                                     role_name=Constants.SHOP_OWNER_ROLE,
+                                                     name=shop_owner_name)
 
+    # Create shop with owner = shop_user
+    shopify_platform = Platform.get_by_name('shopify')
+    shop = Shop(name=shop_name,
+                domain=shop_domain,
+                platform=shopify_platform,
+                access_token=shopify_api.access_token,
+                owner=shop_owner)
+    shop_owner.shops.append(shop)
+    db.session.add(shop)
+    db.session.commit()
+
+    # asyncronously create all products, orders and webhooks
+    if not current_app.config.get('TESTING'):
         from async import tasks
+        tasks.create_shopify_shop.delay(shopify_api=shopify_api,
+                                        shop_id=shop.id)
 
-        tasks.send_email.delay(recipients=[shop_owner_email],
-                               template='email/new_user.html',
-                               template_ctx={'user_email': shop_owner_email,
-                                             'user_temp_password': temp_password,
-                                             'user_name': shop_owner_name
-                                             },
-                               subject="Welcome to Opinew!")
-        shop_owner.roles.append(shop_owner_role)
-        db.session.add(shop_owner)
-
-        # Create shop with owner = shop_user
-        shopify_platform = Platform.get_by_name('shopify')
-        shop = Shop(name=shop_name,
-                    domain=shop_domain,
-                    platform=shopify_platform,
-                    access_token=shopify_api.access_token,
-                    owner=shop_owner)
-        shop_owner.shops.append(shop)
-        db.session.add(shop)
-
-        # Import shop products
-        for product_j in shopify_products:
-            product_url = "https://%s/products/%s" % (shop_domain, product_j.get('handle', ''))
-            product = Product(name=product_j.get('title', ''),
-                              shop=shop,
-                              platform_product_id=product_j.get('id', ''))
-            product_url = ProductUrl(url=product_url)
-            product.urls.append(product_url)
-            db.session.add(product)
-        db.session.commit()
-
-        for order_j in shopify_orders:
-            user_name = "%s %s" % (
-            order_j.get('customer', {}).get('first_name'), order_j.get('customer', {}).get('last_name'))
-            user, _ = User.get_or_create_by_email(email=order_j.get('email'), name=user_name)
-            try:
-                created_at_dt = datetime.datetime.strptime(order_j.get('created_at')[:-6], "%Y-%m-%dT%H:%M:%S")
-            except:
-                created_at_dt = datetime.datetime.utcnow()
-            order = Order(
-                purchase_timestamp=created_at_dt,
-                platform_order_id=order_j.get('id'),
-                shop_id=shop.id,
-                user=user
-            )
-            if order_j.get('fulfillment_status'):
-                order.status = Constants.ORDER_STATUS_SHIPPED
-            if order_j.get('cancelled_at'):
-                order.status = Constants.ORDER_STATUS_FAILED
-            for product_j in order_j.get('line_items', []):
-                product = Product.query.filter_by(platform_product_id=product_j.get('id')).first()
-                if product:
-                    order.products.append(product)
-            db.session.add(order)
-        db.session.commit()
-
-        # Login shop_user
-        login_user(shop_owner)
-    return redirect(url_for('client.shop_dashboard'))
+    # Login shop_user
+    login_user(shop_owner)
+    return redirect(url_for('client.shop_dashboard', first='1'))
 
 # Signals
 from flask.ext.security import user_registered
-
-
-def capture_registration(app, user=None, confirm_token=None):
-    if user.is_shop_owner:
-        # TODO: ASYNC (?)
-        # append the role of a shop owner
-        shop_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
-        user.roles.append(shop_role)
-        # create a customer account
-        plan = Plan.query.filter_by(id=1).first()
-        customer = Customer(user=user).create()
-        subscription = Subscription(customer=customer, plan=plan).create()
-        db.session.add(subscription)
-    else:
-        reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
-        user.roles.append(reviewer_role)
-    db.session.commit()
-
-
-user_registered.connect(capture_registration)
+user_registered.connect(User.post_registration_handler)
 
 
 @client.route('/')
@@ -224,7 +150,9 @@ def index():
             return redirect(url_for('client.shop_dashboard'))
         elif current_user.has_role(Constants.REVIEWER_ROLE):
             return redirect(url_for('client.reviews'))
-    return render_template('index.html')
+    slots = Slot.query.order_by(Slot.id).all()
+    slots_remaining = sum([1 for s in slots if s.customer == None])
+    return render_template('index.html', slots=slots, slots_remaining=slots_remaining)
 
 
 @client.route('/', defaults={'review_request_token': None})
@@ -273,29 +201,27 @@ def notifications():
         return render_template('mobile/notifications.html')
     return redirect(url_for('client.index'))
 
-
-@client.route('/user_profile/<int:user_id>')
+@client.route('/user-profile', defaults={'user_id': 0})
+@client.route('/user-profile/<int:user_id>')
 def user_profile(user_id):
     if 'mobile' in g and g.mobile:
         page = 1
         user = User.get_by_id(user_id)
         reviews = Review.get_by_user(user_id)
         return render_template('mobile/user_profile.html',
-                               page_title="Reviews - Opinew",
-                               page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
+                               page_title="User - Opinew",
                                reviews=reviews, page=page, user=user)
     page = 1
     user = User.get_by_id(user_id)
     reviews = Review.get_by_user(user_id)
     return render_template('mobile/user_profile.html',
-                            page_title="Reviews - Opinew",
-                            page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
+                            page_title="User - Opinew",
                             reviews=reviews, page=page, user=user)
 
 
 @client.route('/dashboard')
-@roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
+@roles_required(Constants.SHOP_OWNER_ROLE)
 def shop_dashboard():
     shop_form, platforms = None, None
     shops = current_user.shops
@@ -303,14 +229,14 @@ def shop_dashboard():
         shop_form = ShopForm()
         platforms = Platform.query.all()
     if len(shops) == 1:
-        return redirect(url_for('client.shop_dashboard_id', shop_id=shops[0].id))
+        return redirect(url_for('client.shop_dashboard_id', shop_id=shops[0].id, **request.args))
     return render_template('shop_admin/choose_shop.html', shops=shops, shop_form=shop_form, platforms=platforms)
 
 
 @client.route('/dashboard', defaults={'shop_id': 0})
 @client.route('/dashboard/<int:shop_id>')
-@roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
+@roles_required(Constants.SHOP_OWNER_ROLE)
 def shop_dashboard_id(shop_id):
     shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
     if not shop:
@@ -323,8 +249,11 @@ def shop_dashboard_id(shop_id):
     shop_form = ShopForm(MultiDict(shop.__dict__))
     review_request_form = ReviewRequestForm()
     platforms = Platform.query.all()
+    plans = Plan.query.all()
+    expiry_days = (current_user.confirmed_at + datetime.timedelta(days=30) - datetime.datetime.utcnow()).days
     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
-                           review_request_form=review_request_form, platforms=platforms)
+                           review_request_form=review_request_form, platforms=platforms,
+                           plans=plans, expiry_days=expiry_days)
 
 
 @client.route('/dashboard', defaults={'shop_id': 0})
@@ -352,6 +281,18 @@ def shop_dashboard_reviews(shop_id):
     products = Product.query.filter_by(shop_id=shop_id).all()
     reviews = Review.query.filter(Review.product_id.in_([p.id for p in products])).all()
     return render_template("shop_admin/reviews.html", reviews=reviews)
+
+@client.route('/add-payment-card', methods=['POST'])
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def add_payment_card():
+    stripe_token = request.form.get('stripe-token')
+    customer = current_user.customer[0]
+    customer.add_payment_card(stripe_token)
+    db.session.add(customer)
+    db.session.commit()
+    flash("Card added successfully!")
+    return redirect(request.referrer)
 
 
 @client.route('/plugin')
@@ -623,7 +564,10 @@ def send_notification(review_request_id):
         flash('Not your shop')
         return redirect('client.shop_dashboard')
     post = get_post_payload()
-    recipients = [review_request.to_user.email]
+    if review_request.to_user:
+        recipients = [review_request.to_user.email]
+    elif review_request.to_user_legacy:
+        recipients = [review_request.to_user_legacy.email]
     template = 'email/review_order.html'
     template_ctx = {'review_request': review_request}
     subject = post.get('subject')
@@ -645,3 +589,21 @@ def post_change():
         db.session.add(current_user)
         db.session.commit()
     return redirect(url_for('client.index'))
+
+@client.route('/admin-view-as')
+@login_required
+@roles_required(Constants.ADMIN_ROLE)
+def admin_view_as():
+    user_id = request.args.get('user_id')
+    from webapp import models
+    user = models.User.query.filter_by(id=user_id).first()
+    if user:
+        logout_user()
+        login_user(user)
+    return redirect(url_for('client.index'))
+
+@client.route('/tail-uwsgi')
+@login_required
+@roles_required(Constants.ADMIN_ROLE)
+def tail_uwsgi():
+    return ''

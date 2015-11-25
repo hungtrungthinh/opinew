@@ -1,11 +1,11 @@
 from flaskopinewext import FlaskOpinewExt
-from flask import g, request, redirect, flash, render_template
+from flask import g, request, redirect, flash, render_template, url_for
 from flask_admin import Admin
 from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.migrate import Migrate
-from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required, roles_required
+from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required, roles_required, login_user, logout_user
 from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
 from flask.ext.gravatar import Gravatar
@@ -23,7 +23,9 @@ class MyHomeView(AdminIndexView):
     @login_required
     @roles_required(Constants.ADMIN_ROLE)
     def index(self):
-        return self.render('admin/index.html')
+        from webapp import models
+        users = models.User.query.order_by(models.User.id).all()
+        return self.render('admin/index.html', users=users)
 
 
 csrf = CsrfProtect()
@@ -39,6 +41,7 @@ gravatar = Gravatar(size=100, rating='g', default='mm', force_default=False, use
 
 user_images = UploadSet('userimages', IMAGES)
 review_images = UploadSet('reviewimages', IMAGES)
+shop_images = UploadSet('shopimages', IMAGES)
 
 
 def create_app(option):
@@ -97,9 +100,8 @@ def create_app(option):
     for code in default_exceptions.iterkeys():
         app.error_handler_spec[None][code] = make_json_error
 
-    configure_uploads(app, (user_images, review_images,))
-
-    ADMINS = ['danieltcv@gmail.com']
+    configure_uploads(app, (user_images, review_images, shop_images, ))
+    admins = [email for name, email in config.ADMINS]
     if not app.debug and not app.testing:
         @app.errorhandler(500)
         def internal_error(exception):
@@ -108,7 +110,7 @@ def create_app(option):
 
         mail_handler = SMTPHandler(app.config.get('MAIL_SERVER'),
                                    'server-error@opinew.com',
-                                   ADMINS,
+                                   admins,
                                    'YourApplication Failed',
                                    credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')))
         mail_handler.setLevel(logging.ERROR)

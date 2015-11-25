@@ -9,6 +9,7 @@ from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
+from webapp import gravatar
 from webapp.common import generate_temp_password, random_pwd
 
 order_products_table = db.Table('order_products',
@@ -114,20 +115,87 @@ class User(db.Model, UserMixin, Repopulatable):
         return user
 
     @classmethod
-    def get_or_create_by_email(cls, email, **kwargs):
+    def post_registration_handler(cls, *args, **kwargs):
+        user = kwargs.get('user')
+        if user.is_shop_owner:
+            # append the role of a shop owner
+            shop_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
+            if shop_role and shop_role not in user.roles:
+                user.roles.append(shop_role)
+            gravatar_image_url = gravatar(user.email)
+            if gravatar_image_url:
+                user.image_url = gravatar_image_url
+            # create a customer account
+            plan = Plan.query.filter_by(name="free").first()
+            customer = Customer(user=user).create()
+            subscription = Subscription(customer=customer, plan=plan).create()
+            db.session.add(subscription)
+            # slot registration
+            slot_number = request.form.get('slot_number')
+            if slot_number and slot_number.isdigit() and int(slot_number) in range(1,21):
+                slot = Slot.query.filter_by(number=slot_number).first()
+                if not slot.customer:
+                    email = request.form.get('email')
+                    user = User.query.filter_by(email=email).first()
+                    if user and user.customer:
+                        customer = user.customer[0]
+                        slot.customer = customer
+                        db.session.add(slot)
+                        db.session.commit()
+        else:
+            reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
+            if reviewer_role and reviewer_role not in user.roles:
+                user.roles.append(reviewer_role)
+        db.session.commit()
+
+    @classmethod
+    def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, **kwargs):
         is_new = False
         instance = cls.query.filter_by(email=email).first()
         if not instance:
             is_new = True
-            reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
+
+            # Check for legacy user and merge if exists
+            user_legacy = UserLegacy.query.filter_by(email=email).first()
+            if user_legacy:
+                kwargs['name'] = kwargs['name'] or user_legacy.name
+                kwargs['image_url'] = kwargs['image_url'] or user_legacy.image_url
+
+            # Generate temp password and encryption
             temp_password = generate_temp_password()
             encr_password = encrypt_password(temp_password)
+
+            # Create an instance
             instance = cls(email=email,
                            temp_password=temp_password,
                            password=encr_password,
                            confirmed_at=datetime.datetime.utcnow(),
                            **kwargs)
-            instance.roles.append(reviewer_role)
+
+            # Reassign the orders on legacy user:
+            if user_legacy:
+                for order in user_legacy.orders:
+                    order.user_legacy = None
+                    order.user = instance
+                db.session.delete(user_legacy)
+            
+            # Check the role for the new user
+            if role_name == Constants.SHOP_OWNER_ROLE:
+                instance.is_shop_owner = True
+
+            # Handle creation of customer and roles
+            User.post_registration_handler(user=instance)
+
+            # Send email
+            from async import tasks
+
+            tasks.send_email.delay(recipients=[email],
+                                   template='email/new_user.html',
+                                   template_ctx={'user_email': email,
+                                                 'user_temp_password': temp_password,
+                                                 'user_name': instance.name
+                                                 },
+                                   subject="Welcome to Opinew!")
         return instance, is_new
 
     def unread_notifications(self):
@@ -149,6 +217,15 @@ class UserLegacy(db.Model, Repopulatable):
     name = db.Column(db.String)
     image_url = db.Column(db.String)
 
+    @classmethod
+    def get_or_create_by_email(cls, email, **kwargs):
+        is_new = False
+        instance = cls.query.filter_by(email=email).first()
+        if not instance:
+            is_new = True
+            instance = cls(email=email, **kwargs)
+        return instance, is_new
+
 
 class Customer(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -157,15 +234,34 @@ class Customer(db.Model, Repopulatable):
     user = db.relationship("User", backref=db.backref("customer"), uselist=False)
 
     stripe_customer_id = db.Column(db.String)
+    last4 = db.Column(db.String)
     active = db.Column(db.Boolean, default=True)
 
-    def create(self, stripe_token=None, **kwargs):
+    def create(self, **kwargs):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.create_customer(self, stripe_token)
+        stripe_opinew_adapter.create_customer(self)
+        return self
+
+    def add_payment_card(self, stripe_token, **kwargs):
+        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
+        stripe_opinew_adapter.create_paying_customer(self, stripe_token)
         return self
 
     def __repr__(self):
         return '<Customer %r>' % self.user
+
+class Slot(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+
+    number = db.Column(db.String)
+    color = db.Column(db.String)
+    display_url = db.Column(db.String)
+
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
+    customer = db.relationship("Customer", backref=db.backref("customer"), uselist=False)
+
+    def __repr__(self):
+        return '<Slot %r>' % self.customer
 
 
 class Plan(db.Model, Repopulatable):
@@ -425,6 +521,9 @@ class ReviewRequest(db.Model):
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     to_user = db.relationship('User', backref=db.backref('review_requests'))
 
+    to_user_legacy_id = db.Column(db.Integer, db.ForeignKey('user_legacy.id'))
+    to_user_legacy = db.relationship('UserLegacy', backref=db.backref('review_requests'))
+
     for_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     for_product = db.relationship('Product', backref=db.backref('review_requests'))
 
@@ -444,13 +543,17 @@ class ReviewRequest(db.Model):
             rrold = ReviewRequest.query.filter_by(token=token).first()
             if not rrold:
                 break
-        rr = cls(created_ts=datetime.datetime.utcnow(),
+        kwargs = dict(created_ts=datetime.datetime.utcnow(),
                  token=token,
                  from_customer=from_customer,
-                 to_user=to_user,
                  for_shop=for_shop,
                  for_order=for_order,
                  for_product=for_product)
+        if type(to_user) is UserLegacy:
+            kwargs['to_user_legacy'] = to_user
+        elif type(to_user) is User:
+            kwargs['to_user'] = to_user
+        rr = cls(**kwargs)
         db.session.add(rr)
         db.session.commit()
         return token
@@ -607,7 +710,7 @@ class Review(db.Model, Repopulatable):
         return 1
 
     def __repr__(self):
-        return '<Review %r... by %r>' % (self.body[:10], self.user)
+        return '<Review %r... by %r>' % (self.body[:10] if self.body else self.id, self.user)
 
     def is_for_shop(self, shop):
         if not self.order.shop == shop:
@@ -661,6 +764,7 @@ class Shop(db.Model, Repopulatable):
     name = db.Column(db.String)
     description = db.Column(db.String)
     domain = db.Column(db.String)
+    image_url = db.Column(db.String)
 
     automatically_approve_reviews = db.Column(db.Boolean, default=True)
 

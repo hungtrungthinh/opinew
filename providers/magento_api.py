@@ -69,9 +69,9 @@ class API(object):
         return order
 
     def update_order_status(self, order):
-        shipment_dt = order.shipment_timestamp
-
         now = datetime.datetime.utcnow()
+        shipment_dt = order.shipment_timestamp or now
+
         diff = now - shipment_dt
 
         # Delivery timestamp = shipment + 5
