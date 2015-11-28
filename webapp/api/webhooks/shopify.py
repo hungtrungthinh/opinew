@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from webapp import db, models, exceptions
+from webapp import db, models, exceptions, csrf
 from webapp.api import api
 from webapp.common import get_post_payload, catch_exceptions, verify_webhook, build_created_response
 
@@ -7,6 +7,7 @@ from webapp.common import get_post_payload, catch_exceptions, verify_webhook, bu
 @api.route('/platform/shopify/products/create', methods=['POST'])
 @catch_exceptions
 @verify_webhook
+@csrf.exempt
 def platform_shopify_create_product():
     """
     Currently this works with the Shopify API
@@ -30,8 +31,9 @@ def platform_shopify_create_product():
 
 
 @api.route('/platform/shopify/products/update', methods=['POST'])
-@verify_webhook
 @catch_exceptions
+@verify_webhook
+@csrf.exempt
 def platform_shopify_update_product():
     """
     Currently this works with the Shopify API
@@ -59,8 +61,9 @@ def platform_shopify_update_product():
 
 
 @api.route('/platform/shopify/products/delete', methods=['POST'])
-@verify_webhook
 @catch_exceptions
+@verify_webhook
+@csrf.exempt
 def platform_shopify_delete_product():
     """
     Currently this works with the Shopify API
@@ -84,10 +87,10 @@ def platform_shopify_delete_product():
     db.session.commit()
     return jsonify({}), 200
 
-
 @api.route('/platform/shopify/orders/create', methods=['POST'])
-@verify_webhook
 @catch_exceptions
+@verify_webhook
+@csrf.exempt
 def platform_shopify_create_order():
     payload = get_post_payload()
 
@@ -115,8 +118,9 @@ def platform_shopify_create_order():
 
 
 @api.route('/platform/shopify/orders/fulfill', methods=['POST'])
-@verify_webhook
 @catch_exceptions
+@verify_webhook
+@csrf.exempt
 def platform_shopify_fulfill_order():
     payload = get_post_payload()
 
