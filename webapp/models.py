@@ -153,8 +153,8 @@ class User(db.Model, UserMixin, Repopulatable):
             # Check for legacy user and merge if exists
             user_legacy = UserLegacy.query.filter_by(email=email).first()
             if user_legacy:
-                kwargs['name'] = kwargs['name'] or user_legacy.name
-                kwargs['image_url'] = kwargs['image_url'] or user_legacy.image_url
+                kwargs['name'] = kwargs.get('name') or user_legacy.name
+                kwargs['image_url'] = kwargs.get('image_url') or user_legacy.image_url
 
             # Generate temp password and encryption
             temp_password = generate_temp_password()
