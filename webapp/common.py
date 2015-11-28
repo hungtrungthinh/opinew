@@ -171,3 +171,11 @@ def create_jinja_filters(app):
                 return "%d %s" % (period, singular if period == 1 else plural)
 
         return default
+
+
+def inject_ua(ua_str, kwargs):
+    if 'headers' in kwargs:
+        kwargs['headers']['user-agent'] = ua_str
+    else:
+        kwargs['headers'] = {'user-agent': ua_str}
+    return kwargs

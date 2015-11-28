@@ -131,16 +131,12 @@ user_registered.connect(User.post_registration_handler)
 @client.route('/')
 def index():
     if 'mobile' in g and g.mobile:
-        login_form = LoginForm()
         if current_user.is_authenticated():
-            page = 1
-            start = Constants.REVIEWS_PER_PAGE * (page - 1)
-            end = start + Constants.REVIEWS_PER_PAGE
-            reviews = Review.get_latest(start, end)
-            return render_template('mobile/index.html', page_title="Reviews - Opinew",
-                                   page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
-                                   reviews=reviews, page=page)
-        return redirect(url_for('client.reviews'))
+            if current_user.has_role(Constants.REVIEWER_ROLE):
+                return redirect(url_for('client.user_profile', user_id=current_user.id))
+        else:
+            return redirect(url_for('client.reviews'))
+
     if current_user.is_authenticated():
         if current_user.temp_password:
             return redirect('/change')
@@ -149,7 +145,7 @@ def index():
         elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
             return redirect(url_for('client.shop_dashboard'))
         elif current_user.has_role(Constants.REVIEWER_ROLE):
-            return redirect(url_for('client.reviews'))
+            return redirect(url_for('client.user_profile', user_id=current_user.id))
     slots = Slot.query.order_by(Slot.id).all()
     slots_remaining = sum([1 for s in slots if s.customer == None])
     return render_template('index.html', slots=slots, slots_remaining=slots_remaining)

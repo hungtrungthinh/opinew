@@ -186,16 +186,18 @@ class User(db.Model, UserMixin, Repopulatable):
             # Handle creation of customer and roles
             User.post_registration_handler(user=instance)
 
-            # Send email
-            from async import tasks
+            from flask import current_app
+            if not current_app.config.get("TESTING"):
+                # Send emailif
+                from async import tasks
 
-            tasks.send_email.delay(recipients=[email],
-                                   template='email/new_user.html',
-                                   template_ctx={'user_email': email,
-                                                 'user_temp_password': temp_password,
-                                                 'user_name': instance.name
-                                                 },
-                                   subject="Welcome to Opinew!")
+                tasks.send_email.delay(recipients=[email],
+                                       template='email/new_user.html',
+                                       template_ctx={'user_email': email,
+                                                     'user_temp_password': temp_password,
+                                                     'user_name': instance.name
+                                                     },
+                                       subject="Welcome to Opinew!")
         return instance, is_new
 
     def unread_notifications(self):

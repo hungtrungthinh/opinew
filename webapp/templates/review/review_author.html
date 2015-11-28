@@ -41,7 +41,8 @@
 </div>
 
 {% if review.user %}
-        <div>{{ review.user.reviews_count }} reviews</div>
+        <div><b>Reviews:</b> {{ review.user.reviews_count }} <b>Likes:</b> {{ review.user.likes_count }}
+            </div>
     {% else %}
         <div>&nbsp;</div>
 {% endif %}

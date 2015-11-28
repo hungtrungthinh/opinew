@@ -7,7 +7,7 @@ import hashlib
 from flask import url_for
 from freezegun import freeze_time
 from unittest import TestCase
-from webapp import create_app, db
+from webapp import create_app, db, common
 from webapp.models import User, Role, Shop, Review, Product, Order
 from tests import testing_constants
 from config import Constants, basedir
@@ -20,7 +20,29 @@ class TestFlaskApplication(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = create_app('testing')
-        cls.client = cls.app.test_client()
+        cls.master_client = cls.app.test_client()
+
+        cls.desktop_client = cls.app.test_client()
+        cls.mobile_client = cls.app.test_client()
+
+        def override_method(method, ua):
+            def om_wrapper(*args, **kwargs):
+                kwargs = common.inject_ua(ua, kwargs)
+                return getattr(cls.master_client, method)(*args, **kwargs)
+            return om_wrapper
+
+        cls.desktop_client.get = override_method('get', Constants.DESKTOP_USER_AGENT)
+        cls.desktop_client.post = override_method('post', Constants.DESKTOP_USER_AGENT)
+        cls.desktop_client.put = override_method('put', Constants.DESKTOP_USER_AGENT)
+        cls.desktop_client.patch = override_method('patch', Constants.DESKTOP_USER_AGENT)
+        cls.desktop_client.delete = override_method('delete', Constants.DESKTOP_USER_AGENT)
+
+        cls.mobile_client.get = override_method('get', Constants.MOBILE_USER_AGENT)
+        cls.mobile_client.post = override_method('post', Constants.MOBILE_USER_AGENT)
+        cls.mobile_client.put = override_method('put', Constants.MOBILE_USER_AGENT)
+        cls.mobile_client.patch = override_method('patch', Constants.MOBILE_USER_AGENT)
+        cls.mobile_client.delete = override_method('delete', Constants.MOBILE_USER_AGENT)
+
         cls.app.app_context().push()
         db.create_all()
 
@@ -48,13 +70,13 @@ class TestFlaskApplication(TestCase):
         db.drop_all()
 
     def login(self, email, password):
-        return self.client.post('/login', data=dict(
+        return self.desktop_client.post('/login', data=dict(
             email=email,
             password=password
         ), follow_redirects=True)
 
     def logout(self):
-        return self.client.get('/logout', follow_redirects=True)
+        return self.desktop_client.get('/logout', follow_redirects=True)
 
 
 class TestViews(TestFlaskApplication):
@@ -70,21 +92,21 @@ class TestViews(TestFlaskApplication):
                 url = url_for(rule.endpoint, **(rule.defaults or {}))
                 if 'admin' in url:
                     continue
-                self.client.get(url, follow_redirects=True)
+                self.desktop_client.get(url, follow_redirects=True)
 
     def test_shopify_install_no_shop(self):
-        response_actual = self.client.get("/install", query_string={'ref': 'shopify'})
+        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify'})
         response_expected = {"error": "shop parameter is required"}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_shopify_install_no_shop_domain(self):
-        response_actual = self.client.get("/install", query_string={'ref': 'shopify',
+        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
                                                                     'shop': '123'})
         response_expected = {"error": 'invalid shop domain'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_shopify_install_incorrect_shop_name(self):
-        response_actual = self.client.get("/install", query_string={'ref': 'shopify',
+        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
                                                                     'shop': '123456789123456789'})
         response_expected = {"error": 'incorrect shop name'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
@@ -96,7 +118,7 @@ class TestViews(TestFlaskApplication):
         shop.access_token = 'Hellotoken'
         db.session.add(shop)
         db.session.commit()
-        response_actual = self.client.get("/install", query_string={'ref': 'shopify',
+        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
                                                                     'shop': shop.domain})
         location_expected = url_for('client.shop_dashboard')
         self.assertEquals(response_actual.status_code, 302)
@@ -107,37 +129,37 @@ class TestViews(TestFlaskApplication):
         db.session.commit()
 
     def test_shopify_install_redirect(self):
-        response_actual = self.client.get("/install", query_string={'ref': 'shopify',
+        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
                                                                     'shop': testing_constants.NEW_SHOP_DOMAIN})
         location_expected = 'https://opinew-testing.myshopify.com/admin/oauth/authorize?client_id=7260cb38253b9adc4af0c90eb622f4ce&scope=read_products,read_orders,read_fulfillments&redirect_uri=http://localhost:5000/oauth/callback&state=opinew-testing'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
     def test_oauth_callback_no_state(self):
-        response_actual = self.client.get("/oauth/callback")
+        response_actual = self.desktop_client.get("/oauth/callback")
         response_expected = {u'error': u'state parameter is required'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_hmac(self):
-        response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing'})
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing'})
         response_expected = {u'error': u'hmac parameter is required'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_shop(self):
-        response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing',
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
                                                                            'hmac': 'fdsa'})
         response_expected = {u'error': u'shop parameter is required'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_code(self):
-        response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing',
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
                                                                            'hmac': 'fdsa',
                                                                            'shop': testing_constants.NEW_SHOP_DOMAIN})
         response_expected = {u'error': u'code parameter is required'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_wrong_nonce(self):
-        response_actual = self.client.get("/oauth/callback", query_string={'state': 'WRONG_NONCE',
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'WRONG_NONCE',
                                                                            'hmac': 'fdsa',
                                                                            'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                            'code': 'abc'})
@@ -145,7 +167,7 @@ class TestViews(TestFlaskApplication):
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_signature(self):
-        response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing',
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
                                                                            'hmac': 'fdsa',
                                                                            'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                            'code': 'abc'})
@@ -153,7 +175,7 @@ class TestViews(TestFlaskApplication):
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_hmac_wrong(self):
-        response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing',
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
                                                                            'hmac': 'fdsa',
                                                                            'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                            'code': 'abc',
@@ -162,7 +184,7 @@ class TestViews(TestFlaskApplication):
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_success(self):
-        response_actual = self.client.get("/oauth/callback", query_string={'state': 'opinew-testing',
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
                                                                            'hmac': '4989858235c2ceded8d751658b9a8d7af995343950bcf65bee49ea48fb20380e',
                                                                            'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                            'code': 'abc',
@@ -185,38 +207,38 @@ class TestViews(TestFlaskApplication):
         db.session.commit()
 
     def test_register_get(self):
-        response_actual = self.client.get("/register")
+        response_actual = self.desktop_client.get("/register")
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h1>Register' in response_actual.data)
 
     def test_register_post_empty(self):
-        response_actual = self.client.post("/register")
+        response_actual = self.desktop_client.post("/register")
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('This field is required.' in response_actual.data)
         self.assertTrue('Email not provided' in response_actual.data)
         self.assertTrue('Password not provided' in response_actual.data)
 
     def test_register_post_name(self):
-        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME})
+        response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Email not provided' in response_actual.data)
         self.assertTrue('Password not provided' in response_actual.data)
 
     def test_register_post_name_and_email(self):
-        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+        response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
                                                               'email': testing_constants.NEW_USER_EMAIL})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Password not provided' in response_actual.data)
 
     def test_register_post_no_password_confirm(self):
-        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+        response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
                                                               'email': testing_constants.NEW_USER_EMAIL,
                                                               'password': testing_constants.NEW_USER_PWD})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Passwords do not match' in response_actual.data)
 
     def test_register_post_not_matching_passwords(self):
-        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+        response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
                                                               'email': testing_constants.NEW_USER_EMAIL,
                                                               'password': testing_constants.NEW_USER_PWD,
                                                               'password_confirm': 'not matching'})
@@ -224,7 +246,7 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('Passwords do not match' in response_actual.data)
 
     def test_register_post_default_reviewer(self):
-        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+        response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
                                                               'email': testing_constants.NEW_USER_EMAIL,
                                                               'password': testing_constants.NEW_USER_PWD,
                                                               'password_confirm': testing_constants.NEW_USER_PWD})
@@ -242,7 +264,7 @@ class TestViews(TestFlaskApplication):
         db.session.commit()
 
     def test_register_post_shop_owner(self):
-        response_actual = self.client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
+        response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
                                                               'email': testing_constants.NEW_USER_EMAIL,
                                                               'password': testing_constants.NEW_USER_PWD,
                                                               'password_confirm': testing_constants.NEW_USER_PWD,
@@ -261,13 +283,13 @@ class TestViews(TestFlaskApplication):
         db.session.commit()
 
     def test_get_index(self):
-        response_actual = self.client.get("/")
+        response_actual = self.desktop_client.get("/")
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h1>Opinew - Photo Product Reviews</h1>' in response_actual.data)
 
     def test_get_index_admin(self):
         self.login(self.admin_user.email, self.admin_password)
-        response_actual = self.client.get("/")
+        response_actual = self.desktop_client.get("/")
         location_expected = 'http://' + self.app.config.get('SERVER_NAME') + '/admin'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
@@ -275,7 +297,7 @@ class TestViews(TestFlaskApplication):
 
     def test_get_index_shop_owner(self):
         self.login(self.shop_onwer_user.email, self.shop_owner_password)
-        response_actual = self.client.get("/")
+        response_actual = self.desktop_client.get("/")
         location_expected = url_for('client.shop_dashboard')
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
@@ -283,60 +305,71 @@ class TestViews(TestFlaskApplication):
 
     def test_get_index_reviewer(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get("/")
-        location_expected = url_for('client.reviews')
+        response_actual = self.desktop_client.get("/")
+        location_expected = url_for('client.user_profile', user_id=self.reviewer_user.id)
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
         self.logout()
 
     def test_get_index_mobile(self):
-        response_actual = self.client.get("/", headers={'mobile': 'true'})
+        response_actual = self.mobile_client.get("/")
         location_expected = url_for('client.reviews')
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
     def test_get_index_mobile_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get("/", headers={'mobile': 'true'})
-        self.assertEquals(response_actual.status_code, 200)
+        response_actual = self.mobile_client.get("/")
+        location_expected = url_for('client.user_profile', user_id=self.reviewer_user.id)
+        self.assertEquals(response_actual.status_code, 302)
+        self.assertEquals(location_expected, response_actual.location)
         self.logout()
-
+##
     def test_get_index_mobile_not_logged_in_reviews(self):
-        response_actual = self.client.get(url_for('client.reviews'), headers={'mobile': 'true'})
+        response_actual = self.mobile_client.get(url_for('client.reviews'))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<footer' not in response_actual.data)
 
     def test_get_index_mobile_product_page(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get(url_for('client.get_product', product_id=1),
-                                          headers={'mobile': 'true'})
+        response_actual = self.mobile_client.get(url_for('client.get_product', product_id=1))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Review' in response_actual.data)
         self.logout()
 
     def test_get_index_mobile_add_review(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get(url_for('client.reviews'), headers={'mobile': 'true'})
+        response_actual = self.mobile_client.get(url_for('client.reviews'))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('take a picture' not in response_actual.data)
         self.logout()
 
     def test_get_reviews(self):
-        response_actual = self.client.get("/reviews")
+        response_actual = self.desktop_client.get("/reviews")
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Business owner?' in response_actual.data)
         self.assertTrue('<b>Opinew shop</b>' in response_actual.data)
 
+    def test_user_profile(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.desktop_client.get("/user-profile/"+str(self.reviewer_user.id))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h3>Rose Castro' in response_actual.data)
+        self.assertTrue('Great value for money yoga mat' in response_actual.data)
+        self.assertTrue('Reviews: 6' in response_actual.data)
+        self.assertTrue('Likes: 0' in response_actual.data)
+        self.logout()
+
     def test_access_admin_home(self):
         self.login(self.admin_user.email, self.admin_password)
-        response_actual = self.client.get("/admin/", follow_redirects=True)
+        response_actual = self.desktop_client.get("/admin/", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h1>Welcome to admin panel' in response_actual.data)
         self.logout()
 
     def test_dashboard(self):
         self.login(self.shop_onwer_user.email, self.shop_owner_password)
-        response_actual = self.client.get("/dashboard/2", follow_redirects=True)
+        response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('General settings' in response_actual.data)
         self.assertTrue('Orders' in response_actual.data)
@@ -345,28 +378,28 @@ class TestViews(TestFlaskApplication):
 
     def test_dashboard_orders(self):
         self.login(self.shop_onwer_user.email, self.shop_owner_password)
-        response_actual = self.client.get("/dashboard/2/orders", follow_redirects=True)
+        response_actual = self.desktop_client.get("/dashboard/2/orders", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h2>Orders</h2>' in response_actual.data)
         self.logout()
 
     def test_dashboard_reviews(self):
         self.login(self.shop_onwer_user.email, self.shop_owner_password)
-        response_actual = self.client.get("/dashboard/2/reviews", follow_redirects=True)
+        response_actual = self.desktop_client.get("/dashboard/2/reviews", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h2>Reviews</h2>' in response_actual.data)
         self.logout()
 
     def test_render_add_review_no_product(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get(url_for('client.add_review'))
+        response_actual = self.desktop_client.get(url_for('client.add_review'))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Select product' in response_actual.data)
         self.logout()
 
     def test_render_add_review_to_product(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get(url_for('client.add_review'), query_string={"product_id": 1})
+        response_actual = self.desktop_client.get(url_for('client.add_review'), query_string={"product_id": 1})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<a href="/product/1">Ear rings</a>' in response_actual.data)
         self.logout()
@@ -381,7 +414,7 @@ class TestViews(TestFlaskApplication):
                               "body": testing_constants.NEW_REVIEW_BODY,
                               "star_rating": testing_constants.NEW_REVIEW_STARS,
                               "image_url": testing_constants.NEW_REVIEW_IMAGE_URL})
-        response_actual = self.client.post("/api/v1/review",
+        response_actual = self.desktop_client.post("/api/v1/review",
                                            headers={'content-type': 'application/json'},
                                            data=payload)
 
@@ -411,7 +444,7 @@ class TestViews(TestFlaskApplication):
         self.assertTrue(review.approved_by_shop)
 
         # Finally, check that what needs to be rendered, is rendered..
-        response_actual = self.client.get(url_for('client.get_product', product_id=1))
+        response_actual = self.desktop_client.get(url_for('client.get_product', product_id=1))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue(testing_constants.NEW_REVIEW_BODY in response_actual.data)
         self.assertTrue(testing_constants.NEW_REVIEW_IMAGE_URL in response_actual.data)
@@ -422,7 +455,7 @@ class TestViews(TestFlaskApplication):
         self.login(self.reviewer_user.email, self.reviewer_password)
         payload = json.dumps({"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
                               "body": body_string})
-        response_actual = self.client.post("/api/v1/review",
+        response_actual = self.desktop_client.post("/api/v1/review",
                                            headers={'content-type': 'application/json'},
                                            data=payload)
 
@@ -441,7 +474,7 @@ class TestViews(TestFlaskApplication):
             review.youtube_video)
 
         # Finally, check that what needs to be rendered, is rendered..
-        response_actual = self.client.get(url_for('client.get_product', product_id=1))
+        response_actual = self.desktop_client.get(url_for('client.get_product', product_id=1))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue(testing_constants.NEW_REVIEW_BODY in response_actual.data)
         self.assertTrue(testing_constants.RENDERED_YOUTUBE in response_actual.data)
@@ -464,7 +497,7 @@ class TestViews(TestFlaskApplication):
         frozen_time = datetime.datetime(int(split_frozen_time[0]), int(split_frozen_time[1]), int(split_frozen_time[2]))
         self.login(self.shop_onwer_user.email, self.shop_owner_password)
         payload = json.dumps({"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID})
-        response_actual = self.client.post("/api/v1/review",
+        response_actual = self.desktop_client.post("/api/v1/review",
                                            headers={'content-type': 'application/json'},
                                            data=payload)
 
@@ -481,18 +514,18 @@ class TestViews(TestFlaskApplication):
         self.assertTrue(review.by_shop_owner)
 
         # Finally, check that what needs to be rendered, is rendered..
-        response_actual = self.client.get(url_for('client.get_product', product_id=1))
+        response_actual = self.desktop_client.get(url_for('client.get_product', product_id=1))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue(testing_constants.RENDERED_BY_SHOP_OWNER in response_actual.data)
         self.logout()
 
     def test_plugin_404(self):
-        response_actual = self.client.get(url_for('client.get_plugin'))
+        response_actual = self.desktop_client.get(url_for('client.get_plugin'))
         self.assertEquals(response_actual.status_code, 404)
         self.assertEquals('', response_actual.data)
 
     def test_plugin_get_by_platform_id_not_logged_in(self):
-        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+        response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
             shop_id=2, platform_product_id=1, get_by='platform_id'
         ))
         self.assertEquals(response_actual.status_code, 200)
@@ -503,7 +536,7 @@ class TestViews(TestFlaskApplication):
 
     def test_plugin_get_by_platform_id_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+        response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
             shop_id=2, platform_product_id=1, get_by='platform_id'
         ))
         self.assertEquals(response_actual.status_code, 200)
@@ -517,7 +550,7 @@ class TestViews(TestFlaskApplication):
         self.logout()
 
     def test_plugin_get_by_url_not_logged_in(self):
-        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+        response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
             shop_id=2, product_url='opinew_shop.local:5001/product/1', get_by='url'
         ))
         self.assertEquals(response_actual.status_code, 200)
@@ -527,7 +560,7 @@ class TestViews(TestFlaskApplication):
         self.assertTrue('modal-review' in response_actual.data)
 
     def test_plugin_get_by_url_regex_not_logged_in(self):
-        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+        response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
             shop_id=2, product_url='opinew_shop.local:5001/something_else/product/1', get_by='url'
         ))
         self.assertEquals(response_actual.status_code, 200)
@@ -538,7 +571,7 @@ class TestViews(TestFlaskApplication):
 
     def test_plugin_get_by_url_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.client.get(url_for('client.get_plugin'), query_string=dict(
+        response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
             shop_id=2, product_url='opinew_shop.local:5001/product/1', get_by='url'
         ))
         self.assertEquals(response_actual.status_code, 200)
@@ -557,7 +590,7 @@ class TestViews(TestFlaskApplication):
             'title': testing_constants.NEW_PRODUCT_NAME
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
-        response_actual = self.client.post(url_for('api.platform_shopify_create_product'),
+        response_actual = self.desktop_client.post(url_for('api.platform_shopify_create_product'),
                                            data=data,
                                            content_type="application/json",
                                            headers={
@@ -583,7 +616,7 @@ class TestViews(TestFlaskApplication):
             'title': testing_constants.CHANGED_PRODUCT_NAME
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
-        response_actual = self.client.post(url_for('api.platform_shopify_update_product'),
+        response_actual = self.desktop_client.post(url_for('api.platform_shopify_update_product'),
                                            data=data,
                                            content_type="application/json",
                                            headers={
@@ -606,7 +639,7 @@ class TestViews(TestFlaskApplication):
             'id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
-        response_actual = self.client.post(url_for('api.platform_shopify_delete_product'),
+        response_actual = self.desktop_client.post(url_for('api.platform_shopify_delete_product'),
                                            data=data,
                                            headers={
                                                'X-Shopify-Hmac-SHA256': sha256,
@@ -634,7 +667,7 @@ class TestViews(TestFlaskApplication):
             ]
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
-        response_actual = self.client.post(url_for('api.platform_shopify_create_order'),
+        response_actual = self.desktop_client.post(url_for('api.platform_shopify_create_order'),
                                            data=data,
                                            headers={
                                                'X-Shopify-Hmac-SHA256': sha256,
@@ -660,7 +693,7 @@ class TestViews(TestFlaskApplication):
             'tracking_number': testing_constants.ORDER_TRACKING_NUMBER
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
-        response_actual = self.client.post(url_for('api.platform_shopify_fulfill_order'),
+        response_actual = self.desktop_client.post(url_for('api.platform_shopify_fulfill_order'),
                                            data=data,
                                            headers={
                                                'X-Shopify-Hmac-SHA256': sha256,

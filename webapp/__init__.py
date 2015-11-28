@@ -16,6 +16,7 @@ from flask.ext.compress import Compress
 import logging
 from logging.handlers import SMTPHandler
 from logging import Formatter
+from user_agents import parse
 
 
 class MyHomeView(AdminIndexView):
@@ -76,8 +77,9 @@ def create_app(option):
 
         @app.before_request
         def before_request():
+            user_agent = parse(request.user_agent.string)
             g.mobile = False
-            if request.headers.get('mobile'):
+            if user_agent.is_mobile or user_agent.is_tablet:
                 g.mobile = True
             g.constants = Constants
             g.config = app.config

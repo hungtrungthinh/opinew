@@ -1,18 +1,12 @@
 {% import "_macros.html" as macros %}
 <div class="alert" id="ajax-status" hidden xmlns="http://www.w3.org/1999/html"></div>
 {% if g.mobile %}
+    <a id="image-button">
     <button class="btn btn-success btn-block btn-lg" onclick="launchCamera()" id="launch-mobile-camera">
         <span class="glyphicon glyphicon-camera" style="font-size: 5em;"></span><br>
         <span style="font-size: 1em;">take a picture</span>
     </button>
-    <script type="text/javascript">
-        function launchCamera() {
-            $('#launch-mobile-camera').hide();
-            $('#tab-giphy').hide();
-            $('#review-image').attr('src', "/static/img/ajax-loader.gif");
-            Android.launchCamera();
-        }
-    </script>
+    </a>
 {% endif %}
 
 <form class="action" method="post" action="{{ g.constants.API_V1_URL_PREFIX }}/review" id="review-form">
@@ -58,10 +52,12 @@
                 <img src="http://twemoji.maxcdn.com/36x36/1f602.png"/>
             </a>
             <br>
+            {% if not g.mobile %}
             <a id="image-button" class="btn btn-default review-add-button ">
                 <span class="glyphicon glyphicon-camera"></span><br>
                 <small>Pic</small>
             </a>
+            {% endif %}
             <br>
             <a id="giphy-button" class="btn btn-default review-add-button ">
                 <span class="glyphicon glyphicon glyphicon-picture"></span><br>

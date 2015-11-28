@@ -10,19 +10,18 @@
 
     <div class="row">
 
-        {% if user.is_shop_owner %}
-
-        {% else %}
             <div id="profile-header">
-                <div id="profile-entity-picture" class="entity-picture"
-                 style="background: url({{ user_image_url }}) no-repeat scroll center center / cover white;
-                         display: inline-block;">
+                <div  class="profile-picture-container"
+                 style="display: inline-block;">
+                    <span class="profile-img-helper">
+                        <img id="profile-entity-picture" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
+                    </span>
 
                 </div>
                 <div class="profile-user-details" style="display: inline-block;margin-left: 5px;padding-bottom: 5px">
                     <h3>{{ user.name }}<br>
-                        <small>Total reviews: {{ user.reviews_count }}</small><br>
-                    <small>Total likes: {{ user.likes_count }}</small>
+                        <small>Reviews: {{ user.reviews_count }}</small><br>
+                    <small>Likes: {{ user.likes_count }}</small>
                     </h3>
                 </div>
 
@@ -41,7 +40,6 @@
             <div class="spacer">
 
             </div>
-        {% endif %}
 
 
 

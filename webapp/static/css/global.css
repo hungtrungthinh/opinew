@@ -440,6 +440,31 @@ blockquote p {
       padding-bottom: 5px;
   }
 
+    .profile-user-details{
+        position: relative;
+        top:-30px;
+        word-wrap:break-word;
+        white-space:normal;
+    }
+
+
+
+    #profile-entity-picture {
+        position: absolute;
+         height: 100px;
+        width: 100px;
+    top: -10px;
+    bottom: 0;
+    left: 20px;
+    right: 0;
+    display: flex; /* add */
+    justify-content: center; /* add to align horizontal */
+    align-items: center; /* add to align vertical */
+        box-shadow: 0 0 10px #000;
+      z-index: 10;
+        border: 5px solid white;
+    }
+
 }
 
 @media all and (min-width: 768px) {
@@ -462,6 +487,28 @@ blockquote p {
       padding-top: 10px;
       padding-bottom: 5px;
   }
+
+  .profile-user-details{
+    position: relative;
+    top:-30px;
+    padding-left:5px;
+    word-wrap:break-word;
+    white-space:normal;
+    }
+
+
+
+    #profile-entity-picture {
+      border: 5px solid white;
+      height: 100px;
+      width: 100px;
+      position: relative;
+      top: -50px;
+      left: 5px;
+      box-shadow: 0 0 10px #000;
+      z-index: 10;
+        vertical-align: middle;
+    }
 }
 
 .img-instruction {
@@ -501,24 +548,21 @@ blockquote p {
   height: 100px;
   position: relative;
     padding-left: 20px;
+    display: inline-block;
+    margin-top: 15px;
 }
 
-.profile-user-details{
-    position: relative;
-    top:-10px;
-    padding-left:5px;
+.profile-img-helper {
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
 }
 
-
-
-#profile-entity-picture {
-  border: 5px solid white;
-  height: 100px;
-  width: 100px;
-  position: relative;
-  top: 15px;
-  left: 5px;
-  box-shadow: 0 0 10px #000;
-  z-index: 10;
+.profile-picture-container {
+    white-space: nowrap;
+    height: 100px;
+      width: 100px;
+    text-align: center; margin: 1em 0;
 }
+
 
