@@ -340,6 +340,12 @@ blockquote p {
   background-color: #74d474 !important;
 }
 
+.btn-buy {
+    color:#ffffff;
+    background-color: hsla(221,68%,62%,1);
+    border-color: hsla(221,58%,60%,1);
+}
+
 .reviews-container {
   padding-left: 1px;
   padding-right: 1px;
@@ -564,5 +570,7 @@ blockquote p {
       width: 100px;
     text-align: center; margin: 1em 0;
 }
+
+
 
 
