@@ -54,9 +54,11 @@
               {% endif %}
             </div>
             <div class="col-xs-2">
+                {% if current_user.is_authenticated() %}
                 <a href="{{ url_for('client.settings') }}">
                     <span class="glyphicon glyphicon-menu-hamburger pull-right" id="nav-settings-btn"></span>
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>
