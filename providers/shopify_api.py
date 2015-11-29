@@ -119,6 +119,7 @@ class API(object):
             return [{
                 'id': testing_constants.NEW_ORDER_PLATFORM_ID,
                 'fulfillment_status': None,
+                'created_at': '2015-11-28T14:45:50+00:00',
                 'cancelled_at': None,
                 'line_items': [{
                     'id': testing_constants.NEW_PRODUCT_PLATFORM_ID

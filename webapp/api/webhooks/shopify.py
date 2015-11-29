@@ -99,12 +99,17 @@ def platform_shopify_create_order():
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
-    customer_email = payload.get('customer', {}).get('email')
-    opinew_user, _ = models.User.get_or_create_by_email(customer_email)
-
     platform_order_id = str(payload.get('id', ''))
+    order = models.Order(platform_order_id=platform_order_id, shop=shop)
 
-    order = models.Order(platform_order_id=platform_order_id, user=opinew_user, shop=shop)
+    customer_email = payload.get('customer', {}).get('email')
+    customer_name = "%s %s" % (payload.get('customer', {}).get('first_name', ''),  payload.get('customer', {}).get('last_name', ''))
+    existing_user = models.User.get_by_email_no_exception(customer_email)
+    if existing_user:
+        order.user = existing_user
+    else:
+        legacy_user, _ = models.UserLegacy.get_or_create_by_email(customer_email, name=customer_name)
+        order.legacy_user  = legacy_user
 
     line_items = payload.get('line_items', [])
     for line_item in line_items:

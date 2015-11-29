@@ -20,16 +20,22 @@ class API(object):
         self.magento = MagentoAPI(domain, port, username, password)
 
     def create_new_order(self, morder, shop_id):
-        # create user or get one from our db
-        user, _ = models.User.get_or_create_by_email(email=morder.get('customer_email'),
-                                                     name=morder.get('billing_name'))
         order = models.Order(
-            user=user,
             platform_order_id=morder.get('order_id'),
             status=self.order_statuses.get(morder.get('status'), Constants.ORDER_STATUS_PURCHASED),
             purchase_timestamp=datetime.datetime.strptime(morder.get('created_at'), '%Y-%m-%d %H:%M:%S'),
             shop_id=shop_id
         )
+        # create user or get one from our db
+        customer_email = morder.get('customer_email')
+        customer_name = morder.get('billing_name')
+        existing_user = models.User.get_by_email_no_exception(customer_email)
+        if existing_user:
+            order.user = existing_user
+        else:
+            legacy_user, _ = models.UserLegacy.get_or_create_by_email(customer_email, name=customer_name)
+            order.legacy_user  = legacy_user
+
 
         # get the products for this order
         mproducts = self.magento.cart_product.list(morder.get('order_id'))
