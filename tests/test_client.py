@@ -677,7 +677,7 @@ class TestViews(TestFlaskApplication):
                                           shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
         order = Order.query.filter_by(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID,
                                       shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
-        self.assertEquals(order.user.email, testing_constants.ORDER_USER_EMAIL)
+        self.assertEquals(order.user_legacy.email, testing_constants.ORDER_USER_EMAIL)
         self.assertIn(product, order.products)
         db.session.delete(order)
         db.session.delete(product)

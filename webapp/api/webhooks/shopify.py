@@ -1,3 +1,4 @@
+import datetime
 from flask import jsonify, request
 from webapp import db, models, exceptions, csrf
 from webapp.api import api
@@ -99,12 +100,21 @@ def platform_shopify_create_order():
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
-    customer_email = payload.get('customer', {}).get('email')
-    opinew_user, _ = models.User.get_or_create_by_email(customer_email)
-
     platform_order_id = str(payload.get('id', ''))
+    try:
+        created_at_dt = datetime.datetime.strptime(payload.get('created_at')[:-6], "%Y-%m-%dT%H:%M:%S")
+    except:
+        created_at_dt = datetime.datetime.utcnow()
+    order = models.Order(platform_order_id=platform_order_id, shop=shop)
 
-    order = models.Order(platform_order_id=platform_order_id, user=opinew_user, shop=shop)
+    customer_email = payload.get('customer', {}).get('email')
+    customer_name = "%s %s" % (payload.get('customer', {}).get('first_name', ''),  payload.get('customer', {}).get('last_name', ''))
+    existing_user = models.User.get_by_email_no_exception(customer_email)
+    if existing_user:
+        order.user = existing_user
+    else:
+        user_legacy, _ = models.UserLegacy.get_or_create_by_email(customer_email, name=customer_name)
+        order.user_legacy  = user_legacy
 
     line_items = payload.get('line_items', [])
     for line_item in line_items:

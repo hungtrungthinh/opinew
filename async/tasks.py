@@ -67,6 +67,11 @@ def create_shopify_shop(shopify_api, shop_id):
 
     # Import shop orders
     for order_j in shopify_orders:
+        platform_order_id = order_j.get('id')
+        existing_order = models.Order.filter_by(platform_order_id=platform_order_id).first()
+        if existing_order:
+            continue
+
         user_name = "%s %s" % (
             order_j.get('customer', {}).get('first_name'), order_j.get('customer', {}).get('last_name'))
         user_legacy, _ = models.UserLegacy.get_or_create_by_email(email=order_j.get('email'), name=user_name)
@@ -76,7 +81,7 @@ def create_shopify_shop(shopify_api, shop_id):
             created_at_dt = datetime.datetime.utcnow()
         order = models.Order(
             purchase_timestamp=created_at_dt,
-            platform_order_id=order_j.get('id'),
+            platform_order_id=platform_order_id,
             shop_id=shop.id,
             user_legacy=user_legacy
         )
