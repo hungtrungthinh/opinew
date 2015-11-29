@@ -116,6 +116,7 @@ def shopify_plugin_callback():
     # asyncronously create all products, orders and webhooks
     if not current_app.config.get('TESTING'):
         from async import tasks
+
         tasks.create_shopify_shop.delay(shopify_api=shopify_api,
                                         shop_id=shop.id)
 
@@ -125,6 +126,7 @@ def shopify_plugin_callback():
 
 # Signals
 from flask.ext.security import user_registered
+
 user_registered.connect(User.post_registration_handler)
 
 
@@ -197,6 +199,7 @@ def notifications():
         return render_template('mobile/notifications.html')
     return redirect(url_for('client.index'))
 
+
 @client.route('/user-profile', defaults={'user_id': 0})
 @client.route('/user-profile/<int:user_id>')
 def user_profile(user_id):
@@ -211,8 +214,8 @@ def user_profile(user_id):
     user = User.get_by_id(user_id)
     reviews = Review.get_by_user(user_id)
     return render_template('mobile/user_profile.html',
-                            page_title="User - Opinew",
-                            reviews=reviews, page=page, user=user)
+                           page_title="User - Opinew",
+                           reviews=reviews, page=page, user=user)
 
 
 @client.route('/dashboard')
@@ -278,6 +281,7 @@ def shop_dashboard_reviews(shop_id):
     reviews = Review.query.filter(Review.product_id.in_([p.id for p in products])).all()
     return render_template("shop_admin/reviews.html", reviews=reviews)
 
+
 @client.route('/add-payment-card', methods=['POST'])
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
@@ -310,10 +314,16 @@ def get_plugin():
             product = None
         if not product:
             return '', 404
+
+        if current_user and current_user.is_authenticated():
+            own_review = Review.query.filter_by(product_id=product.id, user=current_user).order_by(
+                Review.created_ts.desc()).first()
+        else:
+            own_review = None
         reviews = Review.query.filter_by(product_id=product.id, approved_by_shop=True).order_by(
             Review.created_ts.desc()).all()
-        own_reviews = Review.query.filter_by(user=current_user,
-                                             product=product).all() if current_user.is_authenticated() else []
+        featured_reviews = [fr for fr in reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
+        reviews = [r for r in reviews if r not in featured_reviews and not r == own_review]
         next_arg = request.url
         product.plugin_views += 1
         db.session.commit()
@@ -322,7 +332,7 @@ def get_plugin():
     return render_template('plugin/plugin.html', product=product, reviews=reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
                            review_image_form=review_image_form, next_arg=next_arg,
-                           own_reviews=own_reviews, in_plugin=True)
+                           own_review=own_review, featured_reviews=featured_reviews, in_plugin=True)
 
 
 @client.route('/product', defaults={'product_id': 0})
@@ -330,13 +340,22 @@ def get_plugin():
 def get_product(product_id):
     try:
         product = Product.get_by_id(product_id)
-        reviews = Review.query.filter_by(product_id=product_id).order_by(
-            Review.created_ts.desc()).all()
+        if current_user and current_user.is_authenticated():
+            own_review = Review.query.filter_by(product_id=product_id, user=current_user).order_by(
+                Review.created_ts.desc()).first()
+        else:
+            own_review = None
+        reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
+        featured_reviews = [fr for fr in reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
+        reviews = [r for r in reviews if r not in featured_reviews and not r == own_review]
     except (ParamException, DbException) as e:
         flash(e.message)
         return redirect(request.referrer)
     return render_template('product.html', page_title="%s Reviews - " % product.name,
-                           product=product, reviews=reviews)
+                           product=product,
+                           reviews=reviews,
+                           own_review=own_review,
+                           featured_reviews=featured_reviews)
 
 
 @client.route('/get_order', defaults={'order_id': 0})
@@ -586,17 +605,20 @@ def post_change():
         db.session.commit()
     return redirect(url_for('client.index'))
 
+
 @client.route('/admin-view-as')
 @login_required
 @roles_required(Constants.ADMIN_ROLE)
 def admin_view_as():
     user_id = request.args.get('user_id')
     from webapp import models
+
     user = models.User.query.filter_by(id=user_id).first()
     if user:
         logout_user()
         login_user(user)
     return redirect(url_for('client.index'))
+
 
 @client.route('/tail-uwsgi')
 @login_required

@@ -23,6 +23,9 @@
               {% if review.by_shop_owner %}
                   <span class="label label-info"><span class="glyphicon glyphicon-user"></span> By shop owner</span>
               {% endif %}
+            {% if review.featured and review.featured.action %}
+                  <span class="label label-warning"><span class="glyphicon glyphicon-star"></span> Featured</span>
+              {% endif %}
             </div>
         </div>
 

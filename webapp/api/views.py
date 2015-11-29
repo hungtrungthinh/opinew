@@ -38,7 +38,23 @@ def pre_review_like_post(data, *args, **kwargs):
     if review_like:
         raise ProcessingException(description='Review already liked', code=401)
     data['user_id'] = current_user.id
+    data['action'] = '1'
     return data
+
+
+def pre_review_like_patch(data, *args, **kwargs):
+    review_id = data.get('review_id')
+    if not review_id:
+        raise ProcessingException(description='Review id requried!', code=401)
+    review = models.Review.query.filter_by(id=review_id).first()
+    if not review:
+        raise ProcessingException(description='Review doesnt exist', code=401)
+    review_like = models.ReviewLike.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+    if not review_like:
+        raise ProcessingException(description='Review hasn\'t been liked before', code=401)
+    data['user_id'] = current_user.id
+    if data['action'] not in ['0', '1']:
+        raise ProcessingException(description='Incorrect value for action.', code=401)
 
 
 def pre_review_report_post(data, *args, **kwargs):
@@ -52,7 +68,50 @@ def pre_review_report_post(data, *args, **kwargs):
     if review_report:
         raise ProcessingException(description='You have already reported this review', code=401)
     data['user_id'] = current_user.id
+    data['action'] = '1'
     return data
+
+
+def pre_review_report_patch(data, *args, **kwargs):
+    review_id = data.get('review_id')
+    if not review_id:
+        raise ProcessingException(description='Review id requried!', code=401)
+    review = models.Review.query.filter_by(id=review_id).first()
+    if not review:
+        raise ProcessingException(description='Review doesnt exist', code=401)
+    review_report = models.ReviewReport.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+    if not review_report:
+        raise ProcessingException(description='This review hasn\'t been reported before', code=401)
+    if data['action'] not in ['0', '1']:
+        raise ProcessingException(description='Incorrect value for action.', code=401)
+
+
+def pre_review_feature_post(data, *args, **kwargs):
+    review_id = data.get('review_id')
+    if not review_id:
+        raise ProcessingException(description='Review id requried!', code=401)
+    review = models.Review.query.filter_by(id=review_id).first()
+    if not review:
+        raise ProcessingException(description='Review doesnt exist', code=401)
+    review_feature = models.ReviewFeature.query.filter_by(review_id=review_id).first()
+    if review_feature:
+        raise ProcessingException(description='You have already featured this review', code=401)
+    data['action'] = '1'
+    return data
+
+
+def pre_review_feature_patch(data, *args, **kwargs):
+    review_id = data.get('review_id')
+    if not review_id:
+        raise ProcessingException(description='Review id requried!', code=401)
+    review = models.Review.query.filter_by(id=review_id).first()
+    if not review:
+        raise ProcessingException(description='Review doesnt exist', code=401)
+    review_feature = models.ReviewFeature.query.filter_by(review_id=review_id).first()
+    if not review_feature:
+        raise ProcessingException(description='This review hasn\'t been featured before.', code=401)
+    if data['action'] not in ['0', '1']:
+        raise ProcessingException(description='Incorrect value for action.', code=401)
 
 
 def pre_create_order(data, *args, **kwargs):
@@ -194,7 +253,7 @@ api_manager.create_api(models.ReviewLike,
                        methods=['POST', 'PATCH'],
                        preprocessors={
                            'POST': [del_csrf, auth_func, pre_review_like_post],
-                           'PATCH_SINGLE': [del_csrf, auth_func]
+                           'PATCH_SINGLE': [del_csrf, auth_func, pre_review_like_patch]
                        },
                        exclude_columns=models.User.exclude_fields(),
                        validation_exceptions=[DbException])
@@ -204,7 +263,17 @@ api_manager.create_api(models.ReviewReport,
                        methods=['POST', 'PATCH'],
                        preprocessors={
                            'POST': [del_csrf, auth_func, pre_review_report_post],
-                           'PATCH_SINGLE': [del_csrf, auth_func]
+                           'PATCH_SINGLE': [del_csrf, auth_func, pre_review_report_patch]
+                       },
+                       exclude_columns=models.User.exclude_fields(),
+                       validation_exceptions=[DbException])
+
+api_manager.create_api(models.ReviewFeature,
+                       url_prefix=Constants.API_V1_URL_PREFIX,
+                       methods=['POST', 'PATCH'],
+                       preprocessors={
+                           'POST': [del_csrf, auth_func, pre_review_feature_post],
+                           'PATCH_SINGLE': [del_csrf, auth_func, pre_review_feature_patch]
                        },
                        exclude_columns=models.User.exclude_fields(),
                        validation_exceptions=[DbException])

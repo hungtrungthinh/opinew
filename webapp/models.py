@@ -344,6 +344,15 @@ class ReviewReport(db.Model):
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     review = db.relationship("Review", backref=db.backref("review_reports"))
 
+class ReviewFeature(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    action = db.Column(db.Integer, default=1)
+    timestamp = db.Column(db.DateTime)
+
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship("Review", backref=db.backref("feature"), uselist=False)
+
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -698,6 +707,13 @@ class Review(db.Model, Repopulatable):
         return False
 
     @property
+    def featured(self):
+        if current_user and current_user.is_authenticated():
+            rf = ReviewFeature.query.filter_by(review_id=self.id).first()
+            return rf
+        return False
+
+    @property
     def next_like_action(self):
         if current_user and current_user.is_authenticated():
             rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
@@ -709,6 +725,13 @@ class Review(db.Model, Repopulatable):
         if current_user and current_user.is_authenticated():
             rr = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
             return (0 if rr.action == 1 else 1) if rr else 1
+        return 1
+
+    @property
+    def next_feature_action(self):
+        if current_user and current_user.is_authenticated():
+            rf = ReviewFeature.query.filter_by(review_id=self.id).first()
+            return (0 if rf.action == 1 else 1) if rf else 1
         return 1
 
     def __repr__(self):

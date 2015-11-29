@@ -23,15 +23,27 @@
                       </div>
                   {% endif %}
                 <h3>Reviews</h3>
-                <a class="btn btn-default btn-block btn-info" style="margin-bottom: 15px" href="{{ url_for('client.add_review', product_id=product.id) }}">Add a review</a>
-              {% if not reviews %}
-                  <h4>No reviews yet</h4>
-              {% else %}
+                <a class="btn btn-default btn-block btn-info" style="margin-bottom: 15px"
+                   href="{{ url_for('client.add_review', product_id=product.id) }}">Add a review</a>
+
+              {% if own_review %}
+                  <h4>Your review</h4>
+                {% set review = own_review %}
+                {% include "review/review.html" %}
+                  <hr>
+              {% endif %}
+              {% if featured_reviews %}
+                  <h4>Featured reviews</h4>
+                {% for review in featured_reviews %}
+                  {% include "review/review.html" %}
+                {% endfor %}
+                  <hr>
+              {% endif %}
+              {% if reviews %}
                 {% for review in reviews %}
                   {% include "review/review.html" %}
                 {% endfor %}
               {% endif %}
-
             </div>
         </div>
     </div>

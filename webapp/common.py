@@ -8,7 +8,6 @@ import datetime
 from functools import wraps
 from flask import jsonify, abort, request, url_for, current_app
 from flask.ext.login import current_user
-from flask.ext.restless import ProcessingException
 from werkzeug.exceptions import HTTPException
 from webapp.exceptions import ParamException, ApiException, DbException
 from config import Constants, Config
