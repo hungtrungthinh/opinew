@@ -52,6 +52,8 @@ class Constants(object):
     DESKTOP_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36'
     MOBILE_USER_AGENT = 'Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_2_1 like Mac OS X; en-us) AppleWebKit/533.17.9 (KHTML, like Gecko) Version/5.0.2 Mobile/8C148 Safari/6533.18.5'
 
+    MAX_BODY_LENGTH = 300
+
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),

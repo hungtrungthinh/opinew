@@ -14,8 +14,8 @@
            src="{{ user_image_url }}"/>
       <span class="hidden-xs navbar-name">
           {{ current_user.name }}
-        {% if current_user.role == g.constants.SHOP_OWNER_ROLE %}
-            <br><span class="text-muted">(shop owner)</span>
+        {% if current_user.is_shop_owner %}
+            <br><small class="text-muted nav-shop-owner-role-label">(shop owner)</small>
         {% endif %}
       </span>
   </span>

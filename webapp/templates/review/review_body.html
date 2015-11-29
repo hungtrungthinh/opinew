@@ -1,5 +1,18 @@
 {% if review.body %}
-    <blockquote class="review-body-content">
-      {{ review.body }}
+    <blockquote>
+      {% if review.body|length > g.constants.MAX_BODY_LENGTH %}
+          <span class="review-body-content" id="review-less-{{ review.id }}">
+        {{ review.body[:g.constants.MAX_BODY_LENGTH] }}...
+          </span>
+          <a href="#" class="review-more-btn" data-review-id="{{ review.id }}">(more)</a>
+          <span class="review-body-content" id="review-more-{{ review.id }}" hidden>
+        {{ review.body }}
+          </span>
+      {% else %}
+          <span class="review-body-content">
+        {{ review.body }}
+          </span>
+      {% endif %}
     </blockquote>
+    <em class="pull-right text-muted review-date"> — {{ review.created_ts.strftime('%d %b, %Y') }}</em><br>
 {% endif %}

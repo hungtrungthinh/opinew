@@ -5,7 +5,7 @@
     <input type="hidden" name="review_id" class="form-serialize" value="{{ review.id }}"/>
     <input type="hidden" name="action" class="form-serialize like-action-input"
            value="{{ review.next_like_action }}"/>
-    <button class="btn {% if review.liked_by_current_user and review.liked_by_current_user.action %}btn-success{% else %}btn-default{% endif %}"
+    <button title="Helpful" class="btn {% if review.liked_by_current_user and review.liked_by_current_user.action %}btn-success{% else %}btn-default{% endif %}"
             type="submit">
         <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
     </button>

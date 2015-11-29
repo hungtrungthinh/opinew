@@ -50,7 +50,20 @@ function loadAsync() {
   }
 }
 
+function showMoreReview(el) {
+  var reviewId = $(el).data('review-id');
+  $(el).hide();
+  $("#review-less-"+reviewId).hide();
+  $("#review-more-"+reviewId).slideDown();
+  return false;
+}
+
 $(document).ready(function () {
+  $('.review-more-btn').click(function(e){
+    e.preventDefault();
+    showMoreReview(this);
+  });
+
   $('.review-body-content').each(function () {
     var finalText = $(this).text();
     for (var property in EMOJIS) {

@@ -5,9 +5,9 @@
     <input type="hidden" name="review_id" class="form-serialize" value="{{ review.id }}"/>
     <input type="hidden" name="action" class="form-serialize report-action-input"
            value="{{ review.next_report_action }}"/>
-    <button class="btn {% if review.reported_by_current_user and review.reported_by_current_user.action %}btn-danger{% else %}btn-default{% endif %}"
+    <button title="Report" class="btn {% if review.reported_by_current_user and review.reported_by_current_user.action %}btn-danger{% else %}btn-default{% endif %}"
             type="submit">
-        <span class="glyphicon glyphicon-flag"></span> <span class="report-text">Report{% if review.reported_by_current_user and review.reported_by_current_user.action %}ed{% endif %}</span>
+        <span class="glyphicon glyphicon-flag"></span> <span class="report-text"></span>
     </button>
 </form>
 <script>

@@ -21,10 +21,10 @@ $('.review-report-form').on('submit', function (e) {
     var curText = $reportButton.html();
     if (r.action == 1) {
       $reportActionInput.val(0);
-      $reportButton.addClass('btn-danger').removeClass('btn-default').children('.report-text').text('Reported');
+      $reportButton.addClass('btn-danger').removeClass('btn-default').children('.report-text');
     } else {
       $reportActionInput.val(1);
-      $reportButton.addClass('btn-default').removeClass('btn-danger').children('.report-text').text('Report');
+      $reportButton.addClass('btn-default').removeClass('btn-danger').children('.report-text');
     }
 
   }).fail(function (r) {
