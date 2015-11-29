@@ -131,9 +131,61 @@ class API(object):
             updated_orders.append(updated_order)
         return updated_orders
 
+    def update_products(self, mproducts, current_shop_products):
+        new_and_updated_products = []
+        current_shop_products_dict = {p.id: p for p in current_shop_products}
+        for mproduct in mproducts:
+            mplatform_product_id = mproduct.get('sku', None)
+            try:
+                mproduct_details = self.magento.catalog_product.info(mplatform_product_id)
+            except:
+                continue
+            mproduct_name = mproduct.get('name', None)
+            mproduct_active = True if mproduct_details['status'] == '1' else False
+            mproduct_description = mproduct_details['short_description']
+            mproduct_urlkey = mproduct_details['url_key']
+            if mplatform_product_id not in current_shop_products_dict:
+                new_product = models.Product(platform_product_id=mplatform_product_id)
+                new_product.name = mproduct_name
+                new_product.active = mproduct_active
+                new_product.short_description = mproduct_description
+                new_and_updated_products.append(new_product)
+                new_product.urlkey = mproduct_urlkey
+            else:
+                product = current_shop_products_dict.get(mplatform_product_id)
+                if not product:
+                    continue
+                if not mproduct_name == product.name or \
+                    not mproduct_active == product.active or \
+                    not mproduct_description == product.short_description:
+                    product.name = mproduct_name
+                    product.active = mproduct_active
+                    product.short_description = mproduct_description
+                    new_and_updated_products.append(product)
+        return new_and_updated_products
+
+
 
 def init(shop):
     api = API(shop.domain, shop.access_user, shop.access_token)
+
+    # Update products
+    current_shop_products = models.Product.query.filter_by(shop_id=shop.id).all()
+
+    # Query the products endpoint
+    mproducts = api.magento.catalog_product.list()
+
+    # Merge
+    updated_products = api.update_products(mproducts, current_shop_products)
+    for p in updated_products:
+        p.shop = shop
+        if p.urlkey:
+            pu_1 = models.ProductUrl(product=p, url="%s/%s" % (shop.domain, p.urlkey))
+            pu_2 = models.ProductUrl(product=p, url="%s/(.)*%s" % (shop.domain, p.urlkey), is_regex=True)
+            db.session.add(pu_1)
+            db.session.add(pu_2)
+        db.session.add(p)
+    db.session.commit()
 
     # Update orders that are already on their way....
     to_update_orders = models.Order.query.filter(and_(models.Order.shop_id == shop.id,

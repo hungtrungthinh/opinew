@@ -105,7 +105,7 @@ def platform_shopify_create_order():
         created_at_dt = datetime.datetime.strptime(payload.get('created_at')[:-6], "%Y-%m-%dT%H:%M:%S")
     except:
         created_at_dt = datetime.datetime.utcnow()
-    order = models.Order(platform_order_id=platform_order_id, shop=shop)
+    order = models.Order(platform_order_id=platform_order_id, shop=shop, purchase_timestamp=created_at_dt)
 
     customer_email = payload.get('customer', {}).get('email')
     customer_name = "%s %s" % (payload.get('customer', {}).get('first_name', ''),  payload.get('customer', {}).get('last_name', ''))
