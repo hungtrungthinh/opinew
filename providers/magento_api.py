@@ -36,7 +36,6 @@ class API(object):
             user_legacy, _ = models.UserLegacy.get_or_create_by_email(customer_email, name=customer_name)
             order.user_legacy = user_legacy
 
-
         # get the products for this order
         mproducts = self.magento.cart_product.list(morder.get('order_id'))
         for mproduct in mproducts:
