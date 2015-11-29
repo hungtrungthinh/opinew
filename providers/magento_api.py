@@ -33,8 +33,8 @@ class API(object):
         if existing_user:
             order.user = existing_user
         else:
-            legacy_user, _ = models.UserLegacy.get_or_create_by_email(customer_email, name=customer_name)
-            order.legacy_user  = legacy_user
+            user_legacy, _ = models.UserLegacy.get_or_create_by_email(customer_email, name=customer_name)
+            order.user_legacy = user_legacy
 
 
         # get the products for this order
