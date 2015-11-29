@@ -41,6 +41,7 @@
             {% endif %}
             <div class="{% if review.image_url or review.youtube_video%}col-sm-12{% else %}col-md-12{% endif %} no-padding">
                   {% include "review/review_body.html" %}
+                <em class="pull-right text-muted review-date"> — {{ review.created_ts.strftime('%d %b, %Y') }}</em><br>
                   <div class="row">
                       <div class="col-sm-12">
                         {% include "review/interaction.html" %}
