@@ -131,7 +131,26 @@ $.emojiarea.path = 'http://twemoji.maxcdn.com/36x36/';
 $.emojiarea.icons = EMOJIS;
 $('#textarea-body').emojiarea({button: '#emoji-button'});
 
+function hookEmojiAreaPlaceholder(){
+    var wysiwygDiv = $('.emoji-wysiwyg-editor');
+    var placeholder_text = $('#textarea-body').attr('placeholder');
+    wysiwygDiv.css('white-space','pre-wrap')
+    wysiwygDiv.text(placeholder_text);
+    wysiwygDiv.css('color', 'grey');
+    wysiwygDiv.css('font-size','1em');
+    wysiwygDiv.addClass('not-clicked-yet');
+    $('.not-clicked-yet').click(function(){
+            $(this).empty();
+            $(this).focus();
+            $(this).css('color','black');
+            $(".not-clicked-yet").unbind( "click" );
+        }
+    );
+
+}
+
 $(document).ready(function () {
-  $('.emoji-wysiwyg-editor').focus();
+  //$('.emoji-wysiwyg-editor').focus();
   getGiphyImages($('#review-giphy-form'));
+    hookEmojiAreaPlaceholder();
 });
