@@ -1,3 +1,4 @@
+import datetime
 from flask import jsonify, request
 from webapp import db, models, exceptions, csrf
 from webapp.api import api
@@ -100,6 +101,10 @@ def platform_shopify_create_order():
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
     platform_order_id = str(payload.get('id', ''))
+    try:
+        created_at_dt = datetime.datetime.strptime(payload.get('created_at')[:-6], "%Y-%m-%dT%H:%M:%S")
+    except:
+        created_at_dt = datetime.datetime.utcnow()
     order = models.Order(platform_order_id=platform_order_id, shop=shop)
 
     customer_email = payload.get('customer', {}).get('email')
