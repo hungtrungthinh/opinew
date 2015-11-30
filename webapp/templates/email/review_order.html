@@ -3,24 +3,22 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
-    <!-- Facebook sharing information tags -->
-    <meta property="og:title" content="subject">
-
     <title>{{ subject }}</title>
 </head>
+{% set name = review_request.to_user.name or review_request.to_user.email  or
+    review_request.to_user_legacy.name or review_request.to_user_legacy.email %}
 <body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
 <div style="padding: 50px;">
-    <h1>Did you like your {{ review_request.for_product.name }}?</h1>
   {% if review_request.for_product.product_type %}
-      <p>Help 236 other people find the right {{ review_request.for_product.product_type }}</p>
+      <p>Hello {{ name }},<br>
+You've recently bought <a href="{{ review_request.for_product.url }}" target="_blank">{{ review_request.for_product.name }}</a>, what do you think about it?</p>
   {% endif %}
   {% if not enable == "false" %}
       <a href="https://opinew.com/{{ review_request.token }}?like=0" target="_blank"
          style="color: white;">
   {% endif %}
-    <div style="width: 49%; height: 100px; background-color: #fb412d; display: inline-block; text-align: center; font-size: 2em;">
-        <p> ✗ no</p>
+    <div style="width: 49%; height: 100px; background-color: #ffb3b3; display: inline-block; text-align: center; font-size: 2em;">
+        <p> ✗ didn't like it</p>
     </div>
   {% if not enable == "false" %}
       </a>
@@ -29,8 +27,8 @@
       <a href="https://opinew.com/{{ review_request.token }}?like=1" target="_blank"
          style="color: white;">
   {% endif %}
-    <div style="width:49%; height: 100px; background-color: #22be44; display: inline-block; text-align: center; font-size: 2em;">
-        <p> ✓ yes</p>
+    <div style="width:49%; height: 100px; background-color: #84bd90; display: inline-block; text-align: center; font-size: 2em;">
+        <p> ✓ liked it</p>
     </div>
   {% if not enable == "false" %}
       </a>
