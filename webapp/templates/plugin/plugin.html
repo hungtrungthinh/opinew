@@ -57,6 +57,8 @@
                 {% include "review/review.html" %}
               {% endfor %}
             {% endif %}
+              <h4>Questions</h4>
+              {% include "forms/question.html" %}
               <br>
               <a class="btn btn-default btn-block"
                  href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=product.id) }}"

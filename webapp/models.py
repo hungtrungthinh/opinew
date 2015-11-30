@@ -106,7 +106,6 @@ class User(db.Model, UserMixin, Repopulatable):
     def likes_count(self):
         return len([rl for rl in ReviewLike.query.filter_by(user_id=self.id).all()])
 
-
     @classmethod
     def get_by_email(cls, email):
         user = cls.query.filter_by(email=email).first()
@@ -132,7 +131,7 @@ class User(db.Model, UserMixin, Repopulatable):
             db.session.add(subscription)
             # slot registration
             slot_number = request.form.get('slot_number')
-            if slot_number and slot_number.isdigit() and int(slot_number) in range(1,21):
+            if slot_number and slot_number.isdigit() and int(slot_number) in range(1, 21):
                 slot = Slot.query.filter_by(number=slot_number).first()
                 if not slot.customer:
                     email = request.form.get('email')
@@ -178,7 +177,7 @@ class User(db.Model, UserMixin, Repopulatable):
                     order.user_legacy = None
                     order.user = instance
                 db.session.delete(user_legacy)
-            
+
             # Check the role for the new user
             if role_name == Constants.SHOP_OWNER_ROLE:
                 instance.is_shop_owner = True
@@ -187,6 +186,7 @@ class User(db.Model, UserMixin, Repopulatable):
             User.post_registration_handler(user=instance)
 
             from flask import current_app
+
             if not current_app.config.get("TESTING"):
                 # Send emailif
                 from async import tasks
@@ -251,6 +251,7 @@ class Customer(db.Model, Repopulatable):
 
     def __repr__(self):
         return '<Customer %r>' % self.user
+
 
 class Slot(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -343,6 +344,7 @@ class ReviewReport(db.Model):
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     review = db.relationship("Review", backref=db.backref("review_reports"))
+
 
 class ReviewFeature(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -555,11 +557,11 @@ class ReviewRequest(db.Model):
             if not rrold:
                 break
         kwargs = dict(created_ts=datetime.datetime.utcnow(),
-                 token=token,
-                 from_customer=from_customer,
-                 for_shop=for_shop,
-                 for_order=for_order,
-                 for_product=for_product)
+                      token=token,
+                      from_customer=from_customer,
+                      for_shop=for_shop,
+                      for_order=for_order,
+                      for_product=for_product)
         if type(to_user) is UserLegacy:
             kwargs['to_user_legacy'] = to_user
         elif type(to_user) is User:
@@ -909,6 +911,30 @@ class ProductUrl(db.Model, Repopulatable):
 
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     product = db.relationship("Product", backref=db.backref("urls"))
+
+
+class Question(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+
+    body = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("questions"))
+
+    about_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    about_product = db.relationship("Product", backref=db.backref("questions"))
+
+
+class Answer(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+
+    body = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("answers"))
+
+    to_question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
+    to_question = db.relationship("Question", backref=db.backref("answers"))
 
 
 # Create customized model view class
