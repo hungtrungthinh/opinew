@@ -924,6 +924,9 @@ class Question(db.Model, Repopulatable):
     about_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     about_product = db.relationship("Product", backref=db.backref("questions"))
 
+    click_count = db.Column(db.Integer, default=0)
+    is_public = db.Column(db.Boolean, default=False)
+
 
 class Answer(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -976,3 +979,5 @@ admin.add_view(AdminModelView(Shop, db.session))
 admin.add_view(AdminModelView(Platform, db.session))
 admin.add_view(AdminModelView(Product, db.session))
 admin.add_view(AdminModelView(ProductUrl, db.session))
+admin.add_view(AdminModelView(Question, db.session))
+admin.add_view(AdminModelView(Answer, db.session))

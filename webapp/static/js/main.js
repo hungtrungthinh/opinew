@@ -33,6 +33,22 @@ $.ajaxSetup({
   }
 });
 
+$.fn.serializeObject = function () {
+  var o = {};
+  var a = this.serializeArray();
+  $.each(a, function () {
+    if (o[this.name]) {
+      if (!o[this.name].push) {
+        o[this.name] = [o[this.name]];
+      }
+      o[this.name].push(this.value || '');
+    } else {
+      o[this.name] = this.value || '';
+    }
+  });
+  return o;
+};
+
 // Javascript to enable link to tab
 var url = document.location.toString();
 if (url.match('#')) {
@@ -53,13 +69,13 @@ function loadAsync() {
 function showMoreReview(el) {
   var reviewId = $(el).data('review-id');
   $(el).hide();
-  $("#review-less-"+reviewId).hide();
-  $("#review-more-"+reviewId).slideDown();
+  $("#review-less-" + reviewId).hide();
+  $("#review-more-" + reviewId).slideDown();
   return false;
 }
 
 $(document).ready(function () {
-  $('.review-more-btn').click(function(e){
+  $('.review-more-btn').click(function (e) {
     e.preventDefault();
     showMoreReview(this);
   });

@@ -1,18 +1,53 @@
-var shop_id = document.location.pathname.split('/')[2];
-var pages = ["orders", "reviews"];
+function hookAnswerForm() {
+  $('.answer-question-form').on("submit", function (e) {
+    e.preventDefault(); // Prevent the form from submitting via the browser.
+    // select the form and submit
+    var $form = $(this);
+    $.ajax({
+      type: $form.attr('method'),
+      url: $form.attr('action'),
+      data: JSON.stringify($form.serializeObject()),
+      contentType: 'application/json'
+    }).done(function (r) {
+      $('#your-answer').append(
+          '<div class="row"><div class="col-xs-11">' +
+          '<p>' + r.body + '</p>' +
+          '</div>' +
+          '<div class="col-xs-1">' +
+          '<img src="' + r.user.image_url + '" class="img-circle img-responsive" alt="profile pic"/>' +
+          '</div></div>'
+      )
+    }).fail(function (r) {
+      var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
+      $('#ajax-status')
+          .addClass('alert-danger')
+          .html('<p><strong>Something went wrong</strong>: ' + errors + '</p>')
+          .slideDown();
 
-function getPage(page) {
+    });
+  });
+}
+
+
+var shop_id = document.location.pathname.split('/')[2];
+var pages = ["orders", "reviews", "questions"];
+var callbacks = [null, null, hookAnswerForm];
+
+function getPage(page, callback) {
   $.ajax("/dashboard/" + shop_id + "/" + page, {
     success: function (r) {
       $('#' + page).html(r);
       loadAsync();
+      if (callback)
+        callback();
     }
   });
 }
 
 for (var i = 0; i < pages.length; i++) {
   var page = pages[i];
-  getPage(page);
+  var callback = callbacks[i];
+  getPage(page, callback);
 }
 
 $('#shop-form').bind('submit', function (e) {
@@ -80,4 +115,4 @@ function stripeResponseHandler(status, response) {
     // and submit
     $form.get(0).submit();
   }
-};
+}
