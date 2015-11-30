@@ -202,7 +202,7 @@ def check_recaptcha(data, *args, **kwargs):
         from async import tasks
 
         tasks.send_email.delay(recipients=[user_email],
-                               template='email/new_user.html',
+                               template='email/new_reviewer_user.html',
                                template_ctx={'user_email': user_email,
                                              'user_temp_password': user.temp_password,
                                              'user_name': user_name

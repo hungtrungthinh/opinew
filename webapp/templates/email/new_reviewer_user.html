@@ -1,0 +1,16 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>{{ subject }}</title>
+</head>
+<body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
+<h1>{{ user_name }}, welcome to Opinew</h1>
+<p>Thank you for posting a review. If you'd like to manage your reviews, you can now go to <a href="http://opinew.com/login?email={{ user_email }}&password={{ user_temp_password }}">http://opinew.com</a>.</p>
+
+Email: {{ user_email }}
+<p>Your <strong>temporary</strong> password is:</p>
+    <h2 style="padding: 10px; background-color: yellow;">{{ user_temp_password }}</h2>
+</body>
+</html>
