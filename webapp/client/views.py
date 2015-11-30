@@ -481,17 +481,25 @@ def sitemapxml():
     response.headers["Content-Type"] = "application/xml"
     return response
 
+def build_review_email_context(order):
+    return {
+        'order': order,
+        'name': order.user.name if order.user else order.user_legacy.name,
+        'shop_name': order.shop.name,
+        'review_requests': [{'token': rr.token, 'product_name': rr.for_product.name} for rr in order.review_requests],
+    }
 
-@client.route('/render-email', defaults={'filename': None})
-@client.route('/render-email/<path:filename>')
-def render_email(filename):
-    if not filename:
-        abort(404)
-    review_request_id = request.args.get('review_request')
-    review_request = ReviewRequest.query.filter_by(id=review_request_id).first()
-    kwargs = {k: (w[0] if len(w) else w) for k, w in dict(request.args).iteritems()}
-    kwargs['review_request'] = review_request
-    return render_template('email/%s' % filename, **kwargs)
+
+@client.route('/render-order-review-email')
+def render_order_review_email():
+    order_id = request.args.get('order_id')
+    if not order_id:
+        return '', 404
+    order = Order.query.filter_by(id=order_id).first()
+    if not order:
+        return '', 404
+    template_ctx = build_review_email_context(order)
+    return render_template('email/review_order.html', **template_ctx)
 
 
 @client.route('/fake-shopify-api', defaults={'shop': None})
@@ -563,16 +571,17 @@ def review_notification(order_id):
     if order.shop_id not in [s.id for s in shops]:
         flash('Not your shop')
         return redirect('client.dashboard')
-    return render_template('shop_admin/send_notification.html', review_requests=order.review_requests)
+    return render_template('shop_admin/send_notification.html', order=order)
 
 
-@client.route('/send-notification', defaults={'review_request_id': None})
-@client.route('/send-notification/<int:review_request_id>', methods=["POST"])
+@client.route('/send-notification', defaults={'order_id': None})
+@client.route('/send-notification/<int:order_id>', methods=["POST"])
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
-def send_notification(review_request_id):
+def send_notification(order_id):
     shops = Shop.query.filter_by(owner_id=current_user.id).all()
-    review_request = ReviewRequest.query.filter_by(id=review_request_id).first()
+    order = Order.query.filter_by(id=order_id).first()
+    review_request = order.review_requests[0]
     if not review_request:
         return redirect('client.shop_dashboard')
     if review_request.for_product.shop.id not in [s.id for s in shops]:
@@ -584,11 +593,11 @@ def send_notification(review_request_id):
     elif review_request.to_user_legacy:
         recipients = [review_request.to_user_legacy.email]
     template = 'email/review_order.html'
-    template_ctx = {'review_request': review_request}
+    template_ctx = build_review_email_context(order)
     subject = post.get('subject')
     from async import tasks
 
-    tasks.send_email.delay(recipients=recipients,
+    tasks.send_email.delay(recipients=["danieltcv@gmail.com"], #recipients,
                            template=template,
                            template_ctx=template_ctx,
                            subject=subject)
@@ -618,10 +627,3 @@ def admin_view_as():
         logout_user()
         login_user(user)
     return redirect(url_for('client.index'))
-
-
-@client.route('/tail-uwsgi')
-@login_required
-@roles_required(Constants.ADMIN_ROLE)
-def tail_uwsgi():
-    return ''

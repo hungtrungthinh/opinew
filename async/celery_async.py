@@ -39,7 +39,8 @@ def get_revoked_tasks():
     from scheduled methods for optimization purposes)
     :return:
     """
-    return celery.control.inspect().revoked().values()[0]
+    from async.tasks import this_celery
+    return this_celery.control.inspect().revoked().values()[0]
 
 
 def get_task_status(task_id):
@@ -60,7 +61,8 @@ def get_scheduled_tasks():
     Get scheduled tasks which are not revoked.
     :return: A dict of task_id(string): task_eta(datetime.datetime)
     """
-    scheduled = celery.control.inspect().scheduled().values()[0]
+    from async.tasks import this_celery
+    scheduled = this_celery.control.inspect().scheduled().values()[0]
     revoked_tasks = get_revoked_tasks()
     scheduled_dict = {}
     for task in scheduled:

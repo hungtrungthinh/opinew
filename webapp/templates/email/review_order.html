@@ -5,34 +5,18 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>{{ subject }}</title>
 </head>
-{% set name = review_request.to_user.name or review_request.to_user.email  or
-    review_request.to_user_legacy.name or review_request.to_user_legacy.email %}
 <body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
 <div style="padding: 50px;">
-  {% if review_request.for_product.product_type %}
-      <p>Hello {{ name }},<br>
-You've recently bought <a href="{{ review_request.for_product.url }}" target="_blank">{{ review_request.for_product.name }}</a>, what do you think about it?</p>
-  {% endif %}
-  {% if not enable == "false" %}
-      <a href="https://opinew.com/{{ review_request.token }}?like=0" target="_blank"
-         style="color: white;">
-  {% endif %}
-    <div style="width: 49%; height: 100px; background-color: #ffb3b3; display: inline-block; text-align: center; font-size: 2em;">
-        <p> ✗ didn't like it</p>
-    </div>
-  {% if not enable == "false" %}
-      </a>
-  {% endif %}
-  {% if not enable == "false" %}
-      <a href="https://opinew.com/{{ review_request.token }}?like=1" target="_blank"
-         style="color: white;">
-  {% endif %}
-    <div style="width:49%; height: 100px; background-color: #84bd90; display: inline-block; text-align: center; font-size: 2em;">
-        <p> ✓ liked it</p>
-    </div>
-  {% if not enable == "false" %}
-      </a>
-  {% endif %}
+    <p>Hello {{ name }},<br>
+        You've recently made some purchases from <b>{{ shop_name }}</b>. Click on the item to share
+        your experience:
+    <ul>
+      {% for review_request in review_requests %}
+          <li>
+              <a href="https://opinew.com/{{ review_request.token }}" target="_blank">{{ review_request.product_name }}</a>
+          </li>
+      {% endfor %}
+    </ul>
 </div>
 </body>
 </html>
