@@ -1,0 +1,41 @@
+<h2>Questions</h2>
+{% if not questions %}
+    <p>No questions yet</p>
+{% else %}
+  {% for question in questions %}
+      <div class="col-xs-3">
+          <p>About {{ question.about_product.name }}</p>
+      </div>
+      <div class="col-xs-8">
+          <div class="row">
+              <div class="row">
+                  <div class="col-xs-1">
+                      <img src="/media/user/default_user.png" class="img-circle img-responsive"
+                           alt="default user profile pic"/>
+                  </div>
+                  <div class="col-xs-11 message-bubble">
+                      <em>{{ question.body }}</em>
+                  </div>
+              </div>
+            {% for answer in question.answers %}
+                <div class="row">
+                    <div class="col-xs-11 message-bubble">
+                        <em>{{ answer.body }}</em>
+                    </div>
+                    <div class="col-xs-1">
+                        <img src="{{ answer.user.image_url }}" class="img-circle img-responsive"
+                             alt="{{ answer.user.name }} profile pic"/>
+                    </div>
+                </div>
+            {% endfor %}
+          </div>
+          <div class="row">
+            {% set product = question.about_product %}
+            {% include "forms/answer.html" %}
+          </div>
+      </div>
+      <div class="col-xs-1">
+          <button class="btn btn-default"><span class="glyphicon glyphicon-globe"></span></button>
+      </div>
+  {% endfor %}
+{% endif %}

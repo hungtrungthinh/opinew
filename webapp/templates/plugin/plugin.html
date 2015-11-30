@@ -58,6 +58,8 @@
                 {% include "review/review.html" %}
               {% endfor %}
             {% endif %}
+              <h4>Questions</h4>
+              {% include "forms/question.html" %}
               <br>
               <a class="btn btn-default btn-block"
                  href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=product.id) }}"
@@ -66,6 +68,7 @@
               </a>
               <br>
           {% endif %}
+        {% include "plugin/messages.html" %}
         </div>
     </div>
 </div>
@@ -85,6 +88,7 @@
 </script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
+<script src="{{ url_for('static', filename='js/messages.js') }}"></script>
 <script src='https://www.google.com/recaptcha/api.js'></script>
 {# Include Google analytics if in production mode #}
 {% if g.mode == 'production' %}

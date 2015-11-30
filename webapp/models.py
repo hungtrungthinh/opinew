@@ -942,6 +942,33 @@ class ProductUrl(db.Model, Repopulatable):
     product = db.relationship("Product", backref=db.backref("urls"))
 
 
+class Question(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+
+    body = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("questions"))
+
+    about_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    about_product = db.relationship("Product", backref=db.backref("questions"))
+
+    click_count = db.Column(db.Integer, default=0)
+    is_public = db.Column(db.Boolean, default=False)
+
+
+class Answer(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+
+    body = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("answers"))
+
+    to_question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
+    to_question = db.relationship("Question", backref=db.backref("answers"))
+
+
 # Create customized model view class
 class AdminModelView(ModelView):
     def is_accessible(self):
@@ -981,3 +1008,5 @@ admin.add_view(AdminModelView(Shop, db.session))
 admin.add_view(AdminModelView(Platform, db.session))
 admin.add_view(AdminModelView(Product, db.session))
 admin.add_view(AdminModelView(ProductUrl, db.session))
+admin.add_view(AdminModelView(Question, db.session))
+admin.add_view(AdminModelView(Answer, db.session))

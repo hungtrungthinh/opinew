@@ -1,0 +1,55 @@
+{% if product.questions %}
+    <h3>Questions</h3>
+  {% for question in product.questions %}
+    {% if question.is_public %}
+        <div class="well">
+            <a href="#">
+                <span class="lead">{{ question.body }}</span>
+            </a>
+            <small class="text-muted pull-right">{{ question.answers|length }} answers</small>
+        </div>
+        <div hidden class="well">
+          {% for answer in question.answers %}
+              <div class="row">
+                  <div class="col-xs-11 message-bubble">
+                      <p>{{ answer.body }}</p>
+                  </div>
+                  <div class="col-xs-1">
+                      <img src="{{ answer.user.image_url }}" class="img-circle img-responsive"
+                           alt="{{ answer.user.name }} profile pic"/>
+                  </div>
+              </div>
+          {% endfor %}
+        </div>
+    {% endif %}
+  {% endfor %}
+{% endif %}
+<div id="your-question">
+<h3>Ask...</h3>
+  {% for question in product.questions %}
+    {% if question.user_id == session.temp_user_id %}
+        <div class="row">
+            <div class="col-xs-1">
+                <img src="/media/user/default_user.png" class="img-circle img-responsive"
+                     alt="default user profile pic"/>
+            </div>
+            <div class="col-xs-11 message-bubble">
+                <em>{{ question.body }}</em>
+            </div>
+        </div>
+      {% for answer in question.answers %}
+          <div class="row">
+              <div class="col-xs-11 message-bubble">
+                  <em>{{ answer.body }}</em>
+              </div>
+              <div class="col-xs-1">
+                  <img src="{{ answer.user.image_url }}" class="img-circle img-responsive"
+                       alt="{{ answer.user.name }} profile pic"/>
+              </div>
+          </div>
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+</div>
+<br>
+{% include "forms/question.html" %}
