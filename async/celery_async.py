@@ -19,9 +19,12 @@ def make_celery(app):
     return celery
 
 
-def schedule_task_at(task, args, at_time):
-    at_time_dt = datetime.datetime.strptime(at_time, '%Y-%m-%d %H:%M:%S')
-    return task.apply_async(args, eta=at_time_dt)
+def schedule_task_at(task, kwargs, at_time):
+    if at_time is type(str):
+        at_time_dt = datetime.datetime.strptime(at_time, '%Y-%m-%d %H:%M:%S')
+    else:
+        at_time_dt = at_time
+    return task.apply_async(kwargs=kwargs, eta=at_time_dt)
 
 
 def get_task_async_result(task_id):

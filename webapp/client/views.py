@@ -481,14 +481,6 @@ def sitemapxml():
     response.headers["Content-Type"] = "application/xml"
     return response
 
-def build_review_email_context(order):
-    return {
-        'order': order,
-        'name': order.user.name if order.user else order.user_legacy.name,
-        'shop_name': order.shop.name,
-        'review_requests': [{'token': rr.token, 'product_name': rr.for_product.name} for rr in order.review_requests],
-    }
-
 
 @client.route('/render-order-review-email')
 def render_order_review_email():
@@ -498,7 +490,7 @@ def render_order_review_email():
     order = Order.query.filter_by(id=order_id).first()
     if not order:
         return '', 404
-    template_ctx = build_review_email_context(order)
+    template_ctx = order.build_review_email_context()
     return render_template('email/review_order.html', **template_ctx)
 
 
@@ -593,14 +585,15 @@ def send_notification(order_id):
     elif review_request.to_user_legacy:
         recipients = [review_request.to_user_legacy.email]
     template = 'email/review_order.html'
-    template_ctx = build_review_email_context(order)
+    template_ctx = order.build_review_email_context()
     subject = post.get('subject')
-    from async import tasks
+    if not current_app.testing:
+        from async import tasks
 
-    tasks.send_email.delay(recipients=["danieltcv@gmail.com"], #recipients,
-                           template=template,
-                           template_ctx=template_ctx,
-                           subject=subject)
+        tasks.send_email.delay(recipients=recipients,
+                               template=template,
+                               template_ctx=template_ctx,
+                               subject=subject)
     flash('email to %s sent' % recipients)
     return redirect(url_for('client.shop_dashboard'))
 
