@@ -75,21 +75,28 @@
                     order.status == g.constants.ORDER_STATUS_DELIVERED or
                        order.status == g.constants.ORDER_STATUS_LEGACY or
                        order.status == g.constants.ORDER_STATUS_REVIEW_CANCELED %}
+                    {% if order.task and not order.task.status == "REVOKED"  %}
+                        <span class="label label-success" title="{{ order.task.eta }}">
+                              Will notify automatically in {{ order.task.eta|timeto }}
+                      </span>
+                    {% endif %}
+                      <div style="height:10px;"></div>
                       <form action="{{ url_for('client.update_order') }}" method="post">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                           <input type="hidden" name="state" value="{{ g.constants.ORDER_ACTION_NOTIFY }}"/>
                           <input type="hidden" name="order_id" value="{{ order.id }}"/>
                           <button class="btn btn-sm btn-success">Notify now</button>
                       </form>
-                    {% if order.status == g.constants.ORDER_STATUS_DELIVERED %}
+                    {% if order.status == g.constants.ORDER_STATUS_DELIVERED or (order.task and not order.task.status == "REVOKED" )%}
                         <form action="{{ url_for('client.update_order') }}" method="post">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <input type="hidden" name="state" value="{{ g.constants.ORDER_ACTION_CANCEL_REVIEW }}"/>
                             <input type="hidden" name="order_id" value="{{ order.id }}"/>
-                            <button class="btn btn-sm btn-default">Cancel</button>
+                            <button class="btn btn-sm btn-danger">Cancel</button>
                             <br>
-                            <small>Notify in {{ order.to_notify_timestamp | timeto }}</small>
                         </form>
+                    {% else %}
+                        <small>Notify in {{ order.to_notify_timestamp | timeto }}</small>
                     {% endif %}
                   {% elif order.status == g.constants.ORDER_STATUS_FAILED or
                       order.status == g.constants.ORDER_STATUS_STALLED %}

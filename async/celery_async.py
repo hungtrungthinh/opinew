@@ -67,29 +67,15 @@ def get_scheduled_tasks():
     from async.tasks import this_celery
     scheduled = this_celery.control.inspect().scheduled().values()[0]
     revoked_tasks = get_revoked_tasks()
-    scheduled_dict = {}
+    scheduled_only = []
     for task in scheduled:
         task_id = task.get('request', {}).get('id')
         if task_id not in revoked_tasks:
-            task_eta = datetime.datetime.strptime(task.get('eta'), '%Y-%m-%dT%H:%M:%S+00:00')
-            scheduled_dict[task_id] = task_eta
-    return scheduled_dict
+            scheduled_only.append(task)
+    return scheduled_only
 
 
-def get_task_eta(task_id):
-    """
-    Get the estimated time that a task will be executed by task uuid
-    :param task_id: The task uuid from celery
-    :return: datetime object if in the future or None if
-    """
-    scheduled = get_scheduled_tasks()
-    dt = scheduled.get(task_id)
-    if dt:
-        return datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S+00:00')
-    return None
-
-
-def remove_task(task_id):
+def revoke_task(task_id):
     """
     Revokes a task by uuid
     :param task_id: The task uuid from celery

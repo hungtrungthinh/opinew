@@ -7,7 +7,7 @@ from flask.ext.security import login_required, login_user, current_user, roles_r
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
-from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Slot, Question
+from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Slot, Question, Task
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -293,6 +293,20 @@ def shop_dashboard_questions(shop_id):
     products = Product.query.filter_by(shop_id=shop_id).all()
     questions = Question.query.filter(Question.about_product_id.in_([p.id for p in products])).all()
     return render_template("shop_admin/questions.html", questions=questions)
+
+
+@client.route('/dashboard', defaults={'shop_id': 0})
+@client.route('/dashboard/<int:shop_id>/tasks')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def shop_dashboard_tasks(shop_id):
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    orders = Order.query.filter_by(shop=shop).all()
+    orders_with_tasks = [order for order in orders if order.task_id]
+    return render_template("shop_admin/tasks.html", orders_with_tasks=orders_with_tasks)
 
 
 @client.route('/add-payment-card', methods=['POST'])
@@ -632,4 +646,19 @@ def admin_view_as():
     if user:
         logout_user()
         login_user(user)
+    return redirect(url_for('client.index'))
+
+
+@client.route('/admin-revoke-task')
+@login_required
+@roles_required(Constants.ADMIN_ROLE)
+def admin_revoke_task():
+    task_id = request.args.get('task_id')
+    from async import celery_async
+    celery_async.revoke_task(task_id)
+    task = Task.query.filter_by(celery_uuid=task_id).first()
+    task.status = 'REVOKED'
+    db.session.add(task)
+    db.session.commit()
+    flash("Removed task %s" % task_id)
     return redirect(url_for('client.index'))

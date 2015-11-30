@@ -404,6 +404,16 @@ class Notification(db.Model):
         db.session.add(notification)
         db.session.commit()
 
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    celery_uuid = db.Column(db.String)
+    eta = db.Column(db.DateTime)
+    status = db.Column(db.String)
+
+    method = db.Column(db.String)
+    kwargs = db.Column(db.String)
+
 
 class Order(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -437,9 +447,8 @@ class Order(db.Model, Repopulatable):
     to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
 
-    task_id = db.Column(db.String)
-    task_eta = db.Column(db.DateTime)
-    task_status = db.Column(db.String)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
+    task = db.relationship("Task", backref=db.backref("order"), uselist=False)
 
     def is_for_user(self, user):
         if not self.shop.user == user:
@@ -456,7 +465,7 @@ class Order(db.Model, Repopulatable):
     def build_review_email_context(self):
         return {
             'order': self,
-            'name': self.user.name if self.user else self.user_legacy.name,
+            'name': self.user.name if self.user else (self.user_legacy.name if self.user_legacy else ''),
             'shop_name': self.shop.name,
             'review_requests': [{'token': rr.token, 'product_name': rr.for_product.name} for rr in
                                 self.review_requests],
@@ -481,19 +490,24 @@ class Order(db.Model, Repopulatable):
                 if self.user:
                     recipients = [self.user.email]
                 else:
-                    recipients = [self.user_legacy.email]
+                    recipients = [self.user_legacy.email] if self.user_legacy else []
                 template = 'email/review_order.html'
                 template_ctx = self.build_review_email_context()
                 subject = "Please review your recent purchases at %s" % self.shop.name
-                args = dict(recipients=['danieltcv@gmail.com'],  # recipients,
+                args = dict(recipients=recipients,
                             template=template,
                             template_ctx=template_ctx,
                             subject=subject)
                 if not current_app.testing:
-                    task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
+                    celery_task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
+                    task = Task(celery_uuid=celery_task.task_id,
+                                status=celery_task.status,
+                                eta=notify_dt,
+                                method=celery_task.task_name,
+                                kwargs=str(args))
+                    db.session.add(task)
+                    db.session.commit()
                     self.task_id = task.id
-                    self.task_status = task.status
-                    self.task_eta = notify_dt
 
     def deliver(self):
         self.status = Constants.ORDER_STATUS_DELIVERED
@@ -521,9 +535,15 @@ class Order(db.Model, Repopulatable):
             Notification.create(for_user=self.user, token=token, for_product=product)
 
     def cancel_review(self):
-        # TODO
         self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
-        pass
+        if self.task_id:
+            from async import celery_async
+            task = Task.query.filter_by(id=self.task_id).first()
+            if task:
+                celery_async.revoke_task(task.celery_uuid)
+                task.status = 'REVOKED'
+                db.session.add(task)
+                db.session.commit()
 
 
 class Comment(db.Model):
@@ -1010,3 +1030,4 @@ admin.add_view(AdminModelView(Product, db.session))
 admin.add_view(AdminModelView(ProductUrl, db.session))
 admin.add_view(AdminModelView(Question, db.session))
 admin.add_view(AdminModelView(Answer, db.session))
+admin.add_view(AdminModelView(Task, db.session))
