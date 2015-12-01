@@ -31,7 +31,7 @@
   {% for task in tasks %}
       <tr>
           <td>{{ task.request.id }}</td>
-          <td>{{ task.eta }}</td>
+          <td>({{ task.eta }})</td>
           <td>{{ task.request.kwargs }}</td>
           <td><a href="/admin-revoke-task?task_id={{ task.request.id }}" class="btn btn-danger">Revoke task</a></td>
       </tr>

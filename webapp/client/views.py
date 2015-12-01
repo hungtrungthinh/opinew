@@ -260,12 +260,13 @@ def shop_dashboard_id(shop_id):
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def shop_dashboard_orders(shop_id):
+    now = datetime.datetime.utcnow()
     shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
     if not shop:
         flash('Not your shop')
         return redirect(url_for('client.shop_dashboard'))
     orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
-    return render_template("shop_admin/orders.html", orders=orders)
+    return render_template("shop_admin/orders.html", orders=orders, now=now)
 
 
 @client.route('/dashboard', defaults={'shop_id': 0})
@@ -557,11 +558,8 @@ def update_order():
         order.ship()
         db.session.add(order)
         flash('Shipped order %s' % order_id)
-    elif state == Constants.ORDER_STATUS_DELIVERED:
-        order.deliver()
-        db.session.add(order)
-        flash('Delivered order %s' % order_id)
     elif state == Constants.ORDER_ACTION_NOTIFY:
+        order.cancel_review()
         order.notify()
         db.session.add(order)
         db.session.commit()
@@ -657,8 +655,9 @@ def admin_revoke_task():
     from async import celery_async
     celery_async.revoke_task(task_id)
     task = Task.query.filter_by(celery_uuid=task_id).first()
-    task.status = 'REVOKED'
-    db.session.add(task)
-    db.session.commit()
+    if task:
+        task.status = 'REVOKED'
+        db.session.add(task)
+        db.session.commit()
     flash("Removed task %s" % task_id)
     return redirect(url_for('client.index'))

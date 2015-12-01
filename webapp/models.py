@@ -414,6 +414,9 @@ class Task(db.Model):
     method = db.Column(db.String)
     kwargs = db.Column(db.String)
 
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+    order = db.relationship("Order", backref=db.backref("tasks"))
+
 
 class Order(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -436,19 +439,13 @@ class Order(db.Model, Repopulatable):
     discount = db.Column(db.String)
 
     status = db.Column(db.String,
-                       default=Constants.ORDER_STATUS_PURCHASED)  # ['PURCHASED', 'SHIPPED', 'DELIVERED', 'NOTIFIED', 'REVIEWED']
+                       default=Constants.ORDER_STATUS_PURCHASED)  # ['PURCHASED', 'SHIPPED', 'NOTIFIED', 'REVIEWED']
 
     purchase_timestamp = db.Column(db.DateTime)
     shipment_timestamp = db.Column(db.DateTime)
 
-    to_deliver_timestamp = db.Column(db.DateTime)
-    delivery_timestamp = db.Column(db.DateTime)
-
     to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
-
-    task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
-    task = db.relationship("Task", backref=db.backref("order"), uselist=False)
 
     def is_for_user(self, user):
         if not self.shop.user == user:
@@ -471,49 +468,68 @@ class Order(db.Model, Repopulatable):
                                 self.review_requests],
         }
 
-    def ship(self, delivery_tracking_number=None):
+    def ship(self, delivery_tracking_number=None, shipment_timestamp=None):
         self.status = Constants.ORDER_STATUS_SHIPPED
-        self.shipment_timestamp = datetime.datetime.utcnow()
+        self.shipment_timestamp = shipment_timestamp or datetime.datetime.utcnow()
         self.delivery_tracking_number = delivery_tracking_number
-        # Delivery timestamp = shipment + 5
-        delivery_dt = self.shipment_timestamp + datetime.timedelta(days=Constants.DIFF_SHIPMENT_DELIVERY)
-        if not self.to_deliver_timestamp:
-            self.to_deliver_timestamp = delivery_dt
-
-            # Notify timestamp = delivery + 3
-            if not self.to_notify_timestamp:
-                notify_dt = delivery_dt + datetime.timedelta(days=Constants.DIFF_DELIVERY_NOTIFY)
-                self.to_notify_timestamp = notify_dt
-
-                from async import celery_async, tasks
-
-                if self.user:
-                    recipients = [self.user.email]
-                else:
-                    recipients = [self.user_legacy.email] if self.user_legacy else []
-                template = 'email/review_order.html'
-                template_ctx = self.build_review_email_context()
-                subject = "Please review your recent purchases at %s" % self.shop.name
-                args = dict(recipients=recipients,
-                            template=template,
-                            template_ctx=template_ctx,
-                            subject=subject)
-                if not current_app.testing:
-                    celery_task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
-                    task = Task(celery_uuid=celery_task.task_id,
-                                status=celery_task.status,
-                                eta=notify_dt,
-                                method=celery_task.task_name,
-                                kwargs=str(args))
-                    db.session.add(task)
-                    db.session.commit()
-                    self.task_id = task.id
-
-    def deliver(self):
-        self.status = Constants.ORDER_STATUS_DELIVERED
-        self.delivery_timestamp = datetime.datetime.utcnow()
-        notify_dt = self.delivery_timestamp + datetime.timedelta(days=Constants.DIFF_DELIVERY_NOTIFY)
+        # Notify timestamp = shipment + 17
+        notify_dt = self.shipment_timestamp + datetime.timedelta(days=Constants.DIFF_SHIPMENT_NOTIFY)
         self.to_notify_timestamp = notify_dt
+
+        # is the notification in the past?
+        now = datetime.datetime.utcnow()
+        if now > self.to_notify_timestamp:
+            return
+
+        # Create review requests
+        for product in self.products:
+            if self.user:
+                the_user = self.user
+            elif self.user_legacy:
+                the_user = self.user_legacy
+            else:
+                the_user = None
+            ReviewRequest.create(to_user=the_user,
+                                 from_customer=self.shop.owner.customer[0],
+                                 for_product=product,
+                                 for_order=self)
+
+        if not current_app.testing:
+            from async import celery_async, tasks
+
+            # SCHEDULE NOTIFICATION TASK
+            args = dict(order_id=self.id)
+            celery_task = celery_async.schedule_task_at(tasks.notify_for_review, args, notify_dt)
+            task = Task(celery_uuid=celery_task.task_id,
+                        status=celery_task.status,
+                        eta=notify_dt,
+                        method=celery_task.task_name,
+                        kwargs=str(args))
+            db.session.add(task)
+            db.session.commit()
+            self.tasks.append(task)
+
+            # SCHEDULE EMAIL TASK
+            if self.user:
+                recipients = [self.user.email]
+            else:
+                recipients = [self.user_legacy.email] if self.user_legacy else []
+            template = 'email/review_order.html'
+            template_ctx = self.build_review_email_context()
+            subject = "Please review your recent purchases at %s" % self.shop.name
+            args = dict(recipients=recipients,
+                        template=template,
+                        template_ctx=template_ctx,
+                        subject=subject)
+            celery_task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
+            task = Task(celery_uuid=celery_task.task_id,
+                        status=celery_task.status,
+                        eta=notify_dt,
+                        method=celery_task.task_name,
+                        kwargs=str(args))
+            db.session.add(task)
+            db.session.commit()
+            self.tasks.append(task)
 
     def legacy(self):
         self.status = Constants.ORDER_STATUS_LEGACY
@@ -522,23 +538,13 @@ class Order(db.Model, Repopulatable):
         self.status = Constants.ORDER_STATUS_NOTIFIED
         self.notification_timestamp = datetime.datetime.utcnow()
         if self.user:
-            the_user = self.user
-        elif self.user_legacy:
-            the_user = self.user_legacy
-        else:
-            the_user = None
-        for product in self.products:
-            token = ReviewRequest.create(to_user=the_user,
-                                         from_customer=self.shop.owner.customer[0],
-                                         for_product=product,
-                                         for_order=self)
-            Notification.create(for_user=self.user, token=token, for_product=product)
+            for review_request in self.review_requests:
+                Notification.create(for_user=self.user, token=review_request.token, for_product=review_request.for_product)
 
     def cancel_review(self):
         self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
-        if self.task_id:
+        for task in self.tasks:
             from async import celery_async
-            task = Task.query.filter_by(id=self.task_id).first()
             if task:
                 celery_async.revoke_task(task.celery_uuid)
                 task.status = 'REVOKED'
