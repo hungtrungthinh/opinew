@@ -52,27 +52,6 @@
                     </div>
                 </div>
             </div>
-            <div class="row col-sm-offset-1">
-                <h2>Choose your slot:</h2>
-              {% for slot in slots %}
-                {% if not slot.customer %}
-                    <a href="{{ url_for('security.register', shop_owner=1, slot_number=slot.number, slot_color=slot.color) }}">
-                {% elif slot.display_url %}
-                    <a href="{{ slot.display_url }}" target="_blank">
-                    {% else %}
-                {% endif %}
-              <div class="col-xs-4 col-sm-2 col-md-2 slot opinew-{{ slot.color }}">
-                {% if slot.customer %}
-                  {% if slot.customer.user.image_url %}
-                      <img class="slot-image" src="{{ slot.customer.user.image_url }}"/>
-                  {% else %}
-                      <p style="color: white; font-size:2em;">{{ slot.customer.user.name }}</p>
-                  {% endif %}
-                {% endif %}
-              </div>
-              </a>
-              {% endfor %}
-            </div>
         </div>
         <!--/row-->
         <div class="row"><br></div>
