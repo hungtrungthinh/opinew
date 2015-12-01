@@ -1,0 +1,193 @@
+.review-profile-pic {
+  float: left;
+  max-height: 40px;
+  max-width: 40px;
+  margin-right: 5px;
+}
+
+@media all and (max-width: 768px) {
+  .big-screen {
+    display: none;
+  }
+
+  .small-screen {
+    display: inline;
+  }
+
+  .youtube-iframe {
+    width: 85vw;
+    height: 48vw;
+  }
+
+  .youtube-iframe-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    padding-top: 10px;
+    padding-bottom: 5px;
+  }
+
+  .profile-user-details {
+    position: relative;
+    top: -30px;
+    word-wrap: break-word;
+    white-space: normal;
+  }
+
+  #profile-entity-picture {
+    position: absolute;
+    height: 100px;
+    width: 100px;
+    top: -10px;
+    bottom: 0;
+    left: 20px;
+    right: 0;
+    display: flex; /* add */
+    justify-content: center; /* add to align horizontal */
+    align-items: center; /* add to align vertical */
+    box-shadow: 0 0 10px #000;
+    z-index: 10;
+    border: 5px solid white;
+  }
+
+}
+
+@media all and (min-width: 768px) {
+  .big-screen {
+    display: block;
+  }
+
+  .small-screen {
+    display: none;
+  }
+
+  .youtube-iframe {
+    width: 35vw;
+    height: 20vw;
+  }
+
+  .youtube-iframe-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    padding-top: 10px;
+    padding-bottom: 5px;
+  }
+
+  .profile-user-details {
+    position: relative;
+    top: -30px;
+    padding-left: 5px;
+    word-wrap: break-word;
+    white-space: normal;
+  }
+
+  #profile-entity-picture {
+    border: 5px solid white;
+    height: 100px;
+    width: 100px;
+    position: relative;
+    top: -50px;
+    left: 5px;
+    box-shadow: 0 0 10px #000;
+    z-index: 10;
+    vertical-align: middle;
+  }
+}
+
+.star-rating {
+  font-size: 1.5em;
+}
+
+.star-active:before {
+  content: "\2605";
+  position: absolute;
+}
+
+.star-active:before {
+  color: #fb8c2d;
+}
+
+.rating {
+  margin: 0 auto;
+  width: 300px
+}
+
+/* :not(:checked) is a filter, so that browsers that don’t support :checked don’t
+   follow these rules. Every browser that supports :checked also supports :not(), so
+   it doesn’t make the test unnecessarily selective */
+.rating:not(:checked) > input {
+  position: absolute;
+  clip: rect(0, 0, 0, 0);
+}
+
+.rating:not(:checked) > label {
+  float: right;
+  width: 1em;
+  padding: 0 .1em;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+  font-size: 400%;
+  line-height: 1.2;
+  color: #666;
+}
+
+.rating:not(:checked) > label:before {
+  content: '★ ';
+}
+
+.rating > input:checked ~ label {
+  color: #fb8c2d;
+}
+
+.rating:not(:checked) > label:hover,
+.rating:not(:checked) > label:hover ~ label {
+  color: #FF8E2E;
+}
+
+.rating > input:checked + label:hover,
+.rating > input:checked + label:hover ~ label,
+.rating > input:checked ~ label:hover,
+.rating > input:checked ~ label:hover ~ label,
+.rating > label:hover ~ input:checked ~ label {
+  color: #FFB77A;
+}
+
+.rating > label:active {
+  position: relative;
+  top: 2px;
+  left: 2px;
+}
+
+.emoji-wysiwyg-editor {
+  display: block;
+  width: 100%;
+  height: 9em;
+  padding: 6px 12px;
+  font-size: 1.5em;
+  line-height: 1.42857143;
+  color: #555;
+  background-color: #fff;
+  background-image: none;
+  border: 1px solid #ccc;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+  -webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;
+  -o-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+  transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+}
+
+.review-add-button {
+  height: 3em;
+  width: 60px;
+  font-size: 1.5em;
+}
+
+.emoji-menu {
+  z-index: 1051 !important;
+}
+
+.modal-dialog {
+  width: initial;
+}

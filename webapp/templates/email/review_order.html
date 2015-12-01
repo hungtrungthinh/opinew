@@ -3,38 +3,20 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
-    <!-- Facebook sharing information tags -->
-    <meta property="og:title" content="subject">
-
     <title>{{ subject }}</title>
 </head>
 <body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
 <div style="padding: 50px;">
-    <h1>Did you like your {{ review_request.for_product.name }}?</h1>
-  {% if review_request.for_product.product_type %}
-      <p>Help 236 other people find the right {{ review_request.for_product.product_type }}</p>
-  {% endif %}
-  {% if not enable == "false" %}
-      <a href="https://opinew.com/{{ review_request.token }}?like=0" target="_blank"
-         style="color: white;">
-  {% endif %}
-    <div style="width: 49%; height: 100px; background-color: #fb412d; display: inline-block; text-align: center; font-size: 2em;">
-        <p> ✗ no</p>
-    </div>
-  {% if not enable == "false" %}
-      </a>
-  {% endif %}
-  {% if not enable == "false" %}
-      <a href="https://opinew.com/{{ review_request.token }}?like=1" target="_blank"
-         style="color: white;">
-  {% endif %}
-    <div style="width:49%; height: 100px; background-color: #22be44; display: inline-block; text-align: center; font-size: 2em;">
-        <p> ✓ yes</p>
-    </div>
-  {% if not enable == "false" %}
-      </a>
-  {% endif %}
+    <p>Hello {{ name }},<br>
+        You've recently made some purchases from <b>{{ shop_name }}</b>. Click on the item to share
+        your experience:
+    <ul>
+      {% for review_request in review_requests %}
+          <li>
+              <a href="https://opinew.com/{{ review_request.token }}" target="_blank">{{ review_request.product_name }}</a>
+          </li>
+      {% endfor %}
+    </ul>
 </div>
 </body>
 </html>

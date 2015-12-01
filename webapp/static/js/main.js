@@ -33,14 +33,30 @@ $.ajaxSetup({
   }
 });
 
+$.fn.serializeObject = function () {
+  var o = {};
+  var a = this.serializeArray();
+  $.each(a, function () {
+    if (o[this.name]) {
+      if (!o[this.name].push) {
+        o[this.name] = [o[this.name]];
+      }
+      o[this.name].push(this.value || '');
+    } else {
+      o[this.name] = this.value || '';
+    }
+  });
+  return o;
+};
+
 // Javascript to enable link to tab
 var url = document.location.toString();
 if (url.match('#')) {
-  $('.nav-pills a[href=#' + url.split('#')[1] + ']').tab('show');
+  $('.nav-tabs a[href=#' + url.split('#')[1] + ']').tab('show');
 }
 
 // Change hash for page-reload
-$('.nav-pills a').on('shown.bs.tab', function (e) {
+$('.nav-tabs a').on('shown.bs.tab', function (e) {
   window.location.hash = e.target.hash;
 });
 
@@ -53,13 +69,13 @@ function loadAsync() {
 function showMoreReview(el) {
   var reviewId = $(el).data('review-id');
   $(el).hide();
-  $("#review-less-"+reviewId).hide();
-  $("#review-more-"+reviewId).slideDown();
+  $("#review-less-" + reviewId).hide();
+  $("#review-more-" + reviewId).slideDown();
   return false;
 }
 
 $(document).ready(function () {
-  $('.review-more-btn').click(function(e){
+  $('.review-more-btn').click(function (e) {
     e.preventDefault();
     showMoreReview(this);
   });

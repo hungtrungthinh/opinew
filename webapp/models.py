@@ -4,7 +4,7 @@ from sqlalchemy import and_
 from webapp import db, admin
 from webapp.exceptions import DbException
 from async import stripe_payment
-from flask import url_for, abort, redirect, request
+from flask import url_for, abort, redirect, request, current_app
 from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
@@ -106,7 +106,6 @@ class User(db.Model, UserMixin, Repopulatable):
     def likes_count(self):
         return len([rl for rl in ReviewLike.query.filter_by(user_id=self.id).all()])
 
-
     @classmethod
     def get_by_email(cls, email):
         user = cls.query.filter_by(email=email).first()
@@ -132,7 +131,7 @@ class User(db.Model, UserMixin, Repopulatable):
             db.session.add(subscription)
             # slot registration
             slot_number = request.form.get('slot_number')
-            if slot_number and slot_number.isdigit() and int(slot_number) in range(1,21):
+            if slot_number and slot_number.isdigit() and int(slot_number) in range(1, 21):
                 slot = Slot.query.filter_by(number=slot_number).first()
                 if not slot.customer:
                     email = request.form.get('email')
@@ -178,7 +177,7 @@ class User(db.Model, UserMixin, Repopulatable):
                     order.user_legacy = None
                     order.user = instance
                 db.session.delete(user_legacy)
-            
+
             # Check the role for the new user
             if role_name == Constants.SHOP_OWNER_ROLE:
                 instance.is_shop_owner = True
@@ -187,6 +186,7 @@ class User(db.Model, UserMixin, Repopulatable):
             User.post_registration_handler(user=instance)
 
             from flask import current_app
+
             if not current_app.config.get("TESTING"):
                 # Send emailif
                 from async import tasks
@@ -251,6 +251,7 @@ class Customer(db.Model, Repopulatable):
 
     def __repr__(self):
         return '<Customer %r>' % self.user
+
 
 class Slot(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -344,6 +345,7 @@ class ReviewReport(db.Model):
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     review = db.relationship("Review", backref=db.backref("review_reports"))
 
+
 class ReviewFeature(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -402,6 +404,19 @@ class Notification(db.Model):
         db.session.add(notification)
         db.session.commit()
 
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    celery_uuid = db.Column(db.String)
+    eta = db.Column(db.DateTime)
+    status = db.Column(db.String)
+
+    method = db.Column(db.String)
+    kwargs = db.Column(db.String)
+
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+    order = db.relationship("Order", backref=db.backref("tasks"))
+
 
 class Order(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -424,13 +439,10 @@ class Order(db.Model, Repopulatable):
     discount = db.Column(db.String)
 
     status = db.Column(db.String,
-                       default=Constants.ORDER_STATUS_PURCHASED)  # ['PURCHASED', 'SHIPPED', 'DELIVERED', 'NOTIFIED', 'REVIEWED']
+                       default=Constants.ORDER_STATUS_PURCHASED)  # ['PURCHASED', 'SHIPPED', 'NOTIFIED', 'REVIEWED']
 
     purchase_timestamp = db.Column(db.DateTime)
     shipment_timestamp = db.Column(db.DateTime)
-
-    to_deliver_timestamp = db.Column(db.DateTime)
-    delivery_timestamp = db.Column(db.DateTime)
 
     to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
@@ -447,25 +459,77 @@ class Order(db.Model, Repopulatable):
             raise DbException(message='Order doesn\'t exist', status_code=404)
         return order
 
-    def ship(self, delivery_tracking_number=None):
+    def build_review_email_context(self):
+        return {
+            'order': self,
+            'name': self.user.name if self.user else (self.user_legacy.name if self.user_legacy else ''),
+            'shop_name': self.shop.name,
+            'review_requests': [{'token': rr.token, 'product_name': rr.for_product.name} for rr in
+                                self.review_requests],
+        }
+
+    def ship(self, delivery_tracking_number=None, shipment_timestamp=None):
         self.status = Constants.ORDER_STATUS_SHIPPED
-        self.shipment_timestamp = datetime.datetime.utcnow()
+        self.shipment_timestamp = shipment_timestamp or datetime.datetime.utcnow()
         self.delivery_tracking_number = delivery_tracking_number
-        # Delivery timestamp = shipment + 5
-        delivery_dt = self.shipment_timestamp + datetime.timedelta(days=Constants.DIFF_SHIPMENT_DELIVERY)
-        if not self.to_deliver_timestamp:
-            self.to_deliver_timestamp = delivery_dt
-
-            # Notify timestamp = delivery + 3
-            if not self.to_notify_timestamp:
-                notify_dt = delivery_dt + datetime.timedelta(days=Constants.DIFF_DELIVERY_NOTIFY)
-                self.to_notify_timestamp = notify_dt
-
-    def deliver(self):
-        self.status = Constants.ORDER_STATUS_DELIVERED
-        self.delivery_timestamp = datetime.datetime.utcnow()
-        notify_dt = self.delivery_timestamp + datetime.timedelta(days=Constants.DIFF_DELIVERY_NOTIFY)
+        # Notify timestamp = shipment + 17
+        notify_dt = self.shipment_timestamp + datetime.timedelta(days=Constants.DIFF_SHIPMENT_NOTIFY)
         self.to_notify_timestamp = notify_dt
+
+        # is the notification in the past?
+        now = datetime.datetime.utcnow()
+        if now > self.to_notify_timestamp:
+            return
+
+        # Create review requests
+        for product in self.products:
+            if self.user:
+                the_user = self.user
+            elif self.user_legacy:
+                the_user = self.user_legacy
+            else:
+                the_user = None
+            ReviewRequest.create(to_user=the_user,
+                                 from_customer=self.shop.owner.customer[0],
+                                 for_product=product,
+                                 for_order=self)
+
+        if not current_app.testing:
+            from async import celery_async, tasks
+
+            # SCHEDULE NOTIFICATION TASK
+            args = dict(order_id=self.id)
+            celery_task = celery_async.schedule_task_at(tasks.notify_for_review, args, notify_dt)
+            task = Task(celery_uuid=celery_task.task_id,
+                        status=celery_task.status,
+                        eta=notify_dt,
+                        method=celery_task.task_name,
+                        kwargs=str(args))
+            db.session.add(task)
+            db.session.commit()
+            self.tasks.append(task)
+
+            # SCHEDULE EMAIL TASK
+            if self.user:
+                recipients = [self.user.email]
+            else:
+                recipients = [self.user_legacy.email] if self.user_legacy else []
+            template = 'email/review_order.html'
+            template_ctx = self.build_review_email_context()
+            subject = "Please review your recent purchases at %s" % self.shop.name
+            args = dict(recipients=recipients,
+                        template=template,
+                        template_ctx=template_ctx,
+                        subject=subject)
+            celery_task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
+            task = Task(celery_uuid=celery_task.task_id,
+                        status=celery_task.status,
+                        eta=notify_dt,
+                        method=celery_task.task_name,
+                        kwargs=str(args))
+            db.session.add(task)
+            db.session.commit()
+            self.tasks.append(task)
 
     def legacy(self):
         self.status = Constants.ORDER_STATUS_LEGACY
@@ -474,22 +538,18 @@ class Order(db.Model, Repopulatable):
         self.status = Constants.ORDER_STATUS_NOTIFIED
         self.notification_timestamp = datetime.datetime.utcnow()
         if self.user:
-            the_user = self.user
-        elif self.user_legacy:
-            the_user = self.user_legacy
-        else:
-            the_user = None
-        for product in self.products:
-            token = ReviewRequest.create(to_user=the_user,
-                                         from_customer=self.shop.owner.customer[0],
-                                         for_product=product,
-                                         for_order=self)
-            Notification.create(for_user=self.user, token=token, for_product=product)
+            for review_request in self.review_requests:
+                Notification.create(for_user=self.user, token=review_request.token, for_product=review_request.for_product)
 
     def cancel_review(self):
-        # TODO
         self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
-        pass
+        for task in self.tasks:
+            from async import celery_async
+            if task:
+                celery_async.revoke_task(task.celery_uuid)
+                task.status = 'REVOKED'
+                db.session.add(task)
+                db.session.commit()
 
 
 class Comment(db.Model):
@@ -522,9 +582,6 @@ class ReviewRequest(db.Model):
     created_ts = db.Column(db.DateTime)
 
     token = db.Column(db.String)
-    task_id = db.Column(db.String)
-    task_eta = db.Column(db.DateTime)
-    task_status = db.Column(db.String)
 
     from_customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     from_customer = db.relationship('Customer')
@@ -555,11 +612,11 @@ class ReviewRequest(db.Model):
             if not rrold:
                 break
         kwargs = dict(created_ts=datetime.datetime.utcnow(),
-                 token=token,
-                 from_customer=from_customer,
-                 for_shop=for_shop,
-                 for_order=for_order,
-                 for_product=for_product)
+                      token=token,
+                      from_customer=from_customer,
+                      for_shop=for_shop,
+                      for_order=for_order,
+                      for_product=for_product)
         if type(to_user) is UserLegacy:
             kwargs['to_user_legacy'] = to_user
         elif type(to_user) is User:
@@ -911,6 +968,33 @@ class ProductUrl(db.Model, Repopulatable):
     product = db.relationship("Product", backref=db.backref("urls"))
 
 
+class Question(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+
+    body = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("questions"))
+
+    about_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    about_product = db.relationship("Product", backref=db.backref("questions"))
+
+    click_count = db.Column(db.Integer, default=0)
+    is_public = db.Column(db.Boolean, default=False)
+
+
+class Answer(db.Model, Repopulatable):
+    id = db.Column(db.Integer, primary_key=True)
+
+    body = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("answers"))
+
+    to_question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
+    to_question = db.relationship("Question", backref=db.backref("answers"))
+
+
 # Create customized model view class
 class AdminModelView(ModelView):
     def is_accessible(self):
@@ -950,3 +1034,6 @@ admin.add_view(AdminModelView(Shop, db.session))
 admin.add_view(AdminModelView(Platform, db.session))
 admin.add_view(AdminModelView(Product, db.session))
 admin.add_view(AdminModelView(ProductUrl, db.session))
+admin.add_view(AdminModelView(Question, db.session))
+admin.add_view(AdminModelView(Answer, db.session))
+admin.add_view(AdminModelView(Task, db.session))

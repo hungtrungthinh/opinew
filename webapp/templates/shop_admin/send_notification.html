@@ -6,33 +6,28 @@
             <p class="lead">
                 Please review how the email(s) will look like and press <strong>Send</strong>
             </p>
-          {% for review_request in review_requests %}
-              <div class="col-md-12">
-                  <div class="well">
-                      <form action="{{ url_for('client.send_notification', review_request_id=review_request.id) }}" method="post">
-                          <input value="{{ csrf_token() }}" name="csrf_token" type="hidden" />
-                          <a href="/{{ review_request.token }}" target="_blank">Review request</a>
 
-                          <div style="border: 1px solid black; margin-bottom: 10px; background-color: white; padding:10px; font-size: 1.5em;">
-                              {% if review_request.to_user %}
-                              <b>email to: </b>{{ review_request.to_user.email }}
-                              {% elif review_request.to_user_legacy %}
-                              <b>email to: </b>{{ review_request.to_user_legacy.email }}
-                              {% endif %}
-                          </div>
-                          <div style="border: 1px solid black; margin-bottom: 10px; background-color: white; padding:10px; font-size: 1.5em;">
-                              <b>subject: </b><input name="subject" class="form-control" type="text"
-                                                     style="width: 90%; font-size:1.2em;display:inline;  height: 1.5em;"
-                                                     value="Did you like your {{ review_request.for_product.name }} from {{ review_request.for_product.shop.name }}?"/>
-                          </div>
-                          <iframe src="/render-email/review_order.html?enable=false&review_request={{ review_request.id }}"
-                                  style="width:100%; height: 350px; border: 1px solid black; background-color:white;"
-                                  frameborder="0"></iframe>
-                          <button class="btn btn-lg btn-primary">Send</button>
-                      </form>
-                  </div>
-              </div>
-          {% endfor %}
+            <div class="col-md-12">
+                <div class="well">
+                    <form action="{{ url_for('client.send_notification', order_id=order.id) }}"
+                          method="post">
+                        <input value="{{ csrf_token() }}" name="csrf_token" type="hidden"/>
+
+                        <div style="border: 1px solid black; margin-bottom: 10px; background-color: white; padding:10px; font-size: 1.5em;">
+                            <b>email to: </b>{{ order.user.email or order.user_legacy.email }}
+                        </div>
+                        <div style="border: 1px solid black; margin-bottom: 10px; background-color: white; padding:10px; font-size: 1.5em;">
+                            <b>subject: </b><input name="subject" class="form-control" type="text"
+                                                   style="width: 90%; font-size:1.2em;display:inline;  height: 1.5em;"
+                                                   value="Review your recent purchase at {{ order.shop.name }}"/>
+                        </div>
+                        <iframe src="/render-order-review-email?order_id={{ order.id }}"
+                                style="width:100%; height: 350px; border: 1px solid black; background-color:white;"
+                                frameborder="0"></iframe>
+                        <button class="btn btn-lg btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 {% endblock %}

@@ -19,9 +19,12 @@ def make_celery(app):
     return celery
 
 
-def schedule_task_at(task, args, at_time):
-    at_time_dt = datetime.datetime.strptime(at_time, '%Y-%m-%d %H:%M:%S')
-    return task.apply_async(args, eta=at_time_dt)
+def schedule_task_at(task, kwargs, at_time):
+    if at_time is type(str):
+        at_time_dt = datetime.datetime.strptime(at_time, '%Y-%m-%d %H:%M:%S')
+    else:
+        at_time_dt = at_time
+    return task.apply_async(kwargs=kwargs, eta=at_time_dt)
 
 
 def get_task_async_result(task_id):
@@ -39,7 +42,8 @@ def get_revoked_tasks():
     from scheduled methods for optimization purposes)
     :return:
     """
-    return celery.control.inspect().revoked().values()[0]
+    from async.tasks import this_celery
+    return this_celery.control.inspect().revoked().values()[0]
 
 
 def get_task_status(task_id):
@@ -60,31 +64,18 @@ def get_scheduled_tasks():
     Get scheduled tasks which are not revoked.
     :return: A dict of task_id(string): task_eta(datetime.datetime)
     """
-    scheduled = celery.control.inspect().scheduled().values()[0]
+    from async.tasks import this_celery
+    scheduled = this_celery.control.inspect().scheduled().values()[0]
     revoked_tasks = get_revoked_tasks()
-    scheduled_dict = {}
+    scheduled_only = []
     for task in scheduled:
         task_id = task.get('request', {}).get('id')
         if task_id not in revoked_tasks:
-            task_eta = datetime.datetime.strptime(task.get('eta'), '%Y-%m-%dT%H:%M:%S+00:00')
-            scheduled_dict[task_id] = task_eta
-    return scheduled_dict
+            scheduled_only.append(task)
+    return scheduled_only
 
 
-def get_task_eta(task_id):
-    """
-    Get the estimated time that a task will be executed by task uuid
-    :param task_id: The task uuid from celery
-    :return: datetime object if in the future or None if
-    """
-    scheduled = get_scheduled_tasks()
-    dt = scheduled.get(task_id)
-    if dt:
-        return datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S+00:00')
-    return None
-
-
-def remove_task(task_id):
+def revoke_task(task_id):
     """
     Revokes a task by uuid
     :param task_id: The task uuid from celery

@@ -104,6 +104,12 @@ def update_orders():
     for shop in shops:
         magento_api.init(shop)
 
+@this_celery.task()
+def notify_for_review(order_id, *args, **kwargs):
+    order = models.Order.query.filter_by(id=order_id).first()
+    if order:
+        order.notify()
+
 
 if __name__ == '__main__':
     update_orders()

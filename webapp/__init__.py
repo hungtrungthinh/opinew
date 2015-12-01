@@ -26,7 +26,9 @@ class MyHomeView(AdminIndexView):
     def index(self):
         from webapp import models
         users = models.User.query.order_by(models.User.id).all()
-        return self.render('admin/index.html', users=users)
+        from async import celery_async
+        tasks = celery_async.get_scheduled_tasks()
+        return self.render('admin/index.html', users=users, tasks=tasks)
 
 
 csrf = CsrfProtect()

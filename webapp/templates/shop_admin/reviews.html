@@ -8,20 +8,33 @@
             <th>Stars</th>
             <th>Body</th>
             <th>Picture</th>
+            <th>Video</th>
             <th>Badges</th>
             <th>Actions</th>
         </tr>
       {% for review in reviews %}
           <tr>
               <td>
-                  <a href="http://{{ review.product.url }}"
-                     target="_blank"><span class="glyphicon glyphicon-link"></span> {{ review.product.name }}</a>
+                  <a href="{{ url_for('client.get_product', product_id=review.product.id) }}">{{ review.product.name }}</a><br>
+                  <small>Shop page: <a href="http://{{ review.product.url }}" target="_blank"
+                     target="_blank"><span class="glyphicon glyphicon glyphicon-new-window"></span>
+                  </a></small>
               </td>
               <td>{{ review.star_rating }}</td>
-              <td>{{ review.body }}</td>
+              <td>
+                  <small><em>(posted on {{ review.created_ts }})</em></small>
+                <p>{{ review.body }}</p>
+              </td>
               <td>
                 {% if review.image_url %}
                     <img style="max-height:50px;" class="img-responsive" src="{{ review.image_url }}"/>
+                {% endif %}
+              </td>
+              <td>
+                {% if review.youtube_video %}
+                    <a href="{{ review.youtube_video }}" target="_blank">
+                    <span class="glyphicon glyphicon-facetime-video"></span>
+                    </a>
                 {% endif %}
               </td>
               <td>

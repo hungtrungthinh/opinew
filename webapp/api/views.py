@@ -1,6 +1,6 @@
 import datetime
 import requests
-from flask import jsonify, current_app, request
+from flask import jsonify, current_app, request, session
 from flask_wtf.csrf import generate_csrf
 from flask.ext.security import login_user, current_user, login_required
 from flask.ext.security.utils import verify_password
@@ -202,7 +202,7 @@ def check_recaptcha(data, *args, **kwargs):
         from async import tasks
 
         tasks.send_email.delay(recipients=[user_email],
-                               template='email/new_user.html',
+                               template='email/new_reviewer_user.html',
                                template_ctx={'user_email': user_email,
                                              'user_temp_password': user.temp_password,
                                              'user_name': user_name
@@ -232,6 +232,34 @@ api_manager.create_api(models.Product,
                            'POST': [del_csrf, req_shop_owner, pre_create_product],
                            'PATCH_SINGLE': [del_csrf, req_shop_owner]
                        }, )
+
+def pre_post_question(data, *args, **kwargs):
+    if current_user and current_user.is_authenticated():
+        data['user_id'] = current_user.id
+    else:
+        temp_user_id = data.get('temp_user_id') or session.get('temp_user_id')
+        if not temp_user_id:
+            user = models.User()
+            db.session.add(user)
+            db.session.commit()
+            temp_user_id = user.id
+        session['temp_user_id'] = temp_user_id
+        data['user_id'] = temp_user_id
+    return data
+
+def pre_post_answer(data, *args, **kwargs):
+    question_id = data.get('to_question_id')
+    if not question_id:
+        raise ProcessingException(description='Question id required', code=401)
+    question = models.Question.query.filter_by(id=question_id).first()
+    if not question:
+        raise ProcessingException(description='Question doesnt exist', code=401)
+    shop_id = question.about_product.shop.id
+    shop = models.Shop.query.filter_by(id=shop_id).first()
+    if not shop.owner == current_user:
+        raise ProcessingException(description='Not your shop', code=401)
+    data['user_id'] = current_user.id
+    return data
 
 
 # To query the reviews:
@@ -311,6 +339,21 @@ api_manager.create_api(models.Shop,
                        },
                        validation_exceptions=[DbException])
 
+api_manager.create_api(models.Question,
+                       url_prefix=Constants.API_V1_URL_PREFIX,
+                       methods=['POST'],
+                       preprocessors={
+                           'POST': [del_csrf, pre_post_question],
+                       },
+                       validation_exceptions=[DbException])
+
+api_manager.create_api(models.Answer,
+                       url_prefix=Constants.API_V1_URL_PREFIX,
+                       methods=['POST'],
+                       preprocessors={
+                           'POST': [del_csrf, req_shop_owner, pre_post_answer],
+                       },
+                       validation_exceptions=[DbException])
 
 @login_required
 @api.route('/token')

@@ -20,6 +20,23 @@
     </form>
 
     <br><br>
+    <h2>Scheduled tasks</h2>
+    <table class="table">
+    <tr>
+        <th>Task id</th>
+        <th>Task ETA</th>
+        <th>Kwargs</th>
+        <th>Actions</th>
+    </tr>
+  {% for task in tasks %}
+      <tr>
+          <td>{{ task.request.id }}</td>
+          <td>({{ task.eta }})</td>
+          <td>{{ task.request.kwargs }}</td>
+          <td><a href="/admin-revoke-task?task_id={{ task.request.id }}" class="btn btn-danger">Revoke task</a></td>
+      </tr>
+  {% endfor %}
+    </table>
     <h2>Celery tasks (Flower)</h2>
     <iframe src="http://localhost:5555" style="width: 100%; height: 500px;"></iframe>
 {% endblock %}

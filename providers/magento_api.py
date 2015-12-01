@@ -1,8 +1,6 @@
 import datetime
-from webapp import create_app, models, db
+from webapp import models, db
 from magento import MagentoAPI
-from sqlalchemy import and_
-import sensitive
 from config import Constants
 
 
@@ -20,8 +18,9 @@ class API(object):
         self.magento = MagentoAPI(domain, port, username, password)
 
     def create_new_order(self, morder, shop_id):
+        platform_order_id = morder.get('order_id')
         order = models.Order(
-            platform_order_id=morder.get('order_id'),
+            platform_order_id=platform_order_id,
             status=self.order_statuses.get(morder.get('status'), Constants.ORDER_STATUS_PURCHASED),
             purchase_timestamp=datetime.datetime.strptime(morder.get('created_at'), '%Y-%m-%d %H:%M:%S'),
             shop_id=shop_id
@@ -37,7 +36,7 @@ class API(object):
             order.user_legacy = user_legacy
 
         # get the products for this order
-        mproducts = self.magento.cart_product.list(morder.get('order_id'))
+        mproducts = self.magento.sales_order.info(morder.get('increment_id')).get('items', [])
         for mproduct in mproducts:
             product = models.Product.query.filter_by(platform_product_id=mproduct.get('sku')).first()
             if product:
@@ -73,32 +72,6 @@ class API(object):
             order.status = Constants.ORDER_STATUS_STALLED
         return order
 
-    def update_order_status(self, order):
-        now = datetime.datetime.utcnow()
-        shipment_dt = order.shipment_timestamp or now
-
-        diff = now - shipment_dt
-
-        # Delivery timestamp = shipment + 5
-        delivery_dt = shipment_dt + datetime.timedelta(days=Constants.DIFF_SHIPMENT_DELIVERY)
-        if not order.to_deliver_timestamp:
-            order.to_deliver_timestamp = delivery_dt
-
-            # Notify timestamp = delivery + 3
-            if not order.to_notify_timestamp:
-                notify_dt = delivery_dt + datetime.timedelta(days=Constants.DIFF_DELIVERY_NOTIFY)
-                order.to_notify_timestamp = notify_dt
-
-        # disambiguate what is the current status
-        if diff.days >= Constants.DIFF_SHIPMENT_DELIVERY:
-            # there has been more than 5 days since dispatch, should be at least delivered
-            order.status = Constants.ORDER_STATUS_DELIVERED
-            order.delivery_timestamp = delivery_dt
-            if diff.days >= (Constants.DIFF_SHIPMENT_DELIVERY + Constants.DIFF_DELIVERY_NOTIFY):
-                # there has been more than 3 days since delivery, notify for review...
-                order.legacy()
-        return order
-
     def update_order(self, morder, order, mshipment):
         order.status = self.order_statuses.get(morder.get('status'), Constants.ORDER_STATUS_PURCHASED)
         if not mshipment:
@@ -107,8 +80,7 @@ class API(object):
             # shipment_timestamp
             mshipment_ts = mshipment.get('created_at')
             shipment_dt = datetime.datetime.strptime(mshipment_ts, '%Y-%m-%d %H:%M:%S')
-            order.shipment_timestamp = shipment_dt
-            order = self.update_order_status(order)
+            order.ship(shipment_timestamp=shipment_dt)
         return order
 
     def update_orders(self, morders, current_orders):
@@ -133,7 +105,7 @@ class API(object):
 
     def update_products(self, mproducts, current_shop_products):
         new_and_updated_products = []
-        current_shop_products_dict = {p.id: p for p in current_shop_products}
+        current_shop_products_dict = {p.platform_product_id: p for p in current_shop_products}
         for mproduct in mproducts:
             mplatform_product_id = mproduct.get('sku', None)
             try:
@@ -179,7 +151,7 @@ def init(shop):
     updated_products = api.update_products(mproducts, current_shop_products)
     for p in updated_products:
         p.shop = shop
-        if p.urlkey:
+        if hasattr(p, 'urlkey'):
             pu_1 = models.ProductUrl(product=p, url="%s/%s" % (shop.domain, p.urlkey))
             pu_2 = models.ProductUrl(product=p, url="%s/(.)*%s" % (shop.domain, p.urlkey), is_regex=True)
             db.session.add(pu_1)
@@ -187,34 +159,23 @@ def init(shop):
         db.session.add(p)
     db.session.commit()
 
-    # Update orders that are already on their way....
-    to_update_orders = models.Order.query.filter(and_(models.Order.shop_id == shop.id,
-                                                      models.Order.status.in_([
-                                                          Constants.ORDER_STATUS_SHIPPED,
-                                                          Constants.ORDER_STATUS_DELIVERED
-                                                      ]))).all()
-    for order in to_update_orders:
-        order = api.update_order_status(order)
-        db.session.add(order)
-
-    # Flush to db
-    db.session.commit()
-
     # Query the sales endpoint
     morders = api.magento.sales_order.list()
 
-    # Update orders that are waiting to be dispatched...
-    current_orders = models.Order.query.filter_by(shop_id=shop.id, status=Constants.ORDER_STATUS_PURCHASED).all()
-    updated_orders = api.update_orders(morders, current_orders)
-    db.session.add_all(updated_orders)
+    # Create new orders
+    last_order = models.Order.query.filter_by(shop_id=shop.id).order_by(models.Order.platform_order_id.desc()).first()
+    new_orders = api.create_new_orders(morders, last_order.platform_order_id if last_order else 0, shop.id)
+    db.session.add_all(new_orders)
 
     # Flush to db
     db.session.commit()
 
-    # Create new orders
-    last_order = models.Order.query.filter_by(shop_id=shop.id).order_by(models.Order.platform_order_id.desc()).first()
-    new_orders = api.create_new_orders(morders, last_order.platform_order_id, shop.id)
-    db.session.add_all(new_orders)
+    # Update orders that are waiting to be dispatched...
+    purchased_orders = models.Order.query.filter_by(shop_id=shop.id, status=Constants.ORDER_STATUS_PURCHASED).all()
+    shipped_orders = models.Order.query.filter_by(shop_id=shop.id, status=Constants.ORDER_STATUS_SHIPPED).all()
+    current_orders = purchased_orders + shipped_orders
+    updated_orders = api.update_orders(morders, current_orders)
+    db.session.add_all(updated_orders)
 
     # Flush to db
     db.session.commit()
