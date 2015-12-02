@@ -90,9 +90,14 @@ def create_shopify_shop(shopify_api, shop_id):
         if order_j.get('cancelled_at'):
             order.status = Constants.ORDER_STATUS_FAILED
         for product_j in order_j.get('line_items', []):
-            product = models.Product.query.filter_by(platform_product_id=str(product_j.get('id'))).first()
+            product = models.Product.query.filter_by(platform_product_id=str(product_j.get('product_id'))).first()
             if product:
                 order.products.append(product)
+            else:
+                variant = models.ProductVariant.query.filter_by(platform_variant_id=str(product_j.get('variant_id'))).first()
+                if not variant:
+                    continue
+                order.products.append(variant.product)
         db.session.add(order)
     db.session.commit()
 

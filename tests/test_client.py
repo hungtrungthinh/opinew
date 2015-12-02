@@ -690,7 +690,8 @@ class TestViews(TestFlaskApplication):
         db.session.commit()
         data = json.dumps({
             'order_id': testing_constants.NEW_ORDER_PLATFORM_ID,
-            'tracking_number': testing_constants.ORDER_TRACKING_NUMBER
+            'tracking_number': testing_constants.ORDER_TRACKING_NUMBER,
+            'created_at': "2015-12-02T13:56:26-05:00"
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
         response_actual = self.desktop_client.post(url_for('api.platform_shopify_fulfill_order'),
