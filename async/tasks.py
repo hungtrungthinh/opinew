@@ -68,7 +68,7 @@ def create_shopify_shop(shopify_api, shop_id):
     # Import shop orders
     for order_j in shopify_orders:
         platform_order_id = order_j.get('id')
-        existing_order = models.Order.filter_by(shop_id=shop_id, platform_order_id=platform_order_id).first()
+        existing_order = models.Order.query.filter_by(shop_id=shop_id, platform_order_id=platform_order_id).first()
         if existing_order:
             continue
 
