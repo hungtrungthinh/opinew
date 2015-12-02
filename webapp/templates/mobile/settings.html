@@ -2,9 +2,14 @@
 {% block content %}
 <div class="list-group settings-menu">
     {% if current_user.is_authenticated() %}
-        <a href="{{ url_for('security.logout') }}" class="list-group-item">
-            <h4 class="list-group-item-heading">Log out</h4>
-        </a>
+        {% if current_user.has_role(g.constants.SHOP_OWNER_ROLE) %}
+            <a href="{{ url_for('client.shop_dashboard') }}" class="list-group-item">
+                <h4 class="list-group-item-heading">Shop admin panel</h4>
+            </a>
+        {% endif %}
+            <a href="{{ url_for('security.logout') }}" class="list-group-item">
+                <h4 class="list-group-item-heading">Log out</h4>
+            </a>
     {% endif %}
 </div>
 {% endblock %}
