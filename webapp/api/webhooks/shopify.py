@@ -1,4 +1,6 @@
 import datetime
+import pytz
+from dateutil import parser as date_parser
 from flask import jsonify, request
 from webapp import db, models, exceptions, csrf
 from webapp.api import api
@@ -102,7 +104,7 @@ def platform_shopify_create_order():
 
     platform_order_id = str(payload.get('id', ''))
     try:
-        created_at_dt = datetime.datetime.strptime(payload.get('created_at')[:-6], "%Y-%m-%dT%H:%M:%S")
+        created_at_dt = date_parser.parse(payload.get('created_at')).astimezone(pytz.utc).replace(tzinfo=None)
     except:
         created_at_dt = datetime.datetime.utcnow()
     order = models.Order(platform_order_id=platform_order_id, shop=shop, purchase_timestamp=created_at_dt)
