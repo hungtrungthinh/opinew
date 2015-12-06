@@ -5,6 +5,7 @@ import base64
 import hmac
 import hashlib
 from flask import url_for
+from flask.ext.security.utils import verify_password
 from freezegun import freeze_time
 from unittest import TestCase
 from webapp import create_app, db, common
@@ -29,6 +30,7 @@ class TestFlaskApplication(TestCase):
             def om_wrapper(*args, **kwargs):
                 kwargs = common.inject_ua(ua, kwargs)
                 return getattr(cls.master_client, method)(*args, **kwargs)
+
             return om_wrapper
 
         cls.desktop_client.get = override_method('get', Constants.DESKTOP_USER_AGENT)
@@ -45,6 +47,7 @@ class TestFlaskApplication(TestCase):
 
         cls.app.app_context().push()
         db.create_all()
+        db.engine.dialect.supports_sane_multi_rowcount = False
 
         db_dir = os.path.join(basedir, 'install', 'db', cls.app.config.get('MODE'))
         import_tables(db, db_dir)
@@ -60,9 +63,15 @@ class TestFlaskApplication(TestCase):
         cls.reviewer_password = sensitive.TEST_REVIEWER_PASSWORD
 
         shop_owner_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
-        cls.shop_onwer_user = User.query.filter_by(id=3).first()
-        assert cls.shop_onwer_user.has_role(shop_owner_role)
+        cls.shop_owner_user = User.query.filter_by(id=3).first()
+        assert cls.shop_owner_user.has_role(shop_owner_role)
         cls.shop_owner_password = sensitive.TEST_SHOP_OWNER_PASSWORD
+
+    def setUp(self):
+        print self
+        self.admin_user = User.query.filter_by(id=1).first()
+        self.reviewer_user = User.query.filter_by(id=2).first()
+        self.shop_owner_user = User.query.filter_by(id=3).first()
 
     @classmethod
     def tearDownClass(cls):
@@ -101,13 +110,13 @@ class TestViews(TestFlaskApplication):
 
     def test_shopify_install_no_shop_domain(self):
         response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
-                                                                    'shop': '123'})
+                                                                            'shop': '123'})
         response_expected = {"error": 'invalid shop domain'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_shopify_install_incorrect_shop_name(self):
         response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
-                                                                    'shop': '123456789123456789'})
+                                                                            'shop': '123456789123456789'})
         response_expected = {"error": 'incorrect shop name'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
@@ -119,7 +128,7 @@ class TestViews(TestFlaskApplication):
         db.session.add(shop)
         db.session.commit()
         response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
-                                                                    'shop': shop.domain})
+                                                                            'shop': shop.domain})
         location_expected = url_for('client.shop_dashboard')
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
@@ -130,7 +139,7 @@ class TestViews(TestFlaskApplication):
 
     def test_shopify_install_redirect(self):
         response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
-                                                                    'shop': testing_constants.NEW_SHOP_DOMAIN})
+                                                                            'shop': testing_constants.NEW_SHOP_DOMAIN})
         location_expected = 'https://opinew-testing.myshopify.com/admin/oauth/authorize?client_id=7260cb38253b9adc4af0c90eb622f4ce&scope=read_products,read_orders,read_fulfillments&redirect_uri=http://localhost:5000/oauth/callback&state=opinew-testing'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
@@ -147,48 +156,48 @@ class TestViews(TestFlaskApplication):
 
     def test_oauth_callback_no_shop(self):
         response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
-                                                                           'hmac': 'fdsa'})
+                                                                                   'hmac': 'fdsa'})
         response_expected = {u'error': u'shop parameter is required'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_code(self):
         response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
-                                                                           'hmac': 'fdsa',
-                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN})
+                                                                                   'hmac': 'fdsa',
+                                                                                   'shop': testing_constants.NEW_SHOP_DOMAIN})
         response_expected = {u'error': u'code parameter is required'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_wrong_nonce(self):
         response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'WRONG_NONCE',
-                                                                           'hmac': 'fdsa',
-                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN,
-                                                                           'code': 'abc'})
+                                                                                   'hmac': 'fdsa',
+                                                                                   'shop': testing_constants.NEW_SHOP_DOMAIN,
+                                                                                   'code': 'abc'})
         response_expected = {u'error': u'incorrect nonce'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_signature(self):
         response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
-                                                                           'hmac': 'fdsa',
-                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN,
-                                                                           'code': 'abc'})
+                                                                                   'hmac': 'fdsa',
+                                                                                   'shop': testing_constants.NEW_SHOP_DOMAIN,
+                                                                                   'code': 'abc'})
         response_expected = {u'error': u'signature required'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_hmac_wrong(self):
         response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
-                                                                           'hmac': 'fdsa',
-                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN,
-                                                                           'code': 'abc',
-                                                                           'signature': 'abc'})
+                                                                                   'hmac': 'fdsa',
+                                                                                   'shop': testing_constants.NEW_SHOP_DOMAIN,
+                                                                                   'code': 'abc',
+                                                                                   'signature': 'abc'})
         response_expected = {u'error': u'hmac unverified'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_success(self):
         response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
-                                                                           'hmac': '4989858235c2ceded8d751658b9a8d7af995343950bcf65bee49ea48fb20380e',
-                                                                           'shop': testing_constants.NEW_SHOP_DOMAIN,
-                                                                           'code': 'abc',
-                                                                           'signature': 'abc'})
+                                                                                   'hmac': '4989858235c2ceded8d751658b9a8d7af995343950bcf65bee49ea48fb20380e',
+                                                                                   'shop': testing_constants.NEW_SHOP_DOMAIN,
+                                                                                   'code': 'abc',
+                                                                                   'signature': 'abc'})
         location_expected = url_for('client.shop_dashboard', first=1)
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
@@ -226,30 +235,30 @@ class TestViews(TestFlaskApplication):
 
     def test_register_post_name_and_email(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
-                                                              'email': testing_constants.NEW_USER_EMAIL})
+                                                                      'email': testing_constants.NEW_USER_EMAIL})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Password not provided' in response_actual.data)
 
     def test_register_post_no_password_confirm(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
-                                                              'email': testing_constants.NEW_USER_EMAIL,
-                                                              'password': testing_constants.NEW_USER_PWD})
+                                                                      'email': testing_constants.NEW_USER_EMAIL,
+                                                                      'password': testing_constants.NEW_USER_PWD})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Passwords do not match' in response_actual.data)
 
     def test_register_post_not_matching_passwords(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
-                                                              'email': testing_constants.NEW_USER_EMAIL,
-                                                              'password': testing_constants.NEW_USER_PWD,
-                                                              'password_confirm': 'not matching'})
+                                                                      'email': testing_constants.NEW_USER_EMAIL,
+                                                                      'password': testing_constants.NEW_USER_PWD,
+                                                                      'password_confirm': 'not matching'})
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Passwords do not match' in response_actual.data)
 
     def test_register_post_default_reviewer(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
-                                                              'email': testing_constants.NEW_USER_EMAIL,
-                                                              'password': testing_constants.NEW_USER_PWD,
-                                                              'password_confirm': testing_constants.NEW_USER_PWD})
+                                                                      'email': testing_constants.NEW_USER_EMAIL,
+                                                                      'password': testing_constants.NEW_USER_PWD,
+                                                                      'password_confirm': testing_constants.NEW_USER_PWD})
         location_expected = 'http://localhost:5000/confirm'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
@@ -265,10 +274,10 @@ class TestViews(TestFlaskApplication):
 
     def test_register_post_shop_owner(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
-                                                              'email': testing_constants.NEW_USER_EMAIL,
-                                                              'password': testing_constants.NEW_USER_PWD,
-                                                              'password_confirm': testing_constants.NEW_USER_PWD,
-                                                              'is_shop_owner': True})
+                                                                      'email': testing_constants.NEW_USER_EMAIL,
+                                                                      'password': testing_constants.NEW_USER_PWD,
+                                                                      'password_confirm': testing_constants.NEW_USER_PWD,
+                                                                      'is_shop_owner': True})
         location_expected = 'http://localhost:5000/confirm'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
@@ -296,7 +305,7 @@ class TestViews(TestFlaskApplication):
         self.logout()
 
     def test_get_index_shop_owner(self):
-        self.login(self.shop_onwer_user.email, self.shop_owner_password)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/")
         location_expected = url_for('client.shop_dashboard')
         self.assertEquals(response_actual.status_code, 302)
@@ -324,7 +333,8 @@ class TestViews(TestFlaskApplication):
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
         self.logout()
-##
+
+    ##
     def test_get_index_mobile_not_logged_in_reviews(self):
         response_actual = self.mobile_client.get(url_for('client.reviews'))
         self.assertEquals(response_actual.status_code, 200)
@@ -352,7 +362,7 @@ class TestViews(TestFlaskApplication):
 
     def test_user_profile(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.desktop_client.get("/user-profile/"+str(self.reviewer_user.id))
+        response_actual = self.desktop_client.get("/user-profile/" + str(self.reviewer_user.id))
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h3>Rose Castro' in response_actual.data)
         self.assertTrue('Great value for money yoga mat' in response_actual.data)
@@ -368,7 +378,7 @@ class TestViews(TestFlaskApplication):
         self.logout()
 
     def test_dashboard(self):
-        self.login(self.shop_onwer_user.email, self.shop_owner_password)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('General settings' in response_actual.data)
@@ -377,14 +387,14 @@ class TestViews(TestFlaskApplication):
         self.logout()
 
     def test_dashboard_orders(self):
-        self.login(self.shop_onwer_user.email, self.shop_owner_password)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/dashboard/2/orders", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h2>Orders</h2>' in response_actual.data)
         self.logout()
 
     def test_dashboard_reviews(self):
-        self.login(self.shop_onwer_user.email, self.shop_owner_password)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/dashboard/2/reviews", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h2>Reviews</h2>' in response_actual.data)
@@ -415,8 +425,8 @@ class TestViews(TestFlaskApplication):
                               "star_rating": testing_constants.NEW_REVIEW_STARS,
                               "image_url": testing_constants.NEW_REVIEW_IMAGE_URL})
         response_actual = self.desktop_client.post("/api/v1/review",
-                                           headers={'content-type': 'application/json'},
-                                           data=payload)
+                                                   headers={'content-type': 'application/json'},
+                                                   data=payload)
 
         # First, check if API response is good...
         self.assertEquals(response_actual.status_code, 201)
@@ -456,8 +466,8 @@ class TestViews(TestFlaskApplication):
         payload = json.dumps({"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
                               "body": body_string})
         response_actual = self.desktop_client.post("/api/v1/review",
-                                           headers={'content-type': 'application/json'},
-                                           data=payload)
+                                                   headers={'content-type': 'application/json'},
+                                                   data=payload)
 
         # First, check if API response is good...
         self.assertEquals(response_actual.status_code, 201)
@@ -495,11 +505,11 @@ class TestViews(TestFlaskApplication):
     def test_api_post_review_shop_owner(self):
         split_frozen_time = testing_constants.NEW_REVIEW_CREATED_TS.split('-')
         frozen_time = datetime.datetime(int(split_frozen_time[0]), int(split_frozen_time[1]), int(split_frozen_time[2]))
-        self.login(self.shop_onwer_user.email, self.shop_owner_password)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
         payload = json.dumps({"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID})
         response_actual = self.desktop_client.post("/api/v1/review",
-                                           headers={'content-type': 'application/json'},
-                                           data=payload)
+                                                   headers={'content-type': 'application/json'},
+                                                   data=payload)
 
         # First, check if API response is good...
         self.assertEquals(response_actual.status_code, 201)
@@ -591,11 +601,11 @@ class TestViews(TestFlaskApplication):
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
         response_actual = self.desktop_client.post(url_for('api.platform_shopify_create_product'),
-                                           data=data,
-                                           content_type="application/json",
-                                           headers={
-                                               'X-Shopify-Hmac-SHA256': sha256,
-                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+                                                   data=data,
+                                                   content_type="application/json",
+                                                   headers={
+                                                       'X-Shopify-Hmac-SHA256': sha256,
+                                                       'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
         self.assertEquals(response_actual.status_code, 201)
         product = Product.query.filter_by(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
                                           shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
@@ -617,11 +627,11 @@ class TestViews(TestFlaskApplication):
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
         response_actual = self.desktop_client.post(url_for('api.platform_shopify_update_product'),
-                                           data=data,
-                                           content_type="application/json",
-                                           headers={
-                                               'X-Shopify-Hmac-SHA256': sha256,
-                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+                                                   data=data,
+                                                   content_type="application/json",
+                                                   headers={
+                                                       'X-Shopify-Hmac-SHA256': sha256,
+                                                       'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
         self.assertEquals(response_actual.status_code, 200)
         product = Product.query.filter_by(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
                                           shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
@@ -640,10 +650,10 @@ class TestViews(TestFlaskApplication):
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
         response_actual = self.desktop_client.post(url_for('api.platform_shopify_delete_product'),
-                                           data=data,
-                                           headers={
-                                               'X-Shopify-Hmac-SHA256': sha256,
-                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+                                                   data=data,
+                                                   headers={
+                                                       'X-Shopify-Hmac-SHA256': sha256,
+                                                       'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
         self.assertEquals(response_actual.status_code, 200)
         product = Product.query.filter_by(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
                                           shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
@@ -668,10 +678,10 @@ class TestViews(TestFlaskApplication):
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
         response_actual = self.desktop_client.post(url_for('api.platform_shopify_create_order'),
-                                           data=data,
-                                           headers={
-                                               'X-Shopify-Hmac-SHA256': sha256,
-                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+                                                   data=data,
+                                                   headers={
+                                                       'X-Shopify-Hmac-SHA256': sha256,
+                                                       'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
         self.assertEquals(response_actual.status_code, 201)
         product = Product.query.filter_by(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
                                           shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
@@ -695,13 +705,74 @@ class TestViews(TestFlaskApplication):
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
         response_actual = self.desktop_client.post(url_for('api.platform_shopify_fulfill_order'),
-                                           data=data,
-                                           headers={
-                                               'X-Shopify-Hmac-SHA256': sha256,
-                                               'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+                                                   data=data,
+                                                   headers={
+                                                       'X-Shopify-Hmac-SHA256': sha256,
+                                                       'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
         self.assertEquals(response_actual.status_code, 200)
         order = Order.query.filter_by(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID,
                                       shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
         self.assertEquals(order.status, Constants.ORDER_STATUS_SHIPPED)
         db.session.delete(order)
         db.session.commit()
+
+    def test_password_change_get(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/change")
+        self.assertTrue('<h2>Change password</h2>' in response_actual.data)
+        self.logout()
+
+    def test_password_change_post(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        old_pwd_hash = self.shop_owner_user.password
+        response_actual = self.desktop_client.post("/change", data={'password': self.shop_owner_password,
+                                                                    'new_password': testing_constants.CHANGED_PASSWORD,
+                                                                    'new_password_confirm': testing_constants.CHANGED_PASSWORD})
+        location_expected = url_for('client.post_change')
+        self.assertEquals(response_actual.status_code, 302)
+        self.assertEquals(location_expected, response_actual.location)
+        self.assertTrue(verify_password(testing_constants.CHANGED_PASSWORD, self.shop_owner_user.password))
+        # change back
+        self.shop_owner_user.password = old_pwd_hash
+        db.session.add(self.shop_owner_user)
+        db.session.commit()
+        # verify change back
+        self.assertTrue(verify_password(self.shop_owner_password, self.shop_owner_user.password))
+        self.logout()
+
+    def test_two_shops_per_user(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        # create new shop for this user
+        new_shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        self.shop_owner_user.shops.append(new_shop)
+        db.session.add(new_shop)
+        db.session.commit()
+        # check if the dashboard is rendered correctly
+        response_actual = self.desktop_client.get(url_for('client.shop_dashboard'))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Please choose a shop to administrate:</h2>' in response_actual.data)
+        self.assertTrue(testing_constants.NEW_SHOP_NAME in response_actual.data)
+        # delete this shop
+        db.session.delete(new_shop)
+        db.session.commit()
+        self.logout()
+
+class TestShopifyShopCreation(TestFlaskApplication):
+    def test_create_shopify_shop(self):
+        from async import tasks
+        from providers.shopify_api import API
+
+        shop = Shop.query.filter_by(id=3).first()
+        self.assertEquals(len(shop.products), 0)
+        self.assertEquals(len(shop.orders), 0)
+        shopify_api = API(shop_domain=shop.domain)
+        tasks.create_shopify_shop(shopify_api=shopify_api, shop_id=shop.id)
+        shop = Shop.query.filter_by(id=3).first()
+        self.assertEquals(len(shopify_api.webhooks), 5)
+        self.assertEquals(len(shop.products), 1)
+        self.assertEquals(shop.products[0].platform_product_id, testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        self.assertEquals(shop.products[0].name, testing_constants.NEW_PRODUCT_NAME)
+        self.assertEquals(len(shop.orders), 1)
+        self.assertEquals(shop.orders[0].platform_order_id, testing_constants.NEW_ORDER_PLATFORM_ID)
+        self.assertEquals(len(shop.orders[0].products), 1)
+        self.assertEquals(shop.orders[0].products[0].platform_product_id, testing_constants.NEW_PRODUCT_PLATFORM_ID)

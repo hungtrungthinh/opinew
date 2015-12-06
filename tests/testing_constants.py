@@ -2,6 +2,7 @@
 NEW_USER_EMAIL = 'test@test.test'
 NEW_USER_NAME = 'Test Test'
 NEW_USER_PWD = 'password'
+CHANGED_PASSWORD = 'something'
 
 NEW_PRODUCT_ID = 1
 NEW_PRODUCT_PLATFORM_ID = "26"
@@ -11,7 +12,7 @@ CHANGED_PRODUCT_NAME = 'Change of product name'
 SHOPIFY_SHOP_ID = 3
 SHOPIFY_SHOP_DOMAIN = 'opinew.myshopify.com'
 
-NEW_ORDER_PLATFORM_ID = "42"
+NEW_ORDER_PLATFORM_ID = 42
 ORDER_USER_EMAIL = "Peter@Griffin.com"
 ORDER_TRACKING_NUMBER = "BURITO"
 

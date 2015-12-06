@@ -101,6 +101,7 @@ def shopify_plugin_callback():
     shop_owner, is_new = User.get_or_create_by_email(shop_owner_email,
                                                      role_name=Constants.SHOP_OWNER_ROLE,
                                                      name=shop_owner_name)
+    shop_owner_id = shop_owner.id
 
     # Create shop with owner = shop_user
     shopify_platform = Platform.get_by_name('shopify')
@@ -114,13 +115,14 @@ def shopify_plugin_callback():
     db.session.commit()
 
     # asyncronously create all products, orders and webhooks
-    if not current_app.config.get('TESTING'):
-        from async import tasks
-
-        tasks.create_shopify_shop.delay(shopify_api=shopify_api,
-                                        shop_id=shop.id)
+    from async import tasks
+    if current_app.config.get('TESTING'):
+        tasks.create_shopify_shop(shopify_api=shopify_api, shop_id=shop.id)
+    else:
+        tasks.create_shopify_shop.delay(shopify_api=shopify_api, shop_id=shop.id)
 
     # Login shop_user
+    shop_owner = User.query.filter_by(id=shop_owner_id).first()
     login_user(shop_owner)
     return redirect(url_for('client.shop_dashboard', first='1'))
 

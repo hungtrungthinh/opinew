@@ -5,24 +5,5 @@ import sensitive
 app = create_app('db_dev')
 app.app_context().push()
 
-for a in [sensitive.ADMIN_PASSWORD,
-          sensitive.ADMIN_PASSWORD,
-          sensitive.TEST_SHOP_OWNER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_REVIEWER_PASSWORD,
-          sensitive.TEST_SHOP_OWNER_PASSWORD]:
+for a in ['DC8E2']:
     print encrypt_password(a)

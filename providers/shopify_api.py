@@ -17,6 +17,9 @@ class API(object):
 
         self.access_token = access_token
 
+        if current_app.config.get('TESTING'):
+            self.webhooks = []
+
     def initialize_api(self, nonce_request, hmac_request, code):
         self.verify_nonce(nonce_request)
         self.verify_hmac(hmac_request)
@@ -71,24 +74,26 @@ class API(object):
         if current_app.config.get('TESTING'):
             return 5
         r = requests.get("https://%s/admin/webhooks/count.json" % self.shop_domain,
-                      headers={'X-Shopify-Access-Token': self.access_token})
+                         headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
             raise ApiException(r.text, r.status_code)
         response = r.json()
         return response.get('count', 0)
 
     def create_webhook(self, topic, address):
+        payload = {
+            "webhook": {
+                "topic": topic,
+                "address": address,
+                "format": "json"
+            }
+        }
         if current_app.config.get('TESTING'):
+            self.webhooks.append(payload)
             return
         requests.post("https://%s/admin/webhooks.json" % self.shop_domain,
                       headers={'X-Shopify-Access-Token': self.access_token},
-                      json={
-                          "webhook": {
-                              "topic": topic,
-                              "address": address,
-                              "format": "json"
-                          }
-                      })
+                      json=payload)
 
     def get_shop(self):
         if current_app.config.get('TESTING'):
@@ -104,7 +109,7 @@ class API(object):
     def get_products(self):
         if current_app.config.get('TESTING'):
             return [{
-                'id': testing_constants.NEW_PRODUCT_ID,
+                'id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
                 'title': testing_constants.NEW_PRODUCT_NAME
             }]
         r = requests.get("https://%s/admin/products.json" % self.shop_domain,
@@ -122,7 +127,9 @@ class API(object):
                 'created_at': '2015-11-28T14:45:50+00:00',
                 'cancelled_at': None,
                 'line_items': [{
-                    'id': testing_constants.NEW_PRODUCT_PLATFORM_ID
+                    'id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                    'product_id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                    'variant_id': testing_constants.NEW_PRODUCT_PLATFORM_ID
                 }],
                 'customer': {
                     'first_name': '',

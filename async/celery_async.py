@@ -65,9 +65,12 @@ def get_scheduled_tasks():
     :return: A dict of task_id(string): task_eta(datetime.datetime)
     """
     from async.tasks import this_celery
-    scheduled = this_celery.control.inspect().scheduled().values()[0]
-    revoked_tasks = get_revoked_tasks()
     scheduled_only = []
+    sch = this_celery.control.inspect().scheduled()
+    if not sch:
+        return scheduled_only
+    scheduled = sch.values()[0]
+    revoked_tasks = get_revoked_tasks()
     for task in scheduled:
         task_id = task.get('request', {}).get('id')
         if task_id not in revoked_tasks:

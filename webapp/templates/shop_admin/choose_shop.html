@@ -10,7 +10,7 @@
               {% else %}
                   <h2>Please choose a shop to administrate:</h2>
                 {% for shop in shops %}
-                    <a href="{{ url_for('client.shop_admin_id', shop_id=shop.id) }}">
+                    <a href="{{ url_for('client.shop_dashboard_id', shop_id=shop.id) }}">
                         <div class="well">
                             <h3>{{ shop.name }}</h3>
                         </div>
