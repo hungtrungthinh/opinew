@@ -133,6 +133,82 @@ class TestAPI(TestFlaskApplication):
         self.assertEquals(response_actual.data, "{}")
         self.logout()
 
+    def test_get_reviews_status_code(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        self.assertEquals(response_actual.status_code, 200)
+
+    def test_get_reviews_not_empty(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        self.assertEquals(response_actual.status_code, 200)
+        response_json_dict = json.loads(response_actual.data)
+        self.assertTrue(len(response_json_dict["objects"]) > 0)
+
+    def test_get_reviews_has_review_id1(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        response_json_dict = json.loads(response_actual.data)
+        review_dict = {"id":None}
+        for review in response_json_dict["objects"]:
+            if review["id"] == 1:
+                review_dict = review
+        self.assertEquals(review_dict["id"], 1)
+
+    def test_get_reviews_review_id1_body(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        response_json_dict = json.loads(response_actual.data)
+        review_dict = {"id":None,"body":None}
+        for review in response_json_dict["objects"]:
+            if review["id"] == 1:
+                review_dict = review
+        self.assertEquals(review_dict["body"], "Perfect unusual accessory for a normal day.")
+
+    def test_get_reviews_review_id1_user(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        response_json_dict = json.loads(response_actual.data)
+        review_dict = {"id":None, "user":None}
+        for review in response_json_dict["objects"]:
+            if review["id"] == 1:
+                review_dict = review
+        self.assertEquals(review_dict["user"], {'is_shop_owner': False, 'image_url': 'https://opinew.com/media/user/3_rose_castro.jpg', 'email': 'rose.castro@example.com', 'name': 'Rose Castro', 'id': 2})
+
+    def test_get_reviews_review_id1_image_url(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        response_json_dict = json.loads(response_actual.data)
+        review_dict = {"id":None, "image_url":None}
+        for review in response_json_dict["objects"]:
+            if review["id"] == 1:
+                review_dict = review
+        self.assertEquals(review_dict["image_url"], "barbara_earrings.jpg")
+
+    def test_get_reviews_review_id1_star_rating(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        response_json_dict = json.loads(response_actual.data)
+        review_dict = {"id":None, "star_rating":None}
+        for review in response_json_dict["objects"]:
+            if review["id"] == 1:
+                review_dict = review
+        self.assertEquals(review_dict["star_rating"], 1)
+
+    def test_get_reviews_review_id1_is_verified(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        response_json_dict = json.loads(response_actual.data)
+        review_dict = {"id":None, "verified_review":None}
+        for review in response_json_dict["objects"]:
+            if review["id"] == 1:
+                review_dict = review
+        self.assertEquals(review_dict["verified_review"], True)
+
+    def test_get_reviews_review_id1_product_id(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        response_json_dict = json.loads(response_actual.data)
+        review_dict = {"id":None,"product_id":None}
+        for review in response_json_dict["objects"]:
+            if review["id"] == 1:
+                review_dict = review
+        self.assertEquals(review_dict["product_id"], 1)
+
+    def test_get_reviews_accept_query_params(self):
+        response_actual = self.desktop_client.get("/api/v1/review?q={\"order_by\": [{\"field\": \"created_ts\", \"direction\":\"desc\"}], \"offset\":10}")
+        self.assertEquals(response_actual.status_code, 200)
 
     @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
     def test_api_post_review_full_pipeline(self):
