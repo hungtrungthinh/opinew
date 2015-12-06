@@ -206,6 +206,15 @@ class TestAPI(TestFlaskApplication):
                 review_dict = review
         self.assertEquals(review_dict["product_id"], 1)
 
+    def test_get_reviews_review_id1_product(self):
+        response_actual = self.desktop_client.get("/api/v1/review")
+        response_json_dict = json.loads(response_actual.data)
+        review_dict = {"id":None,"product":None}
+        for review in response_json_dict["objects"]:
+            if review["id"] == 1:
+                review_dict = review
+        self.assertEquals(review_dict["product"], {'category': None, 'product_type': None, 'name': 'Ear rings', 'review_help': None, 'platform_product_id': '1', 'short_description': None, 'plugin_views': 0, 'shop_id': 2, 'image_url': 'https://opinew.com/media/review/earrings.jpg', 'active': True, 'id': 1})
+
     def test_get_reviews_accept_query_params(self):
         response_actual = self.desktop_client.get("/api/v1/review?q={\"order_by\": [{\"field\": \"created_ts\", \"direction\":\"desc\"}], \"offset\":10}")
         self.assertEquals(response_actual.status_code, 200)
