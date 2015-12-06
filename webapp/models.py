@@ -908,6 +908,13 @@ class Platform(db.Model, Repopulatable):
     def __repr__(self):
         return "<Platform %r>" % self.name
 
+class ProductVariant(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    platform_variant_id = db.Column(db.String)
+
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("variants"))
+
 
 class Product(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -1033,6 +1040,7 @@ admin.add_view(AdminModelView(Review, db.session))
 admin.add_view(AdminModelView(Shop, db.session))
 admin.add_view(AdminModelView(Platform, db.session))
 admin.add_view(AdminModelView(Product, db.session))
+admin.add_view(AdminModelView(ProductVariant, db.session))
 admin.add_view(AdminModelView(ProductUrl, db.session))
 admin.add_view(AdminModelView(Question, db.session))
 admin.add_view(AdminModelView(Answer, db.session))
