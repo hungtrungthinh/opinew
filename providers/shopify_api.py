@@ -17,8 +17,8 @@ class API(object):
 
         self.access_token = access_token
 
-        if current_app.config.get('TESTING'):
-            self.webhooks = []
+        self.url_prefix = current_app.config.get(
+            'SHOPIFY_PREFIX') % 'vshopify' if current_app.testing else self.shop_domain
 
     def initialize_api(self, nonce_request, hmac_request, code):
         self.verify_nonce(nonce_request)
@@ -71,9 +71,7 @@ class API(object):
         self.access_token = access_token
 
     def check_webhooks_count(self):
-        if current_app.config.get('TESTING'):
-            return 5
-        r = requests.get("https://%s/admin/webhooks/count.json" % self.shop_domain,
+        r = requests.get("%s/admin/webhooks/count.json" % self.url_prefix,
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
             raise ApiException(r.text, r.status_code)
@@ -81,25 +79,18 @@ class API(object):
         return response.get('count', 0)
 
     def create_webhook(self, topic, address):
-        payload = {
-            "webhook": {
-                "topic": topic,
-                "address": address,
-                "format": "json"
-            }
-        }
-        if current_app.config.get('TESTING'):
-            self.webhooks.append(payload)
-            return
-        requests.post("https://%s/admin/webhooks.json" % self.shop_domain,
+        requests.post("%s/admin/webhooks.json" % self.url_prefix,
                       headers={'X-Shopify-Access-Token': self.access_token},
-                      json=payload)
+                      json={
+                          "webhook": {
+                              "topic": topic,
+                              "address": address,
+                              "format": "json"
+                          }
+                      })
 
     def get_shop(self):
-        if current_app.config.get('TESTING'):
-            return {'email': testing_constants.NEW_USER_EMAIL,
-                    'shop_owner': testing_constants.NEW_USER_NAME}
-        r = requests.get("https://%s/admin/shop.json" % self.shop_domain,
+        r = requests.get("%s/admin/shop.json" % self.url_prefix,
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
             raise ApiException(r.text, r.status_code)
@@ -107,12 +98,7 @@ class API(object):
         return response.get('shop', {})
 
     def get_products(self):
-        if current_app.config.get('TESTING'):
-            return [{
-                'id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
-                'title': testing_constants.NEW_PRODUCT_NAME
-            }]
-        r = requests.get("https://%s/admin/products.json" % self.shop_domain,
+        r = requests.get("%s/admin/products.json" % self.url_prefix,
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
             raise ApiException(r.text, r.status_code)
@@ -120,23 +106,7 @@ class API(object):
         return response.get('products', [])
 
     def get_orders(self):
-        if current_app.config.get('TESTING'):
-            return [{
-                'id': testing_constants.NEW_ORDER_PLATFORM_ID,
-                'fulfillment_status': None,
-                'created_at': '2015-11-28T14:45:50+00:00',
-                'cancelled_at': None,
-                'line_items': [{
-                    'id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
-                    'product_id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
-                    'variant_id': testing_constants.NEW_PRODUCT_PLATFORM_ID
-                }],
-                'customer': {
-                    'first_name': '',
-                    'last_name': ''
-                }
-            }]
-        r = requests.get("https://%s/admin/orders.json" % self.shop_domain,
+        r = requests.get("%s/admin/orders.json" % self.url_prefix,
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
             raise ApiException(r.text, r.status_code)

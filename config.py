@@ -111,6 +111,8 @@ class Config(object):
 
     GIPHY_API_KEY = sensitive.GIPHY_API_KEY
 
+    SHOPIFY_PREFIX = 'https://%s'
+
     CELERYBEAT_SCHEDULE = {
         # Every day at 00:00
         'update_orders': {
@@ -132,6 +134,8 @@ class ConfigTest(Config):
     UPLOADED_USERIMAGES_DEST = os.path.join('tmp', 'media', 'user')
     UPLOADED_REVIEWIMAGES_DEST = os.path.join('tmp', 'media', 'review')
     UPLOADED_SHOPIMAGES_DEST = os.path.join('tmp', 'media', 'shop')
+
+    SHOPIFY_PREFIX = 'http://localhost:5678/%s'
 
 
 class ConfigDev(Config):
