@@ -79,3 +79,13 @@ class TestFlaskApplication(TestCase):
 
     def logout(self):
         return self.desktop_client.get('/logout', follow_redirects=True)
+
+    @classmethod
+    def refresh_db(cls):
+        db.session.remove()
+        db.drop_all()
+        db.create_all()
+        db.engine.dialect.supports_sane_multi_rowcount = False
+
+        db_dir = os.path.join(basedir, 'install', 'db', cls.app.config.get('MODE'))
+        import_tables(db, db_dir)

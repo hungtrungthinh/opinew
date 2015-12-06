@@ -6,9 +6,13 @@ from webapp.models import Review
 from tests import testing_constants
 from config import Constants
 from tests.framework import TestFlaskApplication
+from webapp import db
 
 
 class TestAPI(TestFlaskApplication):
+
+    ################CSRF TOKEN##################
+
     def test_generate_csrf_token_reviewer(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
         response_actual = self.desktop_client.get("/api/v1/token")
@@ -32,6 +36,8 @@ class TestAPI(TestFlaskApplication):
         jsonified_response = json.loads(response_actual.data)
         self.assertTrue(type(jsonified_response["token"]) is unicode and len(jsonified_response["token"]) > 0)
         self.logout()
+
+    ###########AUTHENTICATE#############
 
     def test_authenticate_admin(self):
         payload = json.dumps({"email": self.admin_user.email, "password": self.admin_password})
@@ -59,6 +65,9 @@ class TestAPI(TestFlaskApplication):
         self.assertEquals(response_actual.status_code, 200)
         self.assertEquals(response_actual.data, "{}")
         self.logout()
+
+
+    ###########REVIEWS###############
 
     def test_get_reviews_status_code(self):
         response_actual = self.desktop_client.get("/api/v1/review")
@@ -146,6 +155,20 @@ class TestAPI(TestFlaskApplication):
         response_actual = self.desktop_client.get("/api/v1/review?q={\"order_by\": [{\"field\": \"created_ts\", \"direction\":\"desc\"}], \"offset\":10}")
         self.assertEquals(response_actual.status_code, 200)
 
+    ##########TEST SINGLE REVIEW GET##############
+    def test_get_review_id1(self):
+        response_actual = self.desktop_client.get("/api/v1/review/1")
+        response_json_dict = json.loads(response_actual.data)
+        self.assertTrue(response_json_dict is not None)
+        self.assertTrue(response_json_dict != {})
+
+
+    def test_get_review_id1_product(self):
+        response_actual = self.desktop_client.get("/api/v1/review/1")
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEquals(response_json_dict["product"], {'category': None, 'product_type': None, 'name': 'Ear rings', 'review_help': None, 'platform_product_id': '1', 'short_description': None, 'plugin_views': 0, 'shop_id': 2, 'image_url': 'https://opinew.com/media/review/earrings.jpg', 'active': True, 'id': 1})
+
+    ########Review POST#########
     @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
     def test_api_post_review_full_pipeline(self):
         split_frozen_time = testing_constants.NEW_REVIEW_CREATED_TS.split('-')
@@ -260,3 +283,53 @@ class TestAPI(TestFlaskApplication):
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue(testing_constants.RENDERED_BY_SHOP_OWNER in response_actual.data)
         self.logout()
+
+    ###########REVIEW LIKE###############
+
+    def test_review_like_first_time(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        payload = json.dumps({"review_id": 1})
+        response_actual = self.desktop_client.post("/api/v1/review_like",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload)
+        self.assertEquals(response_actual.status_code, 201)
+        self.logout()
+        self.refresh_db()
+
+    def test_review_unlike(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        payload1 = json.dumps({"review_id": 1})
+        self.desktop_client.post("/api/v1/review_like",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload1)
+
+        payload2 = json.dumps({"review_id": 1, "action": '0'})
+        response_actual = self.desktop_client.patch("/api/v1/review_like/1",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload2)
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEquals(response_json_dict["action"], 0)
+        self.logout()
+        self.refresh_db()
+
+    def test_review_like_again(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        payload1 = json.dumps({"review_id": 1})
+        self.desktop_client.post("/api/v1/review_like",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload1)
+
+        payload2 = json.dumps({"review_id": 1, "action": '0'})
+        self.desktop_client.patch("/api/v1/review_like/1",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload2)
+
+        payload3 = json.dumps({"review_id": 1, "action": '1'})
+        response_actual = self.desktop_client.patch("/api/v1/review_like/1",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload3)
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEquals(response_json_dict["action"], 1)
+        self.logout()
+        self.refresh_db()
+
