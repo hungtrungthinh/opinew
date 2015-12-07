@@ -161,3 +161,26 @@ def platform_shopify_fulfill_order():
         db.session.add(order)
         db.session.commit()
     return jsonify({}), 200
+
+@api.route('/platform/shopify/app/uninstalled', methods=['POST'])
+@catch_exceptions
+@verify_webhook
+@csrf.exempt
+def platform_shopify_app_uninstalled():
+    payload = get_post_payload()
+
+    shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+
+    shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
+    if not shop:
+        raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
+
+    # revoke tasks
+    from async import celery_async
+    for order in shop.orders:
+        for task in order.tasks:
+            celery_async.revoke_task(task.celery_id)
+            task.status = 'REVOKED'
+            db.session.add(task)
+    db.session.commit()
+    return jsonify({}), 200

@@ -84,7 +84,7 @@ class TestShopifyShopCreation(TestFlaskApplication):
         shop = Shop.query.filter_by(id=3).first()
         # check webhooks count
         count = shopify_api.check_webhooks_count()
-        self.assertEquals(count, 5)
+        self.assertEquals(count, 6)
         self.assertEquals(len(shop.products), 1)
         self.assertEquals(shop.products[0].platform_product_id, testing_constants.NEW_PRODUCT_PLATFORM_ID)
         self.assertEquals(shop.products[0].name, testing_constants.NEW_PRODUCT_NAME)

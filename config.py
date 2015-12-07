@@ -30,6 +30,10 @@ class Constants(object):
     YOUTUBE_SHORT_LINK = 'https://youtu.be/'
     YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/{youtube_video_id}'
 
+    TRIAL_PERIOD_DAYS = 30
+
+    EXPECTED_WEBHOOKS = 6
+
     ORDER_STATUS_PURCHASED = 'PURCHASED'
     ORDER_STATUS_SHIPPED = 'SHIPPED'
     ORDER_STATUS_NOTIFIED = 'NOTIFIED'

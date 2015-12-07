@@ -2,7 +2,7 @@
 {% block content %}
     <div class="container">
         <div class="row">
-        <h2>{{ shop.name }} admin panel</h2>
+            <h2>{{ shop.name }} admin panel</h2>
             <ul class="nav nav-tabs" role="tablist">
                 <li role="presentation" class="active">
                     <a href="#general-settings" aria-controls="tab-general-settings" role="tab"
@@ -26,18 +26,26 @@
                 </li>
             </ul>
             <div class="col-sm-12">
-            <br>
+                <br>
               {% if not current_user.customer[0].last4 %}
-                  <div class="alert alert-warning">
-                      <p class="lead">
-                          Your trial expires in {{ expiry_days }} days
-                      </p>
+                {% if expiry_days <= 0 %}
+                    <div class="alert alert-danger">
+                        <p class="lead">
+                            Your trial has expired!
+                        </p>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <p class="lead">
+                            Your trial expires in {{ expiry_days }} days
+                        </p>
+                {% endif %}
 
-                      <a href="#account" data-toggle="tab" class="btn btn-primary pull-right">
-                          Add payment details
-                      </a>
-                      <span>To continue using Opinew after that you need to add payment details.</span>
-                  </div>
+                        <a href="#account" data-toggle="tab" class="btn btn-primary pull-right">
+                            Add payment details
+                        </a>
+                        <span>To continue using Opinew after that you need to add payment details.</span>
+                    </div>
+
               {% endif %}
                 <div class="tab-content">
                     <div role="tabpanel" class="tab-pane active" id="general-settings">

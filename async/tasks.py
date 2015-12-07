@@ -47,6 +47,9 @@ def create_shopify_shop(shopify_api, shop_id):
     shopify_api.create_webhook("fulfillments/create",
                                "%s%s" % (app.config.get('OPINEW_API_SERVER'),
                                          url_for('api.platform_shopify_fulfill_order')))
+    shopify_api.create_webhook("app/uninstalled",
+                               "%s%s" % (app.config.get('OPINEW_API_SERVER'),
+                                         url_for('api.platform_shopify_app_uninstalled')))
 
     # Get shopify products
     shopify_products = shopify_api.get_products()

@@ -44,7 +44,7 @@ def install_shopify_step_one():
         try:
             webhooks_count = shopify_api.check_webhooks_count()
             # okay, the token is still valid!
-            if not webhooks_count == 5:
+            if not webhooks_count == Constants.EXPECTED_WEBHOOKS:
                 raise DbException('invalid count of webhooks')
             return redirect(url_for('client.shop_dashboard'))
         except (ApiException, DbException) as e:
@@ -251,7 +251,7 @@ def shop_dashboard_id(shop_id):
     review_request_form = ReviewRequestForm()
     platforms = Platform.query.all()
     plans = Plan.query.all()
-    expiry_days = (current_user.confirmed_at + datetime.timedelta(days=30) - datetime.datetime.utcnow()).days
+    expiry_days = (current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
                            review_request_form=review_request_form, platforms=platforms,
                            plans=plans, expiry_days=expiry_days)
@@ -341,8 +341,13 @@ def get_plugin():
             platform_product_id = param_required('platform_product_id', request.args)
             product = Product.query.filter_by(shop_id=shop_id, platform_product_id=platform_product_id).first()
         else:
-            product = None
-        if not product:
+            return '', 404
+        shop = product.shop
+        if shop.owner and \
+                shop.owner.customer and \
+                shop.owner.customer[0] and \
+                (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and\
+                not shop.owner.customer[0].last4:
             return '', 404
 
         if current_user and current_user.is_authenticated():
