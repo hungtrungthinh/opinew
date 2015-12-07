@@ -300,8 +300,8 @@ api_manager.create_api(models.ReviewFeature,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['POST', 'PATCH'],
                        preprocessors={
-                           'POST': [del_csrf, auth_func, pre_review_feature_post],
-                           'PATCH_SINGLE': [del_csrf, auth_func, pre_review_feature_patch]
+                           'POST': [del_csrf, auth_func, req_shop_owner, pre_review_feature_post],
+                           'PATCH_SINGLE': [del_csrf, auth_func, req_shop_owner, pre_review_feature_patch]
                        },
                        exclude_columns=models.User.exclude_fields(),
                        validation_exceptions=[DbException])
