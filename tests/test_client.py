@@ -2,6 +2,7 @@ import json
 import base64
 import hmac
 import hashlib
+import datetime
 from flask import url_for
 from flask.ext.security.utils import verify_password
 from webapp import db
@@ -525,3 +526,58 @@ class TestClient(TestFlaskApplication):
         db.session.delete(new_shop)
         db.session.commit()
         self.logout()
+
+    def test_plugin_is_invalid_after_trial(self):
+        old_confirmed_at = self.shop_owner_user.confirmed_at
+        # set 1 day after expiry
+        self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(
+            days=Constants.TRIAL_PERIOD_DAYS + 1)
+        self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
+        db.session.add(self.shop_owner_user)
+        db.session.commit()
+        # test
+        response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
+            shop_id=2, product_url='opinew_shop.local:5001/product/1', get_by='url'
+        ))
+        self.assertEquals(response_actual.status_code, 404)
+        self.assertTrue(response_actual.data == '')
+        # revert
+        self.shop_owner_user.confirmed_at = old_confirmed_at
+        db.session.add(self.shop_owner_user)
+        db.session.commit()
+
+    def test_dashboard_trial_expiry_in_26_days(self):
+        old_confirmed_at = self.shop_owner_user.confirmed_at
+        # set 1 day after expiry
+        self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS - 27)
+        self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
+        db.session.add(self.shop_owner_user)
+        db.session.commit()
+        # test
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Your trial expires in 26 days' in response_actual.data)
+        self.logout()
+        # revert
+        self.shop_owner_user.confirmed_at = old_confirmed_at
+        db.session.add(self.shop_owner_user)
+        db.session.commit()
+
+    def test_dashboard_trial_expired(self):
+        old_confirmed_at = self.shop_owner_user.confirmed_at
+        # set 1 day after expiry
+        self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS + 1)
+        self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
+        db.session.add(self.shop_owner_user)
+        db.session.commit()
+        # test
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Your trial has expired!' in response_actual.data)
+        self.logout()
+        # revert
+        self.shop_owner_user.confirmed_at = old_confirmed_at
+        db.session.add(self.shop_owner_user)
+        db.session.commit()
