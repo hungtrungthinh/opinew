@@ -22,7 +22,7 @@ def auth_func(*args, **kwargs):
         raise ProcessingException(description='Not authenticated!', code=401)
 
 
-def req_shop_owner(data, *args, **kwargs):
+def req_shop_owner(*args, **kwargs):
     if not current_user.is_authenticated() or not current_user.has_role(Constants.SHOP_OWNER_ROLE):
         raise ProcessingException(description='Not authenticated!', code=401)
 
@@ -121,8 +121,7 @@ def pre_create_order(data, *args, **kwargs):
     shop = models.Shop.query.filter_by(id=shop_id).first()
     if not shop.owner == current_user:
         raise ProcessingException(description='Not your shop', code=401)
-    data['token'] = random_pwd(7)
-    data['purchase_timestamp'] = str(datetime.datetime.utcnow())
+    data['purchase_timestamp'] = unicode(datetime.datetime.utcnow())
     return data
 
 
@@ -308,10 +307,8 @@ api_manager.create_api(models.ReviewFeature,
 
 api_manager.create_api(models.Order,
                        url_prefix=Constants.API_V1_URL_PREFIX,
-                       methods=['GET', 'POST'],
+                       methods=['POST'],
                        preprocessors={
-                           'GET_SINGLE': [auth_func, req_shop_owner],
-                           'GET_MANY': [auth_func, req_shop_owner],
                            'POST': [del_csrf, req_shop_owner, pre_create_order],
                        }, )
 
@@ -323,7 +320,7 @@ api_manager.create_api(models.User,
 
 api_manager.create_api(models.Notification,
                        url_prefix=Constants.API_V1_URL_PREFIX,
-                       methods=['GET'],
+                       methods=['GET', 'PATCH'],
                        preprocessors={
                            'GET_SINGLE': [auth_func],
                            'GET_MANY': [auth_func],

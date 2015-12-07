@@ -480,3 +480,93 @@ class TestAPI(TestFlaskApplication):
         self.assertEquals(response_json_dict["action"], 1)
         self.logout()
         self.refresh_db()
+
+
+    ##################TEST ORDERS#####################
+
+
+    def test_post_order_by_reviewer(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.desktop_client.post("/api/v1/order",
+                                                   headers={'content-type': 'application/json'},
+                                                   data="{}")
+        self.assertRaises(ProcessingException)
+        self.logout()
+
+    def test_post_order_by_shop_owner(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        time = str(datetime.datetime.utcnow())
+        payload = json.dumps({"shop_id": 2, "platform_order_id": 2,
+                              "user_id": 2, "user_legacy_id": 2, "delivery_tracking_number": "1234",
+                              "discount": "20%", "status": "PURCHASED",
+                              "purchase_timestamp": time, "shipment_timestamp": time,
+                              "to_notify_timestamp": time, "notification_timestamp": time})
+        response_actual = self.desktop_client.post("/api/v1/order",
+                                                   headers={'content-type': 'application/json'},
+                                                   data=payload)
+        self.assertEqual(response_actual.status_code, 201)
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_json_dict["shop_id"], 2)
+        self.assertEqual(response_json_dict["platform_order_id"], 2)
+        self.assertEqual(response_json_dict["user_id"], 2)
+        self.assertEqual(response_json_dict["user_legacy_id"], 2)
+        self.assertEqual(response_json_dict["discount"], "20%")
+        self.assertEqual(response_json_dict["delivery_tracking_number"], "1234")
+        self.assertEqual(response_json_dict["status"], "PURCHASED")
+        self.logout()
+        self.refresh_db()
+
+    ###########TEST USER##############
+    def test_get_users_not_logged_in(self):
+        response_actual = self.desktop_client.get("/api/v1/user")
+        self.assertEqual(response_actual.status_code, 200)
+
+    def test_get_users_reviewer(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.desktop_client.get("/api/v1/user")
+        self.assertEqual(response_actual.status_code, 200)
+        self.logout()
+
+    def test_get_users_by_admin(self):
+        self.login(self.admin_user.email, self.admin_password)
+        response_actual = self.desktop_client.get("/api/v1/user")
+        self.assertEqual(response_actual.status_code, 200)
+        self.logout()
+
+    def test_get_users_by_admin_contents_not_empty(self):
+        self.login(self.admin_user.email, self.admin_password)
+        response_actual = self.desktop_client.get("/api/v1/user")
+        response_json_dict = json.loads(response_actual.data)
+        self.assertTrue(len(response_json_dict["objects"])>0)
+        self.logout()
+
+    def test_get_user_by_admin(self):
+        self.login(self.admin_user.email, self.admin_password)
+        response_actual = self.desktop_client.get("/api/v1/user/1")
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_json_dict["id"], 1)
+        self.assertEqual(response_json_dict["name"], "Daniel Tsvetkov")
+        self.assertEqual(response_json_dict["email"], "daniel@opinew.com")
+        self.assertTrue(isinstance(response_json_dict["image_url"], unicode))
+        self.logout()
+
+
+    ############TEST NOTIFICATIONS############
+
+    def test_get_notifications_not_logged_in(self):
+        response_actual = self.desktop_client.get("/api/v1/notification")
+        self.assertEqual(response_actual.status_code, 401)
+        self.assertRaises(ProcessingException)
+
+    def test_get_notifications_by_reviewer_status_code(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.desktop_client.get("/api/v1/notification")
+        self.assertEqual(response_actual.status_code, 200)
+        self.logout()
+
+    def test_get_notifications_by_reviewer_empty(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.desktop_client.get("/api/v1/notification")
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(len(response_json_dict["objects"]), 0)
+        self.logout()
