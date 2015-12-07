@@ -141,6 +141,10 @@ class ConfigTest(Config):
 
     SHOPIFY_PREFIX = 'http://localhost:5678/%s'
 
+    CELERY_ALWAYS_EAGER = True
+    CELERY_RESULT_BACKEND = 'cache'
+    CELERY_CACHE_BACKEND = 'memory'
+
 
 class ConfigDev(Config):
     MODE = Constants.MODE_DEVELOPMENT

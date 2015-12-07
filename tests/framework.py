@@ -89,3 +89,19 @@ class TestFlaskApplication(TestCase):
 
         db_dir = os.path.join(basedir, 'install', 'db', cls.app.config.get('MODE'))
         import_tables(db, db_dir)
+
+class TestModel(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = app
+
+        cls.app.app_context().push()
+        db.session.remove()
+        db.drop_all()
+        db.create_all()
+        db.engine.dialect.supports_sane_multi_rowcount = False
+
+    @classmethod
+    def tearDownClass(cls):
+        db.session.remove()
+        db.drop_all()

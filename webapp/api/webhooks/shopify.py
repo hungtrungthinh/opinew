@@ -157,9 +157,7 @@ def platform_shopify_fulfill_order():
         created_at = payload.get('created_at')
         st = date_parser.parse(created_at).astimezone(pytz.utc).replace(tzinfo=None)
         order.ship(delivery_tracking_number, shipment_timestamp=st)
-
-        db.session.add(order)
-        db.session.commit()
+        order.set_notifications()
     return jsonify({}), 200
 
 @api.route('/platform/shopify/app/uninstalled', methods=['POST'])
@@ -167,8 +165,6 @@ def platform_shopify_fulfill_order():
 @verify_webhook
 @csrf.exempt
 def platform_shopify_app_uninstalled():
-    payload = get_post_payload()
-
     shopify_shop_domain = request.headers.get('X-Shopify-Shop-Domain')
 
     shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()

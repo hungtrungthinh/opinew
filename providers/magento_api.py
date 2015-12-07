@@ -81,6 +81,7 @@ class API(object):
             mshipment_ts = mshipment.get('created_at')
             shipment_dt = datetime.datetime.strptime(mshipment_ts, '%Y-%m-%d %H:%M:%S')
             order.ship(shipment_timestamp=shipment_dt)
+            order.set_notifications()
         return order
 
     def update_orders(self, morders, current_orders):
