@@ -11,6 +11,10 @@ class Constants(object):
     META_DEFAULT_DESCRIPTION = "Opinew is the photo review platform for the new generation"
     META_DEFAULT_PRERENDER = "/reviews"
 
+    DEFAULT_SHOP_NAME = 'Online shop'
+    DEFAULT_REVIEW_SUBJECT = "Please review your recent purchases at %s"
+    DEFAULT_PRODUCT_NAME = 'Review Product'
+
     MODE_DEVELOPMENT = 'development'
     MODE_PRODUCTION = 'production'
     MODE_TESTING = 'testing'
@@ -69,6 +73,8 @@ class Config(object):
     EMAIL_USE_SSL = MAIL_USE_SSL = True
     EMAIL_HOST_USER = MAIL_USERNAME = "team@opinew.com"
     EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
+
+    DEFAULT_REVIEW_EMAIL_TEMPLATE = 'email/review_order.html'
 
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY

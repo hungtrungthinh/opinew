@@ -6,7 +6,7 @@ from sqlalchemy import and_
 from webapp import db, admin
 from webapp.exceptions import DbException
 from async import stripe_payment
-from flask import url_for, abort, redirect, request
+from flask import url_for, abort, redirect, request, current_app
 from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
@@ -58,9 +58,9 @@ def schedule_email_task(order_id, notify_dt):
         recipients = [order.user.email]
     else:
         recipients = [order.user_legacy.email] if order.user_legacy else []
-    template = 'email/review_order.html'
+    template = current_app.config.get('DEFAULT_REVIEW_EMAIL_TEMPLATE')
     template_ctx = order.build_review_email_context()
-    subject = "Please review your recent purchases at %s" % order.shop.name if order.shop else ''
+    subject = Constants.DEFAULT_REVIEW_SUBJECT % order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
     args = dict(recipients=recipients,
                 template=template,
                 template_ctx=template_ctx,

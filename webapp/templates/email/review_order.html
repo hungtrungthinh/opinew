@@ -7,13 +7,13 @@
 </head>
 <body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
 <div style="padding: 50px;">
-    <p>Hello {{ name }},<br>
-        You've recently made some purchases from <b>{{ shop_name }}</b>. Click on the item to share
+    <p>Hello {{ name if name else '' }},<br>
+        You've recently made some purchases from <b>{{ shop_name if shop_name else g.constants.DEFAULT_SHOP_NAME }}</b>. Click on the item to share
         your experience:
     <ul>
       {% for review_request in review_requests %}
           <li>
-              <a href="https://opinew.com/{{ review_request.token }}" target="_blank">{{ review_request.product_name }}</a>
+              <a href="https://opinew.com/{{ review_request.token }}" target="_blank">{{ review_request.product_name if  review_request.product_name else g.constants.DEFAULT_PRODUCT_NAME }}</a>
           </li>
       {% endfor %}
     </ul>
