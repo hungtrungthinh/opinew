@@ -133,7 +133,7 @@ def platform_shopify_create_order():
 
     db.session.add(order)
     db.session.commit()
-    return build_created_response('client.get_order', order_id=order.id)
+    return jsonify({}), 201
 
 
 @api.route('/platform/shopify/orders/fulfill', methods=['POST'])

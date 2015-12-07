@@ -190,18 +190,6 @@ class User(db.Model, UserMixin, Repopulatable):
             customer = Customer(user=user).create()
             subscription = Subscription(customer=customer, plan=plan).create()
             db.session.add(subscription)
-            # slot registration
-            slot_number = request.form.get('slot_number')
-            if slot_number and slot_number.isdigit() and int(slot_number) in range(1, 21):
-                slot = Slot.query.filter_by(number=slot_number).first()
-                if not slot.customer:
-                    email = request.form.get('email')
-                    user = User.query.filter_by(email=email).first()
-                    if user and user.customer:
-                        customer = user.customer[0]
-                        slot.customer = customer
-                        db.session.add(slot)
-                        db.session.commit()
         else:
             reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
             if reviewer_role and reviewer_role not in user.roles:
@@ -246,19 +234,16 @@ class User(db.Model, UserMixin, Repopulatable):
             # Handle creation of customer and roles
             User.post_registration_handler(user=instance)
 
-            from flask import current_app
+            # Send emailif
+            from async import tasks
 
-            if not current_app.config.get("TESTING"):
-                # Send emailif
-                from async import tasks
-
-                tasks.send_email.delay(recipients=[email],
-                                       template='email/new_user.html',
-                                       template_ctx={'user_email': email,
-                                                     'user_temp_password': temp_password,
-                                                     'user_name': instance.name
-                                                     },
-                                       subject="Welcome to Opinew!")
+            tasks.send_email.delay(recipients=[email],
+                                   template='email/new_user.html',
+                                   template_ctx={'user_email': email,
+                                                 'user_temp_password': temp_password,
+                                                 'user_name': instance.name
+                                                 },
+                                   subject="Welcome to Opinew!")
         return instance, is_new
 
     def unread_notifications(self):
@@ -312,20 +297,6 @@ class Customer(db.Model, Repopulatable):
 
     def __repr__(self):
         return '<Customer %r>' % self.user
-
-
-class Slot(db.Model, Repopulatable):
-    id = db.Column(db.Integer, primary_key=True)
-
-    number = db.Column(db.String)
-    color = db.Column(db.String)
-    display_url = db.Column(db.String)
-
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
-    customer = db.relationship("Customer", backref=db.backref("customer"), uselist=False)
-
-    def __repr__(self):
-        return '<Slot %r>' % self.customer
 
 
 class Plan(db.Model, Repopulatable):

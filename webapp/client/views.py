@@ -7,7 +7,7 @@ from flask.ext.security import login_required, login_user, current_user, roles_r
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
-from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Slot, Question, Task
+from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, Task
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -116,10 +116,7 @@ def shopify_plugin_callback():
 
     # asyncronously create all products, orders and webhooks
     from async import tasks
-    if current_app.config.get('TESTING'):
-        tasks.create_shopify_shop(shopify_api=shopify_api, shop_id=shop.id)
-    else:
-        tasks.create_shopify_shop.delay(shopify_api=shopify_api, shop_id=shop.id)
+    tasks.create_shopify_shop.delay(shopify_api=shopify_api, shop_id=shop.id)
 
     # Login shop_user
     shop_owner = User.query.filter_by(id=shop_owner_id).first()
@@ -150,9 +147,7 @@ def index():
             return redirect(url_for('client.shop_dashboard'))
         elif current_user.has_role(Constants.REVIEWER_ROLE):
             return redirect(url_for('client.user_profile', user_id=current_user.id))
-    slots = Slot.query.order_by(Slot.id).all()
-    slots_remaining = sum([1 for s in slots if s.customer == None])
-    return render_template('index.html', slots=slots, slots_remaining=slots_remaining)
+    return render_template('index.html')
 
 
 @client.route('/', defaults={'review_request_token': None})
@@ -393,19 +388,6 @@ def get_product(product_id):
                            featured_reviews=featured_reviews)
 
 
-@client.route('/get_order', defaults={'order_id': 0})
-@client.route('/get_order/<int:order_id>')
-@roles_required(Constants.SHOP_OWNER_ROLE)
-@login_required
-def get_order(order_id):
-    shop = Shop.query.filter_by(owner_id=current_user.id).first()
-    if not shop:
-        flash('Not your shop')
-        return redirect(url_for('client.shop_dashboard'))
-    order = Order.get_by_id(order_id)
-    return jsonify({'order_id': order.id})
-
-
 @client.route('/read-notification')
 @login_required
 @catch_exceptions
@@ -619,10 +601,9 @@ def send_notification(order_id):
     template = 'email/review_order.html'
     template_ctx = order.build_review_email_context()
     subject = post.get('subject')
-    if not current_app.testing:
-        from async import tasks
+    from async import tasks
 
-        tasks.send_email.delay(recipients=recipients,
+    tasks.send_email.delay(recipients=recipients,
                                template=template,
                                template_ctx=template_ctx,
                                subject=subject)
