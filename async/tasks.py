@@ -49,7 +49,7 @@ def create_shopify_shop(shopify_api, shop_id):
                                          url_for('api.platform_shopify_fulfill_order')))
     shopify_api.create_webhook("app/uninstalled",
                                "%s%s" % (app.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_app_uninstalled')))
+                                         url_for('api.platform_shopify_fulfill_order')))
 
     # Get shopify products
     shopify_products = shopify_api.get_products()
@@ -117,7 +117,3 @@ def notify_for_review(order_id, *args, **kwargs):
     order = models.Order.query.filter_by(id=order_id).first()
     if order:
         order.notify()
-
-
-if __name__ == '__main__':
-    update_orders()

@@ -55,3 +55,7 @@ def clean_webhooks():
     global webhooks_container
     webhooks_container = []
     return jsonify({})
+
+@vshopify.route('/admin/oauth/access_token', methods=['POST'])
+def access_token():
+    return jsonify({'access_token': 'hello'})

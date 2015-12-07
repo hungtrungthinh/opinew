@@ -56,11 +56,7 @@ class API(object):
             raise ParamException('incorrect shop name', 400)
 
     def get_access_token(self, code):
-        if current_app.config.get('TESTING'):
-            self.access_token = 'hello'
-            return
-        r = requests.post('https://{shop}.myshopify.com/admin/oauth/access_token'.format(
-            shop=self.shop_domain[:-14]),
+        r = requests.post('%s/admin/oauth/access_token' % self.url_prefix,
             data={'client_id': self.client_id,
                   'client_secret': self.client_secret,
                   'code': code})

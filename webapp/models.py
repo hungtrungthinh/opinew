@@ -1,16 +1,77 @@
 import datetime
 import re
+import pytz
+from dateutil import parser as date_parser
 from sqlalchemy import and_
 from webapp import db, admin
 from webapp.exceptions import DbException
 from async import stripe_payment
-from flask import url_for, abort, redirect, request, current_app
+from flask import url_for, abort, redirect, request
 from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
 from config import Constants
 from webapp import gravatar
 from webapp.common import generate_temp_password, random_pwd
+
+def create_review_requests(order_id):
+    if not order_id:
+        return
+    order = Order.query.filter_by(id=order_id).first()
+    if not order:
+        return
+    if not (order.shop and order.shop.owner and order.shop.owner.customer and order.shop.owner.customer[0]):
+        return
+    for product in order.products:
+        the_user = order.user if order.user else (order.user_legacy if order.user_legacy else None)
+        ReviewRequest.create(to_user=the_user,
+                             from_customer=order.shop.owner.customer[0],
+                             for_product=product,
+                             for_order=order)
+
+def schedule_notification_task(order_id, notify_dt):
+    if not order_id or not notify_dt:
+        return None
+    order = Order.query.filter_by(id=order_id).first()
+    if not order:
+        return None
+    from async import celery_async, tasks
+    args = dict(order_id=order.id)
+    celery_task = celery_async.schedule_task_at(tasks.notify_for_review, args, notify_dt)
+    task_notify = Task(celery_uuid=celery_task.task_id,
+                       status=celery_task.status,
+                       eta=notify_dt,
+                       method=celery_task.task_name,
+                       kwargs=str(args))
+    return task_notify
+
+def schedule_email_task(order_id, notify_dt):
+    if not order_id or not notify_dt:
+        return None
+    order = Order.query.filter_by(id=order_id).first()
+    if not order:
+        return None
+    if not order.review_requests:
+        return None
+    from async import celery_async, tasks
+    if order.user:
+        recipients = [order.user.email]
+    else:
+        recipients = [order.user_legacy.email] if order.user_legacy else []
+    template = 'email/review_order.html'
+    template_ctx = order.build_review_email_context()
+    subject = "Please review your recent purchases at %s" % order.shop.name if order.shop else ''
+    args = dict(recipients=recipients,
+                template=template,
+                template_ctx=template_ctx,
+                subject=subject)
+    celery_task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
+    task_email = Task(celery_uuid=celery_task.task_id,
+                status=celery_task.status,
+                eta=notify_dt,
+                method=celery_task.task_name,
+                kwargs=str(args))
+    return task_email
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
@@ -129,18 +190,6 @@ class User(db.Model, UserMixin, Repopulatable):
             customer = Customer(user=user).create()
             subscription = Subscription(customer=customer, plan=plan).create()
             db.session.add(subscription)
-            # slot registration
-            slot_number = request.form.get('slot_number')
-            if slot_number and slot_number.isdigit() and int(slot_number) in range(1, 21):
-                slot = Slot.query.filter_by(number=slot_number).first()
-                if not slot.customer:
-                    email = request.form.get('email')
-                    user = User.query.filter_by(email=email).first()
-                    if user and user.customer:
-                        customer = user.customer[0]
-                        slot.customer = customer
-                        db.session.add(slot)
-                        db.session.commit()
         else:
             reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
             if reviewer_role and reviewer_role not in user.roles:
@@ -185,19 +234,16 @@ class User(db.Model, UserMixin, Repopulatable):
             # Handle creation of customer and roles
             User.post_registration_handler(user=instance)
 
-            from flask import current_app
+            # Send emailif
+            from async import tasks
 
-            if not current_app.config.get("TESTING"):
-                # Send emailif
-                from async import tasks
-
-                tasks.send_email.delay(recipients=[email],
-                                       template='email/new_user.html',
-                                       template_ctx={'user_email': email,
-                                                     'user_temp_password': temp_password,
-                                                     'user_name': instance.name
-                                                     },
-                                       subject="Welcome to Opinew!")
+            tasks.send_email.delay(recipients=[email],
+                                   template='email/new_user.html',
+                                   template_ctx={'user_email': email,
+                                                 'user_temp_password': temp_password,
+                                                 'user_name': instance.name
+                                                 },
+                                   subject="Welcome to Opinew!")
         return instance, is_new
 
     def unread_notifications(self):
@@ -251,20 +297,6 @@ class Customer(db.Model, Repopulatable):
 
     def __repr__(self):
         return '<Customer %r>' % self.user
-
-
-class Slot(db.Model, Repopulatable):
-    id = db.Column(db.Integer, primary_key=True)
-
-    number = db.Column(db.String)
-    color = db.Column(db.String)
-    display_url = db.Column(db.String)
-
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
-    customer = db.relationship("Customer", backref=db.backref("customer"), uselist=False)
-
-    def __repr__(self):
-        return '<Slot %r>' % self.customer
 
 
 class Plan(db.Model, Repopulatable):
@@ -463,16 +495,22 @@ class Order(db.Model, Repopulatable):
         return {
             'order': self,
             'name': self.user.name if self.user else (self.user_legacy.name if self.user_legacy else ''),
-            'shop_name': self.shop.name,
+            'shop_name': self.shop.name if self.shop else '',
             'review_requests': [{'token': rr.token, 'product_name': rr.for_product.name} for rr in
                                 self.review_requests],
         }
 
     def ship(self, delivery_tracking_number=None, shipment_timestamp=None):
         self.status = Constants.ORDER_STATUS_SHIPPED
+        if shipment_timestamp and type(shipment_timestamp) is str:
+            shipment_timestamp = date_parser.parse(shipment_timestamp).astimezone(pytz.utc).replace(tzinfo=None)
         self.shipment_timestamp = shipment_timestamp or datetime.datetime.utcnow()
         self.delivery_tracking_number = delivery_tracking_number
-        # Notify timestamp = shipment + 17
+        db.session.add(self)
+        db.session.commit()
+
+    def set_notifications(self):
+        # Notify timestamp = shipment + 7
         notify_dt = self.shipment_timestamp + datetime.timedelta(days=Constants.DIFF_SHIPMENT_NOTIFY)
         self.to_notify_timestamp = notify_dt
 
@@ -480,59 +518,22 @@ class Order(db.Model, Repopulatable):
         now = datetime.datetime.utcnow()
         if now > self.to_notify_timestamp:
             return
+        order_id = self.id
+        create_review_requests(order_id=order_id)
+        task_notify = schedule_notification_task(order_id=order_id , notify_dt=notify_dt)
+        task_email = schedule_email_task(order_id=order_id, notify_dt=notify_dt)
 
-        # Create review requests
-        for product in self.products:
-            if self.user:
-                the_user = self.user
-            elif self.user_legacy:
-                the_user = self.user_legacy
-            else:
-                the_user = None
-            ReviewRequest.create(to_user=the_user,
-                                 from_customer=self.shop.owner.customer[0],
-                                 for_product=product,
-                                 for_order=self)
-
-        if not current_app.testing:
-            from async import celery_async, tasks
-
-            # SCHEDULE NOTIFICATION TASK
-            args = dict(order_id=self.id)
-            celery_task = celery_async.schedule_task_at(tasks.notify_for_review, args, notify_dt)
-            task = Task(celery_uuid=celery_task.task_id,
-                        status=celery_task.status,
-                        eta=notify_dt,
-                        method=celery_task.task_name,
-                        kwargs=str(args))
-            db.session.add(task)
-            db.session.commit()
-            self.tasks.append(task)
-
-            # SCHEDULE EMAIL TASK
-            if self.user:
-                recipients = [self.user.email]
-            else:
-                recipients = [self.user_legacy.email] if self.user_legacy else []
-            template = 'email/review_order.html'
-            template_ctx = self.build_review_email_context()
-            subject = "Please review your recent purchases at %s" % self.shop.name
-            args = dict(recipients=recipients,
-                        template=template,
-                        template_ctx=template_ctx,
-                        subject=subject)
-            celery_task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
-            task = Task(celery_uuid=celery_task.task_id,
-                        status=celery_task.status,
-                        eta=notify_dt,
-                        method=celery_task.task_name,
-                        kwargs=str(args))
-            db.session.add(task)
-            db.session.commit()
-            self.tasks.append(task)
+        db.session.add(self)
+        if task_notify:
+            self.tasks.append(task_notify)
+        if task_email:
+            self.tasks.append(task_email)
+        db.session.commit()
 
     def legacy(self):
         self.status = Constants.ORDER_STATUS_LEGACY
+        db.session.add(self)
+        db.session.commit()
 
     def notify(self):
         self.status = Constants.ORDER_STATUS_NOTIFIED
@@ -540,6 +541,8 @@ class Order(db.Model, Repopulatable):
         if self.user:
             for review_request in self.review_requests:
                 Notification.create(for_user=self.user, token=review_request.token, for_product=review_request.for_product)
+        db.session.add(self)
+        db.session.commit()
 
     def cancel_review(self):
         self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
@@ -549,7 +552,7 @@ class Order(db.Model, Repopulatable):
                 celery_async.revoke_task(task.celery_uuid)
                 task.status = 'REVOKED'
                 db.session.add(task)
-                db.session.commit()
+        db.session.commit()
 
 
 class Comment(db.Model):

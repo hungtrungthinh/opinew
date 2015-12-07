@@ -3,6 +3,9 @@ import base64
 import hmac
 import hashlib
 import datetime
+import pytz
+from dateutil import parser as date_parser
+from freezegun import freeze_time
 from flask import url_for
 from flask.ext.security.utils import verify_password
 from webapp import db
@@ -463,6 +466,7 @@ class TestClient(TestFlaskApplication):
         db.session.delete(product)
         db.session.commit()
 
+    @freeze_time(testing_constants.ORDER_NOW)
     def test_shopify_fulfill_order(self):
         order = Order(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID,
                       shop_id=testing_constants.SHOPIFY_SHOP_ID)
@@ -471,7 +475,7 @@ class TestClient(TestFlaskApplication):
         data = json.dumps({
             'order_id': testing_constants.NEW_ORDER_PLATFORM_ID,
             'tracking_number': testing_constants.ORDER_TRACKING_NUMBER,
-            'created_at': "2015-12-02T13:56:26-05:00"
+            'created_at': testing_constants.ORDER_SHIPPED_AT
         })
         sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
         response_actual = self.desktop_client.post(url_for('api.platform_shopify_fulfill_order'),
@@ -482,7 +486,7 @@ class TestClient(TestFlaskApplication):
         self.assertEquals(response_actual.status_code, 200)
         order = Order.query.filter_by(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID,
                                       shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
-        self.assertEquals(order.status, Constants.ORDER_STATUS_SHIPPED)
+        self.assertEquals(order.status, Constants.ORDER_STATUS_NOTIFIED)
         db.session.delete(order)
         db.session.commit()
 
