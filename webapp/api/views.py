@@ -150,10 +150,27 @@ def pre_create_shop(data, *args, **kwargs):
     data['owner_id'] = current_user.id
 
 
-def read_notification(instance_id, *args, **kwargs):
-    notification = models.Notification.filter_by(id=instance_id).fist()
+def is_notification_by_user(instance_id, *args, **kwargs):
+    notification = models.Notification.query.filter_by(id=int(instance_id)).first()
     if not notification or not notification.user == current_user:
         raise ProcessingException(description='Not your notification', code=401)
+
+
+def get_many_notifications_preprocessor(search_params, **kw):
+    """Accepts a single argument, `search_params`, which is a dictionary
+    containing the search parameters for the request.
+
+    """
+    search_params["filters"] = [{"name":"user_id", "op":"==", "val":current_user.id}]
+
+
+def pre_notification_patch(instance_id, data, *args, **kwargs):
+    if not instance_id:
+        raise ProcessingException(description='Notification id requried!', code=401)
+    notification = models.Notification.query.filter_by(id=instance_id).first()
+    if not notification:
+        raise ProcessingException(description='Review doesnt exist', code=401)
+    data['is_read'] = True
 
 
 def is_shop_owned_by_user(instance_id, *args, **kwargs):
@@ -322,9 +339,9 @@ api_manager.create_api(models.Notification,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'PATCH'],
                        preprocessors={
-                           'GET_SINGLE': [auth_func],
-                           'GET_MANY': [auth_func],
-                           'PATCH_SINGLE': [del_csrf, auth_func, read_notification]
+                           'GET_SINGLE': [auth_func, is_notification_by_user],
+                           'GET_MANY': [auth_func, get_many_notifications_preprocessor],
+                           'PATCH_SINGLE': [del_csrf, auth_func, is_notification_by_user, pre_notification_patch]
                        }, )
 
 api_manager.create_api(models.Shop,

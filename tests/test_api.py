@@ -2,7 +2,7 @@ import json
 import datetime
 from flask import url_for
 from freezegun import freeze_time
-from webapp.models import Review
+from webapp.models import Review, Notification
 from tests import testing_constants
 from config import Constants
 from tests.framework import TestFlaskApplication
@@ -570,3 +570,82 @@ class TestAPI(TestFlaskApplication):
         response_json_dict = json.loads(response_actual.data)
         self.assertEqual(len(response_json_dict["objects"]), 0)
         self.logout()
+
+    def test_get_notifications_by_reviewer_not_empty(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        notification1 = Notification(content="Hello sir!", url="www.your-notification.com",
+                                    user_id=2)
+        notification2 = Notification(content="Hello sir!", url="www.your-notification.com",
+                                    user_id=1)
+        db.session.add(notification1)
+        db.session.add(notification2)
+        db.session.commit()
+        response_actual = self.desktop_client.get("/api/v1/notification")
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(len(response_json_dict["objects"]), 1)
+        self.refresh_db()
+        self.logout()
+
+    def test_get_notifications_content_by_reviewer(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        notification = Notification(content="Hello sir!", url="www.your-notification.com",
+                                    user_id=2)
+        db.session.add(notification)
+        db.session.commit()
+        response_actual = self.desktop_client.get("/api/v1/notification")
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_json_dict["objects"][0]["id"], 1)
+        self.assertEqual(response_json_dict["objects"][0]["content"], "Hello sir!")
+        self.assertEqual(response_json_dict["objects"][0]["url"], "www.your-notification.com")
+        self.assertEqual(response_json_dict["objects"][0]["user_id"], 2)
+        self.refresh_db()
+        self.logout()
+
+    def test_get_somebody_elses_notification_by_reviewer(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        notification = Notification(content="Hello sir!", url="www.your-notification.com",
+                                    user_id=1)
+        db.session.add(notification)
+        db.session.commit()
+        response_actual = self.desktop_client.get("/api/v1/notification/1")
+        self.assertEqual(response_actual.status_code, 401)
+        self.assertRaises(ProcessingException)
+        self.refresh_db()
+        self.logout()
+
+    def test_read_notification_by_reviewer(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        notification = Notification(content="Hello sir!", url="www.your-notification.com",
+                                    user_id=2)
+        db.session.add(notification)
+        db.session.commit()
+
+        payload = json.dumps({})
+        response_actual = self.desktop_client.patch("/api/v1/notification/1",
+                                                  headers={'content-type': 'application/json'},
+                                                  data=payload)
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertEqual(response_json_dict["is_read"], True)
+        self.refresh_db()
+        self.logout()
+
+    def test_read_somebody_elses_notification_by_reviewer(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        notification = Notification(content="Hello sir!", url="www.your-notification.com",
+                                    user_id=1)
+        db.session.add(notification)
+        db.session.commit()
+
+        payload = json.dumps({})
+        response_actual = self.desktop_client.patch("/api/v1/notification/1",
+                                                  headers={'content-type': 'application/json'},
+                                                  data=payload)
+        self.assertEqual(response_actual.status_code, 401)
+        self.assertRaises(ProcessingException)
+
+        self.refresh_db()
+        self.logout()
+
+
+    #################TEST SHOP###############
