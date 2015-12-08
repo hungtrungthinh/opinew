@@ -60,7 +60,9 @@ def schedule_email_task(order_id, notify_dt):
         recipients = [order.user_legacy.email] if order.user_legacy else []
     template = current_app.config.get('DEFAULT_REVIEW_EMAIL_TEMPLATE')
     template_ctx = order.build_review_email_context()
-    subject = Constants.DEFAULT_REVIEW_SUBJECT % order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
+    shop_name = order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
+    subject = Constants.DEFAULT_REVIEW_SUBJECT % (order.user.name.split()[0], shop_name)
+
     args = dict(recipients=recipients,
                 template=template,
                 template_ctx=template_ctx,
@@ -494,7 +496,8 @@ class Order(db.Model, Repopulatable):
     def build_review_email_context(self):
         return {
             'order': self,
-            'name': self.user.name if self.user else (self.user_legacy.name if self.user_legacy else ''),
+            'name': self.user.name.split()[0] if self.user else (self.user_legacy.name.split()[0] if self.user_legacy else ''),
+            'user_email': self.user,
             'shop_name': self.shop.name if self.shop else '',
             'review_requests': [{'token': rr.token, 'product_name': rr.for_product.name} for rr in
                                 self.review_requests],

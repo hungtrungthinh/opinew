@@ -4,19 +4,29 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>{{ subject }}</title>
+    <style>
+    .preheader {
+    display: none !important; visibility: hidden; opacity: 0; height: 0; width: 0;
+}
+    </style>
 </head>
 <body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
-<div style="padding: 50px;">
+
+    <div class="preheader" style="display: none !important; visibility: hidden; opacity: 0; height: 0; width: 0;">Review and we'll help you spread the word! 😄&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+
+    <div style="padding: 20px;">
     <p>Hello {{ name if name else '' }},<br>
-        You've recently made some purchases from <b>{{ shop_name if shop_name else g.constants.DEFAULT_SHOP_NAME }}</b>. Click on the item to share
-        your experience:
+        You've recently bought from <b>{{ shop_name if shop_name else g.constants.DEFAULT_SHOP_NAME }}</b>.
+        You can tell others about it and help them make their decision.
+        </br></br>Just click on the items you'd like to review:</p>
     <ul>
-      {% for review_request in review_requests %}
+    {% for review_request in review_requests %}
           <li>
               <a href="https://opinew.com/{{ review_request.token }}" target="_blank">{{ review_request.product_name if  review_request.product_name else g.constants.DEFAULT_PRODUCT_NAME }}</a>
           </li>
       {% endfor %}
     </ul>
+        <p>Afterwards you'll see how many people have seen and liked your reviews!</p>
 </div>
 </body>
 </html>

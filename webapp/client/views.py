@@ -129,6 +129,7 @@ from flask.ext.security import user_registered
 user_registered.connect(User.post_registration_handler)
 
 
+
 @client.route('/')
 def index():
     if 'mobile' in g and g.mobile:
@@ -155,6 +156,8 @@ def index():
 def get_by_review_request_token(review_request_token):
     review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
     if review_request:
+        if review_request.to_user:
+            login_user(review_request.to_user)
         return redirect(url_for('client.add_review', review_request_id=review_request.id,
                                 review_request_token=review_request.token, **request.args))
     return redirect(url_for('client.index'))
@@ -503,10 +506,12 @@ def sitemapxml():
 def render_order_review_email():
     order_id = request.args.get('order_id')
     if not order_id:
-        return '', 404
+        return 'no order id supplied', 404
     order = Order.query.filter_by(id=order_id).first()
     if not order:
-        return '', 404
+        order = Order.query.all()[3]
+    if not order:
+        return 'cant find the order', 404
     template_ctx = order.build_review_email_context()
     return render_template('email/review_order.html', **template_ctx)
 
