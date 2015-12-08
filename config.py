@@ -60,6 +60,9 @@ class Constants(object):
 
     MAX_BODY_LENGTH = 300
 
+    VIRTUAL_SERVER_PORT = 5678
+    VIRTUAL_SERVER = 'http://localhost:%s' % VIRTUAL_SERVER_PORT
+
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),

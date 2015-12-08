@@ -25,13 +25,13 @@ class StripeAPI(PaymentInterface):
         # Set your secret key: remember to change this to your live secret key in production
         # See your keys here https://dashboard.stripe.com/account/apikeys
         self.stripe_proxy = stripe
+        if current_app.config.get('TESTING'):
+            self.stripe_proxy.api_base = Constants.VIRTUAL_SERVER + '/vstripe'
         self.stripe_proxy.api_key = stripe_api_key
 
     def create_paying_customer(self, opinew_customer, stripe_token):
         # Get the credit card details submitted by the form
         # Update the Stripe Customer
-        if current_app.config.get('TESTING'):
-            return opinew_customer
         customer = stripe.Customer.retrieve(opinew_customer.stripe_customer_id)
         if customer and 'deleted' not in customer:
             customer.source = stripe_token
@@ -40,16 +40,12 @@ class StripeAPI(PaymentInterface):
 
     def create_customer(self, opinew_customer):
         # Create a Stripe Customer
-        if current_app.config.get('TESTING'):
-            return opinew_customer
         customer = self.stripe_proxy.Customer.create(
             description=opinew_customer.user.email
         )
         return customer
 
     def create_plan(self, opinew_plan):
-        if current_app.config.get('TESTING'):
-            return opinew_plan
         try:
             plan = stripe.Plan.retrieve(opinew_plan.name)
         except stripe.InvalidRequestError:
@@ -64,16 +60,12 @@ class StripeAPI(PaymentInterface):
         return plan
 
     def create_subscription(self, opinew_subscription):
-        if current_app.config.get('TESTING'):
-            return opinew_subscription
         customer = self.stripe_proxy.Customer.retrieve(opinew_subscription.customer.stripe_customer_id)
         customer.subscriptions.create(plan=opinew_subscription.plan.stripe_plan_id)
         subscription = customer.save()
         return subscription.subscriptions.data[0]
 
     def update_subscription(self, opinew_subscription, opinew_new_plan):
-        if current_app.config.get('TESTING'):
-            return opinew_subscription
         customer = self.stripe_proxy.Customer.retrieve(opinew_subscription.customer.stripe_customer_id)
         subscription = customer.subscriptions.retrieve(opinew_subscription.stripe_subscription_id)
         subscription.plan = opinew_new_plan.stripe_plan_id

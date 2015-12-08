@@ -1,4 +1,5 @@
 import os
+import requests
 from unittest import TestCase
 import webapp
 from webapp import db, common
@@ -6,6 +7,8 @@ from webapp.models import User, Role
 from config import Constants, basedir
 import sensitive
 from repopulate import import_tables
+import threading
+from flask import Flask, request, jsonify
 
 app = webapp.create_app('testing')
 
@@ -61,6 +64,9 @@ class TestFlaskApplication(TestCase):
         assert cls.shop_owner_user.has_role(shop_owner_role)
         cls.shop_owner_password = sensitive.TEST_SHOP_OWNER_PASSWORD
 
+        cls.vserver = VirtualServerManager()
+        cls.vserver.start()
+
     def setUp(self):
         self.admin_user = User.query.filter_by(id=1).first()
         self.reviewer_user = User.query.filter_by(id=2).first()
@@ -70,6 +76,7 @@ class TestFlaskApplication(TestCase):
     def tearDownClass(cls):
         db.session.remove()
         db.drop_all()
+        cls.vserver.stop()
 
     def login(self, email, password):
         return self.desktop_client.post('/login', data=dict(
@@ -105,3 +112,39 @@ class TestModel(TestCase):
     def tearDownClass(cls):
         db.session.remove()
         db.drop_all()
+
+class VirtualServerManager(object):
+    def __init__(self):
+        self.vserver_thread = None
+
+    def start(self):
+        # Start a virtual server on port 5678
+        from webapp.vshopify import vshopify
+        from webapp.vstripe import vstripe
+
+        vserver_app = Flask(__name__)
+        vserver_app.register_blueprint(vshopify, url_prefix='/vshopify')
+        vserver_app.register_blueprint(vstripe, url_prefix='/vstripe')
+
+        def shutdown_server():
+            func = request.environ.get('werkzeug.server.shutdown')
+            if func is None:
+                raise RuntimeError('Not running with the Werkzeug Server')
+            func()
+
+        @vserver_app.errorhandler(404)
+        def page_not_found(e):
+            return jsonify({'method': request.method, 'path': request.path}), 404
+
+        @vserver_app.route('/shutdown', methods=['POST'])
+        def shutdown():
+            shutdown_server()
+            return 'Server shutting down...'
+
+        self.vserver_thread = threading.Thread(target=vserver_app.run, kwargs=dict(port=Constants.VIRTUAL_SERVER_PORT, use_reloader=False, debug=True))
+        self.vserver_thread.start()
+
+    def stop(self):
+        requests.post(Constants.VIRTUAL_SERVER + '/shutdown')
+        self.vserver_thread.join()
+
