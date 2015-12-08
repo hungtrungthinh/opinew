@@ -121,10 +121,12 @@ class VirtualServerManager(object):
         # Start a virtual server on port 5678
         from webapp.vshopify import vshopify
         from webapp.vstripe import vstripe
+        from webapp.vrecaptcha import vrecaptcha
 
         vserver_app = Flask(__name__)
         vserver_app.register_blueprint(vshopify, url_prefix='/vshopify')
         vserver_app.register_blueprint(vstripe, url_prefix='/vstripe')
+        vserver_app.register_blueprint(vrecaptcha, url_prefix='/vrecaptcha')
 
         def shutdown_server():
             func = request.environ.get('werkzeug.server.shutdown')
