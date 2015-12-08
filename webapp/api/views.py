@@ -39,7 +39,6 @@ def pre_review_like_post(data, *args, **kwargs):
         raise ProcessingException(description='Review already liked', code=401)
     data['user_id'] = current_user.id
     data['action'] = '1'
-    return data
 
 
 def pre_review_like_patch(data, *args, **kwargs):
@@ -69,7 +68,6 @@ def pre_review_report_post(data, *args, **kwargs):
         raise ProcessingException(description='You have already reported this review', code=401)
     data['user_id'] = current_user.id
     data['action'] = '1'
-    return data
 
 
 def pre_review_report_patch(data, *args, **kwargs):
@@ -97,7 +95,6 @@ def pre_review_feature_post(data, *args, **kwargs):
     if review_feature:
         raise ProcessingException(description='You have already featured this review', code=401)
     data['action'] = '1'
-    return data
 
 
 def pre_review_feature_patch(data, *args, **kwargs):
@@ -122,7 +119,6 @@ def pre_create_order(data, *args, **kwargs):
     if not shop.owner == current_user:
         raise ProcessingException(description='Not your shop', code=401)
     data['purchase_timestamp'] = unicode(datetime.datetime.utcnow())
-    return data
 
 
 def pre_create_product(data, *args, **kwargs):
@@ -143,7 +139,6 @@ def pre_create_product(data, *args, **kwargs):
     if not product_url.startswith(shop_domain):
         raise ProcessingException(description='Product url needs to start with the shop domain: %s' % shop.domain,
                                   code=401)
-    return data
 
 
 def pre_create_shop(data, *args, **kwargs):
@@ -228,7 +223,6 @@ def check_recaptcha(data, *args, **kwargs):
         del data['user_name']
         del data['user_email']
         data['user_id'] = user.id
-    return data
 
 
 def is_verified_review(data, *args, **kwargs):
@@ -238,7 +232,6 @@ def is_verified_review(data, *args, **kwargs):
         data['verified_review'] = True
         del data['review_request_id']
         del data['review_request_token']
-    return data
 
 
 api_manager.create_api(models.Product,
@@ -261,7 +254,6 @@ def pre_post_question(data, *args, **kwargs):
             temp_user_id = user.id
         session['temp_user_id'] = temp_user_id
         data['user_id'] = temp_user_id
-    return data
 
 def pre_post_answer(data, *args, **kwargs):
     question_id = data.get('to_question_id')
@@ -275,7 +267,7 @@ def pre_post_answer(data, *args, **kwargs):
     if not shop.owner == current_user:
         raise ProcessingException(description='Not your shop', code=401)
     data['user_id'] = current_user.id
-    return data
+
 
 
 # To query the reviews:

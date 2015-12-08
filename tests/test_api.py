@@ -647,5 +647,63 @@ class TestAPI(TestFlaskApplication):
         self.refresh_db()
         self.logout()
 
-
     #################TEST SHOP###############
+
+    def test_create_shop_by_reviewer(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        payload = json.dumps({})
+        response_actual = self.desktop_client.post("/api/v1/shop",
+                                                  headers={'content-type': 'application/json'},
+                                                  data=payload)
+        self.assertEqual(response_actual.status_code, 401)
+        self.assertRaises(ProcessingException)
+        self.refresh_db()
+        self.logout()
+
+
+
+    def test_create_shop_by_shop_owner(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        payload = json.dumps({})
+        response_actual = self.desktop_client.post("/api/v1/shop",
+                                                  headers={'content-type': 'application/json'},
+                                                  data=payload)
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_actual.status_code, 201)
+        self.assertEqual(response_json_dict["owner_id"], self.shop_owner_user.id)
+        self.refresh_db()
+        self.logout()
+
+    def test_edit_shop_by_reviewer(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        payload = json.dumps({"description": "changed"})
+        response_actual = self.desktop_client.patch("/api/v1/shop/2",
+                                                  headers={'content-type': 'application/json'},
+                                                  data=payload)
+        self.assertEqual(response_actual.status_code, 401)
+        self.assertRaises(ProcessingException)
+        self.refresh_db()
+        self.logout()
+
+    def test_edit_shop_by_shop_owner(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        payload = json.dumps({"description": "changed"})
+        response_actual = self.desktop_client.patch("/api/v1/shop/2",
+                                                  headers={'content-type': 'application/json'},
+                                                  data=payload)
+        response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertEqual(response_json_dict["description"], "changed")
+        self.refresh_db()
+        self.logout()
+
+    def test_edit_somebody_elses_shop_by_shop_owner(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        payload = json.dumps({"description": "changed"})
+        response_actual = self.desktop_client.patch("/api/v1/shop/3",
+                                                  headers={'content-type': 'application/json'},
+                                                  data=payload)
+        self.assertEqual(response_actual.status_code, 401)
+        self.assertRaises(ProcessingException)
+        self.refresh_db()
+        self.logout()
