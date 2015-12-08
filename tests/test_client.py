@@ -12,7 +12,7 @@ from webapp import db
 from webapp.models import User, Shop, Product, Order
 from tests import testing_constants
 from config import Constants
-from tests.framework import TestFlaskApplication
+from tests.framework import TestFlaskApplication, expect_mail
 from config import Config
 
 
@@ -142,6 +142,7 @@ class TestClient(TestFlaskApplication):
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('Passwords do not match' in response_actual.data)
 
+    @expect_mail
     def test_register_post_default_reviewer(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
                                                                       'email': testing_constants.NEW_USER_EMAIL,
@@ -156,6 +157,9 @@ class TestClient(TestFlaskApplication):
         self.assertTrue(new_user is not None)
         self.assertEquals(new_user.name, testing_constants.NEW_USER_NAME)
         self.assertEquals(new_user.roles[0], Constants.REVIEWER_ROLE)
+
+        # TODO: check email
+        self.assertEquals(len(self.outbox), 1)
 
         db.session.delete(new_user)
         db.session.commit()
@@ -496,6 +500,7 @@ class TestClient(TestFlaskApplication):
         self.assertTrue('<h2>Change password</h2>' in response_actual.data)
         self.logout()
 
+    @expect_mail
     def test_password_change_post(self):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         old_pwd_hash = self.shop_owner_user.password
@@ -506,6 +511,8 @@ class TestClient(TestFlaskApplication):
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
         self.assertTrue(verify_password(testing_constants.CHANGED_PASSWORD, self.shop_owner_user.password))
+        # TODO check email contents
+        self.assertEquals(len(self.outbox), 1)
         # change back
         self.shop_owner_user.password = old_pwd_hash
         db.session.add(self.shop_owner_user)

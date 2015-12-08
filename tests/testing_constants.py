@@ -41,3 +41,6 @@ RENDERED_YOUTUBE = """<iframe class="youtube-iframe" src="https://www.youtube.co
               allowfullscreen></iframe>"""
 
 RENDERED_BY_SHOP_OWNER = """<span class="label label-info"><span class="glyphicon glyphicon-user"></span> By shop owner</span>"""
+
+RECAPTCHA_FAKE_PASS = "thequickbrownfoxjumpsoverthelazydog"
+RECAPTCHA_FAKE_FAIL = "kurkurkurkur"
