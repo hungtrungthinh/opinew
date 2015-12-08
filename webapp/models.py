@@ -58,7 +58,7 @@ def schedule_email_task(order_id, notify_dt):
         recipients = [order.user.email]
     else:
         recipients = [order.user_legacy.email] if order.user_legacy else []
-    template = current_app.config.get('DEFAULT_REVIEW_EMAIL_TEMPLATE')
+    template = Constants.DEFAULT_REVIEW_EMAIL_TEMPLATE
     template_ctx = order.build_review_email_context()
     subject = Constants.DEFAULT_REVIEW_SUBJECT % order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
     args = dict(recipients=recipients,
@@ -190,11 +190,26 @@ class User(db.Model, UserMixin, Repopulatable):
             customer = Customer(user=user).create()
             subscription = Subscription(customer=customer, plan=plan).create()
             db.session.add(subscription)
+            email_template = Constants.DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE
+            email_subject = Constants.DEFAULT_NEW_SHOP_OWNER_SUBJECT
         else:
+            email_template = Constants.DEFAULT_NEW_REVIEWER_EMAIL_TEMPLATE
+            email_subject = Constants.DEFAULT_NEW_REVIEWER_SUBJECT
             reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
             if reviewer_role and reviewer_role not in user.roles:
                 user.roles.append(reviewer_role)
         db.session.commit()
+
+        # Send email
+        from async import tasks
+
+        tasks.send_email.delay(recipients=[user.email],
+                               template=email_template,
+                               template_ctx={'user_email': user.email,
+                                             'user_temp_password': user.temp_password,
+                                             'user_name': user.name
+                                             },
+                               subject=email_subject)
 
     @classmethod
     def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, **kwargs):
@@ -233,17 +248,6 @@ class User(db.Model, UserMixin, Repopulatable):
 
             # Handle creation of customer and roles
             User.post_registration_handler(user=instance)
-
-            # Send emailif
-            from async import tasks
-
-            tasks.send_email.delay(recipients=[email],
-                                   template='email/new_user.html',
-                                   template_ctx={'user_email': email,
-                                                 'user_temp_password': temp_password,
-                                                 'user_name': instance.name
-                                                 },
-                                   subject="Welcome to Opinew!")
         return instance, is_new
 
     def unread_notifications(self):
@@ -682,7 +686,7 @@ class Review(db.Model, Repopulatable):
         if current_user and current_user.is_authenticated():
             self.user = current_user
         if user_id:
-            self.user = user_id
+            self.user = User.query.filter_by(id=user_id).first()
         self.created_ts = datetime.datetime.utcnow()
         # Is it by shop owner?
         if product_id:

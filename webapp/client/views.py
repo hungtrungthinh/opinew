@@ -101,6 +101,9 @@ def shopify_plugin_callback():
     shop_owner, is_new = User.get_or_create_by_email(shop_owner_email,
                                                      role_name=Constants.SHOP_OWNER_ROLE,
                                                      name=shop_owner_name)
+    if is_new:
+        db.session.add(shop_owner)
+        db.session.commit()
     shop_owner_id = shop_owner.id
 
     # Create shop with owner = shop_user

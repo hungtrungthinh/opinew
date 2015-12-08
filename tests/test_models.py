@@ -3,13 +3,14 @@ import datetime
 import pytz
 from dateutil import parser as date_parser
 import testing_constants
-from tests.framework import TestModel
+from tests.framework import TestModel, expect_mail
 from webapp import db, models, mail
 from freezegun import freeze_time
 
 
 class TestOrder(TestModel):
     def setUp(self):
+        super(TestOrder, self).setUp()
         order = models.Order()
         db.session.add(order)
         db.session.commit()
@@ -27,6 +28,7 @@ class TestOrder(TestModel):
         self.assertEquals(order.status, Constants.ORDER_STATUS_SHIPPED)
         self.assertEquals(order.shipment_timestamp, expected_shipment_ts)
 
+    @expect_mail
     @freeze_time(testing_constants.ORDER_NOW)
     def test_set_notifications(self):
         # setup an order
@@ -45,15 +47,14 @@ class TestOrder(TestModel):
         order.shipment_timestamp = date_parser.parse(testing_constants.ORDER_SHIPPED_AT).astimezone(pytz.utc).replace(tzinfo=None)
 
         # The results from the asynchronous tasks are executed immediately
-        with mail.record_messages() as outbox:
-            order.set_notifications()
-            self.assertEquals(len(outbox), 1)
-            self.assertEquals(len(outbox[0].send_to), 1)
-            self.assertEquals(outbox[0].send_to.pop(), testing_constants.NEW_USER_EMAIL)
-            self.assertEquals(outbox[0].subject, Constants.DEFAULT_REVIEW_SUBJECT % testing_constants.NEW_SHOP_NAME)
-            self.assertTrue(testing_constants.NEW_USER_NAME in outbox[0].body)
-            self.assertTrue(testing_constants.NEW_PRODUCT_NAME in outbox[0].body)
-            self.assertTrue(testing_constants.NEW_SHOP_NAME in outbox[0].body)
+        order.set_notifications()
+        self.assertEquals(len(self.outbox), 1)
+        self.assertEquals(len(self.outbox[0].send_to), 1)
+        self.assertEquals(self.outbox[0].send_to.pop(), testing_constants.NEW_USER_EMAIL)
+        self.assertEquals(self.outbox[0].subject, Constants.DEFAULT_REVIEW_SUBJECT % testing_constants.NEW_SHOP_NAME)
+        self.assertTrue(testing_constants.NEW_USER_NAME in self.outbox[0].body)
+        self.assertTrue(testing_constants.NEW_PRODUCT_NAME in self.outbox[0].body)
+        self.assertTrue(testing_constants.NEW_SHOP_NAME in self.outbox[0].body)
 
         order = models.Order.query.first()
 
@@ -71,3 +72,4 @@ class TestOrder(TestModel):
         order = models.Order.query.first()
         db.session.delete(order)
         db.session.commit()
+        super(TestOrder, self).tearDown()

@@ -15,6 +15,13 @@ class Constants(object):
     DEFAULT_REVIEW_SUBJECT = "Please review your recent purchases at %s"
     DEFAULT_PRODUCT_NAME = 'Review Product'
 
+    DEFAULT_REVIEW_EMAIL_TEMPLATE = 'email/review_order.html'
+    DEFAULT_NEW_REVIEWER_EMAIL_TEMPLATE = 'email/new_reviewer_user.html'
+    DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE = 'email/review_order.html'
+
+    DEFAULT_NEW_REVIEWER_SUBJECT = "Welcome to Opinew"
+    DEFAULT_NEW_SHOP_OWNER_SUBJECT = "Welcome to Opinew"
+
     MODE_DEVELOPMENT = 'development'
     MODE_PRODUCTION = 'production'
     MODE_TESTING = 'testing'
@@ -77,8 +84,6 @@ class Config(object):
     EMAIL_HOST_USER = MAIL_USERNAME = "team@opinew.com"
     EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
 
-    DEFAULT_REVIEW_EMAIL_TEMPLATE = 'email/review_order.html'
-
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
     PROPAGATE_EXCEPTIONS = True
@@ -126,6 +131,9 @@ class Config(object):
 
     SHOPIFY_PREFIX = 'https://%s'
 
+    RECAPTCHA_URL = "https://www.google.com/recaptcha/api/siteverify"
+    RECAPTCHA_SECRET = sensitive.RECAPTCHA_SECRET
+
     CELERYBEAT_SCHEDULE = {
         # Every day at 00:00
         'update_orders': {
@@ -149,6 +157,7 @@ class ConfigTest(Config):
     UPLOADED_SHOPIMAGES_DEST = os.path.join('tmp', 'media', 'shop')
 
     SHOPIFY_PREFIX = 'http://localhost:5678/%s'
+    RECAPTCHA_URL = SHOPIFY_PREFIX % "vrecaptcha/recaptcha/api/siteverify"
 
     CELERY_ALWAYS_EAGER = True
     CELERY_RESULT_BACKEND = 'cache'

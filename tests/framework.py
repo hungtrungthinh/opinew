@@ -2,7 +2,7 @@ import os
 import requests
 from unittest import TestCase
 import webapp
-from webapp import db, common
+from webapp import db, common, mail
 from webapp.models import User, Role
 from config import Constants, basedir
 import sensitive
@@ -71,6 +71,17 @@ class TestFlaskApplication(TestCase):
         self.admin_user = User.query.filter_by(id=1).first()
         self.reviewer_user = User.query.filter_by(id=2).first()
         self.shop_owner_user = User.query.filter_by(id=3).first()
+        self.mgr = (mail.record_messages())
+        self.exit = type(self.mgr).__exit__
+        value = type(self.mgr).__enter__(self.mgr)
+        self.safety_outbox = value
+
+    def tearDown(self):
+        db.session.close()
+        db.session.rollback()
+
+        self.assertEquals(len(self.safety_outbox), 0)
+        self.exit(self.mgr, None, None, None)
 
     @classmethod
     def tearDownClass(cls):
@@ -107,6 +118,16 @@ class TestModel(TestCase):
         db.drop_all()
         db.create_all()
         db.engine.dialect.supports_sane_multi_rowcount = False
+
+    def setUp(self):
+        self.mgr = (mail.record_messages())
+        self.exit = type(self.mgr).__exit__
+        value = type(self.mgr).__enter__(self.mgr)
+        self.safety_outbox = value
+
+    def tearDown(self):
+        self.assertEquals(len(self.safety_outbox), 0)
+        self.exit(self.mgr, None, None, None)
 
     @classmethod
     def tearDownClass(cls):
@@ -150,3 +171,12 @@ class VirtualServerManager(object):
         requests.post(Constants.VIRTUAL_SERVER + '/shutdown')
         self.vserver_thread.join()
 
+
+
+def expect_mail(func):
+    # Puts a local variable outbox for catching mail
+    def _decorator(self, *args, **kwargs):
+        with mail.record_messages() as self.outbox:
+            func(self, *args, **kwargs)
+            self.safety_outbox = [o for o in self.safety_outbox if o not in self.outbox]
+    return _decorator

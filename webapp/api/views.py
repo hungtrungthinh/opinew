@@ -8,7 +8,7 @@ from flask.ext.restless import ProcessingException
 from webapp import api_manager, models, db, csrf
 from webapp.api import api
 from webapp.common import get_post_payload, param_required, catch_exceptions, random_pwd
-from webapp.exceptions import DbException
+from webapp.exceptions import DbException, ExceptionMessages
 from config import Constants
 
 
@@ -180,49 +180,43 @@ def del_user_id(data, *args, **kwargs):
 
 
 def check_recaptcha(data, *args, **kwargs):
-    if not current_user.is_authenticated():
-        recaptcha = data['g-recaptcha-response']
-        r = requests.post("https://www.google.com/recaptcha/api/siteverify",
-                          data={
-                              'secret': current_app.config.get("RECAPTCHA_SECRET"),
-                              'response': recaptcha,
-                              'remoteip': request.remote_addr
-                          })
-        if r and r.json():
-            if not r.json().get('success'):
-                if not current_app.debug and not current_app.testing:
-                    raise ProcessingException(description='CAPTCHA Failed :(', code=401)
-        del data['g-recaptcha-response']
+    if current_user.is_authenticated():
+        return
+    recaptcha = data.get('g-recaptcha-response')
+    if not recaptcha:
+        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM % 'g-recaptcha-response', code=401)
+    r = requests.post(current_app.config.get("RECAPTCHA_URL"),
+                      data={
+                          'secret': current_app.config.get("RECAPTCHA_SECRET"),
+                          'response': recaptcha,
+                          'remoteip': request.remote_addr
+                      })
+    if not (r and r.status_code == 200 and r.json()):
+        raise ProcessingException(description=ExceptionMessages.CAPTCHA_FAIL, code=401)
+    if not r.json().get('success'):
+        raise ProcessingException(description=ExceptionMessages.CAPTCHA_FAIL, code=401)
 
-        user_name = data['user_name']
-        user_email = data['user_email']
+    del data['g-recaptcha-response']
 
-        if not user_name:
-            raise ProcessingException(description='User name required.', code=401)
+    user_name = data.get('user_name')
+    user_email = data.get('user_email')
 
-        if not user_email:
-            raise ProcessingException(description='User email required.', code=401)
+    if not user_name:
+        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM % 'user_name', code=401)
 
-        user, is_new = models.User.get_or_create_by_email(email=user_email, name=user_name)
-        if not is_new:
-            raise ProcessingException(description='User %s already exists.' % user_email, code=401)
+    if not user_email:
+        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM % 'user_email', code=401)
 
-        db.session.add(user)
-        db.session.commit()
+    user, is_new = models.User.get_or_create_by_email(email=user_email, role_name=Constants.REVIEWER_ROLE, name=user_name)
+    if not is_new:
+        raise ProcessingException(description=ExceptionMessages.USER_EXISTS % user_email, code=401)
 
-        from async import tasks
+    db.session.add(user)
+    db.session.commit()
 
-        tasks.send_email.delay(recipients=[user_email],
-                               template='email/new_reviewer_user.html',
-                               template_ctx={'user_email': user_email,
-                                             'user_temp_password': user.temp_password,
-                                             'user_name': user_name
-                                             },
-                               subject="Thank you for posting a review! Welcome to Opinew!")
-
-        del data['user_name']
-        del data['user_email']
-        data['user_id'] = user.id
+    del data['user_name']
+    del data['user_email']
+    data['user_id'] = user.id
 
 
 def is_verified_review(data, *args, **kwargs):
