@@ -56,12 +56,14 @@ def schedule_email_task(order_id, notify_dt):
     from async import celery_async, tasks
     if order.user:
         recipients = [order.user.email]
+        user_name = order.user.name
     else:
         recipients = [order.user_legacy.email] if order.user_legacy else []
+        user_name = order.user_legacy.name if order.user_legacy else ""
     template = Constants.DEFAULT_REVIEW_EMAIL_TEMPLATE
     template_ctx = order.build_review_email_context()
     shop_name = order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
-    subject = Constants.DEFAULT_REVIEW_SUBJECT % (order.user.name.split()[0], shop_name)
+    subject = Constants.DEFAULT_REVIEW_SUBJECT % (user_name.split()[0], shop_name)
 
     args = dict(recipients=recipients,
                 template=template,

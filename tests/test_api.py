@@ -191,7 +191,7 @@ class TestAPI(TestFlaskApplication):
                         testing_constants.NEW_REVIEW_IMAGE_URL == jsonified_response['image_url'])
         self.assertTrue('product_id' in jsonified_response and
                         testing_constants.NEW_REVIEW_PRODUCT_ID == jsonified_response['product_id'])
-        self.assertTrue('password' not in jsonified_response['user'])
+        self.assertTrue(jsonified_response['user'] is not None and 'password' not in jsonified_response['user'])
 
         # Check if db records are fine and dandy...
         review_id = jsonified_response['id']
@@ -230,6 +230,7 @@ class TestAPI(TestFlaskApplication):
     @expect_mail
     @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
     def test_api_post_review_full_pipeline_not_logged_in(self):
+        self.refresh_db()
         params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
                   "body": testing_constants.NEW_REVIEW_BODY,
                   "star_rating": testing_constants.NEW_REVIEW_STARS,

@@ -12,7 +12,7 @@ class Constants(object):
     META_DEFAULT_PRERENDER = "/reviews"
 
     DEFAULT_SHOP_NAME = 'Online shop'
-    DEFAULT_REVIEW_SUBJECT = "Please review your recent purchases at %s"
+    DEFAULT_REVIEW_SUBJECT = "%s, tell others about your purchase from %s"
     DEFAULT_PRODUCT_NAME = 'Review Product'
 
     DEFAULT_REVIEW_EMAIL_TEMPLATE = 'email/review_order.html'

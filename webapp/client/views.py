@@ -158,11 +158,20 @@ def index():
 @client.route('/<review_request_token>')
 def get_by_review_request_token(review_request_token):
     review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
+    user_email = None
     if review_request:
         if review_request.to_user:
-            login_user(review_request.to_user)
+            if current_user.is_authenticated() and current_user.id != review_request.to_user.id:
+                logout_user() #logout the current user who is different to the one who got the email
+                user_email = review_request.to_user.email #set the email to the user that got the email.
+            elif current_user.is_authenticated() and current_user.id == review_request.to_user.id:
+                pass
+            elif not current_user.is_authenticated():
+                user_email = review_request.to_user.email
+
         return redirect(url_for('client.add_review', review_request_id=review_request.id,
-                                review_request_token=review_request.token, **request.args))
+                                review_request_token=review_request.token,
+                                user_email=user_email, **request.args))
     return redirect(url_for('client.index'))
 
 
@@ -426,6 +435,15 @@ def add_review():
             flash('Incorrect review request token')
         else:
             ctx['product'] = review_request.for_product
+            if review_request.to_user and review_request.to_user.name:
+                ctx['user_name'] = review_request.to_user.name.split()[0]
+                ctx['is_legacy'] = False
+            elif review_request.to_user_legacy and review_request.to_user_legacy.name:
+                ctx['user_name'] = review_request.to_user_legacy.name.split()[0]
+                ctx['is_legacy'] = True
+    if 'user_email' in request.args:
+        ctx['user_email'] = request.args.get('user_email')
+    #TODO what is this line below???
     if 'product' not in ctx or not ctx['product']:
         ctx['products'] = Product.query.all()
     # Initialize forms
@@ -512,7 +530,7 @@ def render_order_review_email():
         return 'no order id supplied', 404
     order = Order.query.filter_by(id=order_id).first()
     if not order:
-        order = Order.query.all()[3]
+        order = Order.query.filter().all()[2]
     if not order:
         return 'cant find the order', 404
     template_ctx = order.build_review_email_context()

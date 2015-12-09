@@ -51,10 +51,11 @@ class TestOrder(TestModel):
         self.assertEquals(len(self.outbox), 1)
         self.assertEquals(len(self.outbox[0].send_to), 1)
         self.assertEquals(self.outbox[0].send_to.pop(), testing_constants.NEW_USER_EMAIL)
-        self.assertEquals(self.outbox[0].subject, Constants.DEFAULT_REVIEW_SUBJECT % testing_constants.NEW_SHOP_NAME)
-        self.assertTrue(testing_constants.NEW_USER_NAME in self.outbox[0].body)
+        self.assertEquals(self.outbox[0].subject, Constants.DEFAULT_REVIEW_SUBJECT %(testing_constants.NEW_USER_NAME.split()[0],
+                          testing_constants.NEW_SHOP_NAME))
+        self.assertTrue(testing_constants.NEW_USER_NAME.split()[0] in self.outbox[0].body)
         self.assertTrue(testing_constants.NEW_PRODUCT_NAME in self.outbox[0].body)
-        self.assertTrue(testing_constants.NEW_SHOP_NAME in self.outbox[0].body)
+        #self.assertTrue(testing_constants.NEW_SHOP_NAME in self.outbox[0].body)
 
         order = models.Order.query.first()
 

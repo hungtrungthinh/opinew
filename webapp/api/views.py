@@ -198,6 +198,9 @@ def check_recaptcha(data, *args, **kwargs):
 
     del data['g-recaptcha-response']
 
+def check_if_user_exists(data, *args, **kwargs):
+    if current_user.is_authenticated():
+        return
     user_name = data.get('user_name')
     user_email = data.get('user_email')
 
@@ -226,6 +229,20 @@ def is_verified_review(data, *args, **kwargs):
         data['verified_review'] = True
         del data['review_request_id']
         del data['review_request_token']
+
+def login_user_if_possible(data, *args, **kwargs):
+    if "user_email" in data and "user_password" in data:
+        email = data["user_email"]
+        password = data["user_password"]
+        user = models.User.query.filter_by(email=email).first()
+        if not user:
+            raise DbException('unknown user', 400)
+        if not verify_password(password, user.password):
+            raise DbException('invalid password', 400)
+        login_user(user)
+        del data["user_password"]
+        del data['user_name']
+        del data['user_email']
 
 
 api_manager.create_api(models.Product,
@@ -272,7 +289,7 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [del_csrf, del_user_id, check_recaptcha, is_verified_review],
+                           'POST': [del_csrf, check_recaptcha, check_if_user_exists, login_user_if_possible, del_user_id, is_verified_review],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.Review.exclude_fields(),
