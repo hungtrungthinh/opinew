@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>{{ subject }}</title>
+    <meta name="viewport" content="width=device-width"/>
+
+    <!-- For development, pass document through inliner -->
+    <link rel="stylesheet" href="css/simple.css">
+
+    <style type="text/css">
+
+    </style>
+</head>
+<body>
+<table class="body-wrap">
+    <tr>
+        <td class="container">
+            <table>
+                <tr>
+                    <td align="center" class="masthead">
+
+                        <h2>Welcome to Opinew {{ user_name }}!</h2>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="content">
+                        <p>Thank you for sharing your review.<br />We've prepared a special place for you to manage it and see how many people have viewed it and liked it. To finish your registration just click 
+                        <a href="http://opinew.com/login?email={{ user_email }}&password={{ user_temp_password }}"><strong>Here</strong></a>
+                        </p>
+                        <!--[if mso]><br /><![endif]-->
+                        <p>
+                            Opinew's mission is to make everybody better informed about the products they buy. We're glad you are joining us on that journey.
+                        </p>
+                        <!--[if mso]><br /><![endif]-->
+                        <p>You can log in using your email:<br /> {{ user_email }}<br /> 
+                            We've created a <strong>temporary</strong> password for you:<br /> <strong>{{ user_temp_password }}</strong><br />
+                            Change it when you first log in to ensure security of your account.
+                        </p>
+                        <!--[if mso]><br /><![endif]-->
+                        <p>Thanks for participating,<br />
+                            <b>Team Opinew</b></p>
+
+                    </td>
+                </tr>
+            </table>
+
+        </td>
+    </tr>
+    <tr>
+        <td class="container">
+
+            <!-- Message start -->
+            <table>
+                
+            </table>
+
+        </td>
+    </tr>
+</table>
+</body>
+</html>
