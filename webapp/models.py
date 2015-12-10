@@ -54,12 +54,15 @@ def schedule_email_task(order_id, notify_dt):
     if not order.review_requests:
         return None
     from async import celery_async, tasks
+
     if order.user:
         recipients = [order.user.email]
         user_name = order.user.name
-    else:
+    elif order.user_legacy:
         recipients = [order.user_legacy.email] if order.user_legacy else []
         user_name = order.user_legacy.name if order.user_legacy else ""
+    else:
+        return None
     template = Constants.DEFAULT_REVIEW_EMAIL_TEMPLATE
     template_ctx = order.build_review_email_context()
     shop_name = order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
@@ -520,6 +523,8 @@ class Order(db.Model, Repopulatable):
 
     def set_notifications(self):
         # Notify timestamp = shipment + 7
+        if self.shipment_timestamp is None:
+            raise DbException(message="Shipment timestamp is None for this order: %d" % self.id, status_code=400)
         notify_dt = self.shipment_timestamp + datetime.timedelta(days=Constants.DIFF_SHIPMENT_NOTIFY)
         self.to_notify_timestamp = notify_dt
 
@@ -527,9 +532,16 @@ class Order(db.Model, Repopulatable):
         now = datetime.datetime.utcnow()
         if now > self.to_notify_timestamp:
             return
+
+        if self.user is None:
+            raise DbException(message="No user associated with this order: %d" % self.id, status_code=400)
+        if self.shop is None:
+            raise DbException(message="No shop associated with this order: %d" % self.id, status_code=400)
+        if self.products is None or len(self.products) == 0:
+            raise DbException(message="No products associated with this order: %d" % self.id, status_code=400)
         order_id = self.id
         create_review_requests(order_id=order_id)
-        task_notify = schedule_notification_task(order_id=order_id , notify_dt=notify_dt)
+        task_notify = schedule_notification_task(order_id=order_id, notify_dt=notify_dt)
         task_email = schedule_email_task(order_id=order_id, notify_dt=notify_dt)
 
         db.session.add(self)
