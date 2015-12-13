@@ -2,6 +2,7 @@ import datetime
 from webapp import models, db
 from magento import MagentoAPI
 from config import Constants
+from webapp.exceptions import MagentoException
 
 
 class API(object):
@@ -39,8 +40,12 @@ class API(object):
         mproducts = self.magento.sales_order.info(morder.get('increment_id')).get('items', [])
         for mproduct in mproducts:
             product = models.Product.query.filter_by(platform_product_id=mproduct.get('sku')).first()
-            if product:
+            if product and product not in order.products:
                 order.products.append(product)
+
+        if len(order.products) < 1:
+            raise MagentoException(message="No products connected to this order", status_code=400)
+
         return order
 
     def create_new_orders(self, morders, last_order_id, shop_id):

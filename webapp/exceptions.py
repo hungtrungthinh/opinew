@@ -20,3 +20,6 @@ class DbException(ResponseException):
 
 class ApiException(ResponseException):
     pass
+
+class MagentoException(ResponseException):
+    pass
