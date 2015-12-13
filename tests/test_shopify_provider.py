@@ -5,7 +5,7 @@ from config import Constants
 from webapp import db
 from webapp.models import Shop
 from tests import testing_constants
-from tests.framework import TestFlaskApplication, VirtualServerManager
+from tests.framework import TestFlaskApplication
 
 class TestShopifyShopCreation(TestFlaskApplication):
     def test_oauth_callback_success(self):
