@@ -134,6 +134,8 @@ class Config(object):
     RECAPTCHA_URL = "https://www.google.com/recaptcha/api/siteverify"
     RECAPTCHA_SECRET = sensitive.RECAPTCHA_SECRET
 
+    GIPHY_URL = "http://api.giphy.com/v1/gifs"
+
     CELERYBEAT_SCHEDULE = {
         # Every day at 00:00
         'update_orders': {
@@ -158,6 +160,7 @@ class ConfigTest(Config):
 
     SHOPIFY_PREFIX = 'http://localhost:5678/%s'
     RECAPTCHA_URL = SHOPIFY_PREFIX % "vrecaptcha/recaptcha/api/siteverify"
+    GIRPHY_URL = SHOPIFY_PREFIX % "vgiphy/v1/gifs"
 
     CELERY_ALWAYS_EAGER = True
     CELERY_RESULT_BACKEND = 'cache'

@@ -143,11 +143,13 @@ class VirtualServerManager(object):
         from webapp.vshopify import vshopify
         from webapp.vstripe import vstripe
         from webapp.vrecaptcha import vrecaptcha
+        from webapp.vgiphy import vgiphy
 
         vserver_app = Flask(__name__)
         vserver_app.register_blueprint(vshopify, url_prefix='/vshopify')
         vserver_app.register_blueprint(vstripe, url_prefix='/vstripe')
         vserver_app.register_blueprint(vrecaptcha, url_prefix='/vrecaptcha')
+        vserver_app.register_blueprint(vgiphy, url_prefix='/vgiphy')
 
         def shutdown_server():
             func = request.environ.get('werkzeug.server.shutdown')
