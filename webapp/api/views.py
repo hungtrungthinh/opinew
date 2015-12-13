@@ -289,7 +289,7 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [del_csrf, check_recaptcha, check_if_user_exists, login_user_if_possible, del_user_id, is_verified_review],
+                           'POST': [del_csrf, check_recaptcha, check_if_user_exists, login_user_if_possible, is_verified_review],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.Review.exclude_fields(),

@@ -9,8 +9,8 @@ from tests.framework import TestFlaskApplication, VirtualServerManager
 
 class TestShopifyShopCreation(TestFlaskApplication):
     def test_oauth_callback_success(self):
-        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
-                                                                                   'hmac': '4989858235c2ceded8d751658b9a8d7af995343950bcf65bee49ea48fb20380e',
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinewTesting',
+                                                                                   'hmac': 'ffbcf1eec0c9740283f750f28a27a2413afcb4158954ec6b1abe63693c6cf15d',
                                                                                    'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                                    'code': 'abc',
                                                                                    'signature': 'abc'})

@@ -435,7 +435,7 @@ class Notification(db.Model):
     @classmethod
     def create(cls, for_user, token, for_product=None, for_shop=None):
         if for_product:
-            n_message = 'We hope you love your new <b>%s</b>. <br> Could do you like it?' % for_product.name
+            n_message = 'We hope you love your new <b>%s</b>. <br> Could do you review it?' % for_product.name
         elif for_shop:
             n_message = 'Thank you for shopping at <b>%s</b>. How did you like the experience?' % for_shop.name
         else:
@@ -533,11 +533,11 @@ class Order(db.Model, Repopulatable):
         if now > self.to_notify_timestamp:
             return
 
-        if self.user is None:
+        if self.user is None and self.user_legacy is None:
             raise DbException(message="No user associated with this order: %d" % self.id, status_code=400)
         if self.shop is None:
             raise DbException(message="No shop associated with this order: %d" % self.id, status_code=400)
-        if self.products is None or len(self.products) == 0:
+        if self.products is None or len(self.products) < 1:
             raise DbException(message="No products associated with this order: %d" % self.id, status_code=400)
         order_id = self.id
         create_review_requests(order_id=order_id)
@@ -566,13 +566,13 @@ class Order(db.Model, Repopulatable):
         db.session.commit()
 
     def cancel_review(self):
-        self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
         for task in self.tasks:
             from async import celery_async
             if task:
                 celery_async.revoke_task(task.celery_uuid)
                 task.status = 'REVOKED'
                 db.session.add(task)
+        self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
         db.session.commit()
 
 

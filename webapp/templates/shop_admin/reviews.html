@@ -16,8 +16,8 @@
           <tr>
               <td>
                   <a href="{{ url_for('client.get_product', product_id=review.product.id) }}">{{ review.product.name }}</a><br>
-                  <small>Shop page: <a href="http://{{ review.product.url }}" target="_blank"
-                     target="_blank"><span class="glyphicon glyphicon glyphicon-new-window"></span>
+                  <small>Shop page: <a href="{{ review.product.url }}" target="_blank"
+                     ><span class="glyphicon glyphicon glyphicon-new-window"></span>
                   </a></small>
               </td>
               <td>{{ review.star_rating }}</td>

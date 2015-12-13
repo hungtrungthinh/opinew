@@ -159,13 +159,14 @@ def index():
 def get_by_review_request_token(review_request_token):
     review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
     user_email = None
+    # all below logic is to decide whether to display the Name, Email and Password fields
     if review_request:
         if review_request.to_user:
             if current_user.is_authenticated() and current_user.id != review_request.to_user.id:
-                logout_user() #logout the current user who is different to the one who got the email
-                user_email = review_request.to_user.email #set the email to the user that got the email.
+                logout_user()  # logout the current user who is different to the one who got the email
+                user_email = review_request.to_user.email  # set the email to the user that got the email.
             elif current_user.is_authenticated() and current_user.id == review_request.to_user.id:
-                pass
+                pass  # we don't need to do anything. current user is logged in
             elif not current_user.is_authenticated():
                 user_email = review_request.to_user.email
 
