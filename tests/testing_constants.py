@@ -6,6 +6,7 @@ CHANGED_PASSWORD = 'something'
 
 NEW_PRODUCT_ID = 1
 NEW_PRODUCT_PLATFORM_ID = "26"
+NEW_PRODUCT_PLATFORM_ID_2 = "46"
 NEW_PRODUCT_NAME = 'testing product'
 CHANGED_PRODUCT_NAME = 'Change of product name'
 

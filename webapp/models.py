@@ -14,71 +14,7 @@ from config import Constants
 from webapp import gravatar
 from webapp.common import generate_temp_password, random_pwd
 
-def create_review_requests(order_id):
-    if not order_id:
-        return
-    order = Order.query.filter_by(id=order_id).first()
-    if not order:
-        return
-    if not (order.shop and order.shop.owner and order.shop.owner.customer and order.shop.owner.customer[0]):
-        return
-    for product in order.products:
-        the_user = order.user if order.user else (order.user_legacy if order.user_legacy else None)
-        ReviewRequest.create(to_user=the_user,
-                             from_customer=order.shop.owner.customer[0],
-                             for_product=product,
-                             for_order=order)
 
-def schedule_notification_task(order_id, notify_dt):
-    if not order_id or not notify_dt:
-        return None
-    order = Order.query.filter_by(id=order_id).first()
-    if not order:
-        return None
-    from async import celery_async, tasks
-    args = dict(order_id=order.id)
-    celery_task = celery_async.schedule_task_at(tasks.notify_for_review, args, notify_dt)
-    task_notify = Task(celery_uuid=celery_task.task_id,
-                       status=celery_task.status,
-                       eta=notify_dt,
-                       method=celery_task.task_name,
-                       kwargs=str(args))
-    return task_notify
-
-def schedule_email_task(order_id, notify_dt):
-    if not order_id or not notify_dt:
-        return None
-    order = Order.query.filter_by(id=order_id).first()
-    if not order:
-        return None
-    if not order.review_requests:
-        return None
-    from async import celery_async, tasks
-
-    if order.user:
-        recipients = [order.user.email]
-        user_name = order.user.name
-    elif order.user_legacy:
-        recipients = [order.user_legacy.email] if order.user_legacy else []
-        user_name = order.user_legacy.name if order.user_legacy else ""
-    else:
-        return None
-    template = Constants.DEFAULT_REVIEW_EMAIL_TEMPLATE
-    template_ctx = order.build_review_email_context()
-    shop_name = order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
-    subject = Constants.DEFAULT_REVIEW_SUBJECT % (user_name.split()[0], shop_name)
-
-    args = dict(recipients=recipients,
-                template=template,
-                template_ctx=template_ctx,
-                subject=subject)
-    celery_task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
-    task_email = Task(celery_uuid=celery_task.task_id,
-                status=celery_task.status,
-                eta=notify_dt,
-                method=celery_task.task_name,
-                kwargs=str(args))
-    return task_email
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
@@ -521,6 +457,79 @@ class Order(db.Model, Repopulatable):
         db.session.add(self)
         db.session.commit()
 
+    def create_review_requests(self, order_id):
+        if not order_id:
+            return
+        order = Order.query.filter_by(id=order_id).first()
+        if not order:
+            return
+        if not (order.shop and order.shop.owner and order.shop.owner.customer and order.shop.owner.customer[0]):
+            return
+        if not order.products:
+            return
+        # make sure we don't have repeating products
+        product_review_requests = {}
+        for product in order.products:
+            if product.platform_product_id:
+                product_review_requests[product.platform_product_id] = product
+        for product in product_review_requests.values():
+            the_user = order.user if order.user else (order.user_legacy if order.user_legacy else None)
+            ReviewRequest.create(to_user=the_user,
+                                 from_customer=order.shop.owner.customer[0],
+                                 for_product=product,
+                                 for_order=order)
+
+    def schedule_notification_task(self, order_id, notify_dt):
+        if not order_id or not notify_dt:
+            return None
+        order = Order.query.filter_by(id=order_id).first()
+        if not order:
+            return None
+        from async import celery_async, tasks
+        args = dict(order_id=order.id)
+        celery_task = celery_async.schedule_task_at(tasks.notify_for_review, args, notify_dt)
+        task_notify = Task(celery_uuid=celery_task.task_id,
+                           status=celery_task.status,
+                           eta=notify_dt,
+                           method=celery_task.task_name,
+                           kwargs=str(args))
+        return task_notify
+
+    def schedule_email_task(self, order_id, notify_dt):
+        if not order_id or not notify_dt:
+            return None
+        order = Order.query.filter_by(id=order_id).first()
+        if not order:
+            return None
+        if not order.review_requests:
+            return None
+        from async import celery_async, tasks
+
+        if order.user:
+            recipients = [order.user.email]
+            user_name = order.user.name
+        elif order.user_legacy:
+            recipients = [order.user_legacy.email] if order.user_legacy else []
+            user_name = order.user_legacy.name if order.user_legacy else ""
+        else:
+            return None
+        template = Constants.DEFAULT_REVIEW_EMAIL_TEMPLATE
+        template_ctx = order.build_review_email_context()
+        shop_name = order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
+        subject = Constants.DEFAULT_REVIEW_SUBJECT % (user_name.split()[0], shop_name)
+
+        args = dict(recipients=recipients,
+                    template=template,
+                    template_ctx=template_ctx,
+                    subject=subject)
+        celery_task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
+        task_email = Task(celery_uuid=celery_task.task_id,
+                    status=celery_task.status,
+                    eta=notify_dt,
+                    method=celery_task.task_name,
+                    kwargs=str(args))
+        return task_email
+
     def set_notifications(self):
         # Notify timestamp = shipment + 7
         if self.shipment_timestamp is None:
@@ -540,9 +549,9 @@ class Order(db.Model, Repopulatable):
         if self.products is None or len(self.products) < 1:
             raise DbException(message="No products associated with this order: %d" % self.id, status_code=400)
         order_id = self.id
-        create_review_requests(order_id=order_id)
-        task_notify = schedule_notification_task(order_id=order_id, notify_dt=notify_dt)
-        task_email = schedule_email_task(order_id=order_id, notify_dt=notify_dt)
+        self.create_review_requests(order_id=order_id)
+        task_notify = self.schedule_notification_task(order_id=order_id, notify_dt=notify_dt)
+        task_email = self.schedule_email_task(order_id=order_id, notify_dt=notify_dt)
 
         db.session.add(self)
         if task_notify:
@@ -631,7 +640,7 @@ class ReviewRequest(db.Model):
     @classmethod
     def create(cls, to_user, from_customer, for_product=None, for_shop=None, for_order=None):
         while True:
-            token = random_pwd(5)
+            token = random_pwd(Constants.REVIEW_REQUEST_TOKEN_LENGTH)
             rrold = ReviewRequest.query.filter_by(token=token).first()
             if not rrold:
                 break

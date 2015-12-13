@@ -30,9 +30,8 @@ class TestOrder(TestModel):
     @freeze_time(testing_constants.ORDER_NOW)
     def test_set_email_notifications(self):
         # setup an order
-        # TODO: create tests for variable combination of these objects not being set
         order = models.Order.query.first()
-        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME)
+        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         user_buyer = models.User(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
         order.user = user_buyer
         user_shop_owner = models.User()
@@ -67,11 +66,10 @@ class TestOrder(TestModel):
             self.assertEquals(task.status, 'SUCCESS')
             self.assertEquals(task.eta, date_parser.parse('2015-12-16 18:56:26'))
 
-    @expect_mail
     @freeze_time(testing_constants.ORDER_NOW)
     def test_set_email_notifications_no_buyer(self):
         order = models.Order.query.first()
-        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME)
+        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         user_buyer = None
         order.user = user_buyer
         user_shop_owner = models.User()
@@ -86,14 +84,11 @@ class TestOrder(TestModel):
         # The results from the asynchronous tasks are executed immediately
         with self.assertRaises(DbException):
             order.set_notifications()
-        self.assertEquals(len(self.outbox), 0)
 
-
-    @expect_mail
     @freeze_time(testing_constants.ORDER_NOW)
     def test_set_email_notifications_no_shop(self):
         order = models.Order.query.first()
-        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME)
+        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         user_buyer = models.User(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
         order.user = user_buyer
         user_shop_owner = models.User()
@@ -107,9 +102,7 @@ class TestOrder(TestModel):
         # The results from the asynchronous tasks are executed immediately
         with self.assertRaises(DbException):
             order.set_notifications()
-        self.assertEquals(len(self.outbox), 0)
 
-    @expect_mail
     @freeze_time(testing_constants.ORDER_NOW)
     def test_set_email_notifications_no_products_in_order(self):
         order = models.Order.query.first()
@@ -125,13 +118,11 @@ class TestOrder(TestModel):
         # The results from the asynchronous tasks are executed immediately
         with self.assertRaises(DbException):
             order.set_notifications()
-        self.assertEquals(len(self.outbox), 0)
 
-    @expect_mail
     @freeze_time(testing_constants.ORDER_NOW)
     def test_set_email_notifications_no_shipment_timestamp(self):
         order = models.Order.query.first()
-        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME)
+        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         user_buyer = models.User(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
         order.user = user_buyer
         user_shop_owner = models.User()
@@ -145,13 +136,12 @@ class TestOrder(TestModel):
         # The results from the asynchronous tasks are executed immediately
         with self.assertRaises(DbException):
             order.set_notifications()
-        self.assertEquals(len(self.outbox), 0)
 
     @expect_mail
     @freeze_time(testing_constants.ORDER_NOW)
     def test_set_email_notifications_legacy_user(self):
         order = models.Order.query.first()
-        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME)
+        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         user_buyer = models.UserLegacy(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
         order.user_legacy = user_buyer
         user_shop_owner = models.User()
@@ -186,11 +176,10 @@ class TestOrder(TestModel):
             self.assertEquals(task.status, 'SUCCESS')
             self.assertEquals(task.eta, date_parser.parse('2015-12-16 18:56:26'))
 
-    @expect_mail
     @freeze_time(testing_constants.ORDER_NOW)
     def test_get_order_by_id(self):
         order = models.Order.query.first()
-        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME)
+        product = models.Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         user_buyer = models.User(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
         order.user = user_buyer
         user_shop_owner = models.User()
@@ -222,6 +211,23 @@ class TestOrder(TestModel):
         self.assertEquals(user_buyer.name, user.name)
         db.session.delete(user)
         db.session.commit()
+
+    def test_create_review_request_repeated_products(self):
+        order = models.Order.query.first()
+        user_shop_owner = models.User()
+        models.Customer(user=user_shop_owner)
+        shop = models.Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = user_shop_owner
+        order.shop = shop
+
+        product1 = models.Product(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        product2 = models.Product(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID_2)
+        # add the first product twice
+        order.products.append(product1)
+        order.products.append(product1)  # not a typo!
+        order.products.append(product2)
+        order.create_review_requests(order.id)
+        self.assertEquals(len(order.review_requests), 2)
 
     def tearDown(self):
         order = models.Order.query.first()
