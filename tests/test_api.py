@@ -2,7 +2,7 @@ import json
 import datetime
 from flask import url_for
 from freezegun import freeze_time
-from webapp.models import Review, Notification, User
+from webapp.models import Review, Notification, User, Customer, Product, Shop
 from tests import testing_constants
 from config import Constants
 from tests.framework import TestFlaskApplication, expect_mail
@@ -829,3 +829,8 @@ class TestAPI(TestFlaskApplication):
         self.assertRaises(ProcessingException)
         self.refresh_db()
         self.logout()
+
+
+    ###########ReviewRequest##############
+
+
