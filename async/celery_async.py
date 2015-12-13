@@ -19,9 +19,21 @@ def make_celery(app):
     return celery
 
 
-def schedule_task_at(task, kwargs, at_time):
+def schedule_task_at(task, kwargs, at_time, task_instance_id):
+    from async import tasks
+
     at_time_dt = datetime.datetime.strptime(at_time, '%Y-%m-%d %H:%M:%S') if at_time is type(str) else at_time
-    return task.apply_async(kwargs=kwargs, eta=at_time_dt)
+    kwargs['task'] = task
+    kwargs['task_instance_id'] = task_instance_id
+    return tasks.task_wrapper.apply_async(kwargs=kwargs, eta=at_time_dt)
+
+
+def delay_execute(task, kwargs, task_instance_id):
+    from async import tasks
+
+    kwargs['task'] = task
+    kwargs['task_instance_id'] = task_instance_id
+    return tasks.task_wrapper.apply_async(kwargs=kwargs)
 
 
 def get_task_async_result(task_id):
@@ -40,6 +52,7 @@ def get_revoked_tasks():
     :return:
     """
     from async.tasks import this_celery
+
     return this_celery.control.inspect().revoked().values()[0]
 
 
@@ -62,6 +75,7 @@ def get_scheduled_tasks():
     :return: A dict of task_id(string): task_eta(datetime.datetime)
     """
     from async.tasks import this_celery
+
     scheduled_only = []
     sch = this_celery.control.inspect().scheduled()
     if not sch:

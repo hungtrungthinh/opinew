@@ -7,7 +7,8 @@ from flask.ext.security import login_required, login_user, current_user, roles_r
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
-from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, Task
+from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
+    Task
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -119,7 +120,11 @@ def shopify_plugin_callback():
 
     # asyncronously create all products, orders and webhooks
     from async import tasks
-    tasks.create_shopify_shop.delay(shopify_api=shopify_api, shop_id=shop.id)
+
+    args = dict(shopify_api=shopify_api, shop_id=shop.id)
+    task = Task.create(method=tasks.create_shopify_shop, args=args)
+    db.session.add(task)
+    db.session.commit()
 
     # Login shop_user
     shop_owner = User.query.filter_by(id=shop_owner_id).first()
@@ -130,7 +135,6 @@ def shopify_plugin_callback():
 from flask.ext.security import user_registered
 
 user_registered.connect(User.post_registration_handler)
-
 
 
 @client.route('/')
@@ -262,7 +266,8 @@ def shop_dashboard_id(shop_id):
     review_request_form = ReviewRequestForm()
     platforms = Platform.query.all()
     plans = Plan.query.all()
-    expiry_days = (current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
+    expiry_days = (
+    current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
                            review_request_form=review_request_form, platforms=platforms,
                            plans=plans, expiry_days=expiry_days)
@@ -294,6 +299,7 @@ def shop_dashboard_reviews(shop_id):
     products = Product.query.filter_by(shop_id=shop_id).all()
     reviews = Review.query.filter(Review.product_id.in_([p.id for p in products])).all()
     return render_template("shop_admin/reviews.html", reviews=reviews)
+
 
 @client.route('/dashboard', defaults={'shop_id': 0})
 @client.route('/dashboard/<int:shop_id>/questions')
@@ -357,7 +363,7 @@ def get_plugin():
         if shop.owner and \
                 shop.owner.customer and \
                 shop.owner.customer[0] and \
-                (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and\
+                        (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
                 not shop.owner.customer[0].last4:
             return '', 404
 
@@ -444,7 +450,7 @@ def add_review():
                 ctx['is_legacy'] = True
     if 'user_email' in request.args:
         ctx['user_email'] = request.args.get('user_email')
-    #TODO what is this line below???
+    # TODO what is this line below???
     if 'product' not in ctx or not ctx['product']:
         ctx['products'] = Product.query.all()
     # Initialize forms
@@ -621,6 +627,7 @@ def send_notification(order_id):
         flash('Not your shop')
         return redirect('client.shop_dashboard')
     post = get_post_payload()
+    recipients = []
     if review_request.to_user:
         recipients = [review_request.to_user.email]
     elif review_request.to_user_legacy:
@@ -630,10 +637,13 @@ def send_notification(order_id):
     subject = post.get('subject')
     from async import tasks
 
-    tasks.send_email.delay(recipients=recipients,
-                               template=template,
-                               template_ctx=template_ctx,
-                               subject=subject)
+    args = dict(recipients=recipients,
+                template=template,
+                template_ctx=template_ctx,
+                subject=subject)
+    task = Task.create(method=tasks.send_email, args=args)
+    db.session.add(task)
+    db.session.commit()
     flash('email to %s sent' % recipients)
     return redirect(url_for('client.shop_dashboard'))
 
@@ -668,6 +678,7 @@ def admin_view_as():
 def admin_revoke_task():
     task_id = request.args.get('task_id')
     from async import celery_async
+
     celery_async.revoke_task(task_id)
     task = Task.query.filter_by(celery_uuid=task_id).first()
     if task:
