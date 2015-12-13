@@ -74,17 +74,42 @@
 
 {% if not current_user.is_authenticated() %}
     <br>
+    {%  if not user_name %}
     <div class="input-group">
         <span class="input-group-addon" id="basic-addon1">Name: </span>
         <input type="text" class="form-control" id="input-user-name" name="name"
                placeholder="Please type your name here"/>
     </div>
+    {% endif %}
     <br>
-    <div class="input-group">
+
+    {% if user_email %}
+        {% if is_legacy %}
+            <div class="input-group">
+                <span class="input-group-addon" id="basic-addon1">Email: </span>
+                <input type="email" class="form-control" id="input-user-email" name="email"
+                       placeholder="Please type your email here"/>
+
+            </div>
+        {% else %}
+            <div class="input-group">
+                <span class="input-group-addon" id="basic-addon1">Email: </span>
+                <input type="email" class="form-control" id="input-user-email" name="email"
+                   placeholder="Please type your email here" value="{{ user_email }}"/>
+            </div>
+            <br>
+            <div class="input-group">
+                <span class="input-group-addon" id="basic-addon1">Password: </span>
+                <input type="password" class="form-control" id="input-user-password" name="password"/>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="input-group">
         <span class="input-group-addon" id="basic-addon1">Email: </span>
-        <input type="email" class="form-control" id="input-user-email" name="email"
+            <input type="email" class="form-control" id="input-user-email" name="email"
                placeholder="Please type your email here"/>
-    </div>
+        </div>
+    {% endif %}
     <br>
     <div class="g-recaptcha" data-sitekey="6LdafxETAAAAABCLBbhvuRX-qhgJH8SJOCOPf5-C"></div>
     <br>

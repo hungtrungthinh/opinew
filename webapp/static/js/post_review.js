@@ -94,6 +94,9 @@ $('#submit-review-form').bind('click', function (e) {
   if ($('#input-user-email')) {
     formData['user_email'] = $('#input-user-email').val();
   }
+  if ($('#input-user-password')) {
+    formData['user_password'] = $('#input-user-password').val();
+  }
 
   $.ajax({
     type: $form.attr('method'),

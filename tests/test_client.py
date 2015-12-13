@@ -51,7 +51,7 @@ class TestClient(TestFlaskApplication):
     def test_shopify_install_redirect(self):
         response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
                                                                             'shop': testing_constants.NEW_SHOP_DOMAIN})
-        location_expected = 'https://opinew-testing.myshopify.com/admin/oauth/authorize?client_id=7260cb38253b9adc4af0c90eb622f4ce&scope=read_products,read_orders,read_fulfillments&redirect_uri=http://localhost:5000/oauth/callback&state=opinew-testing'
+        location_expected = 'https://opinewTesting.myshopify.com/admin/oauth/authorize?client_id=7260cb38253b9adc4af0c90eb622f4ce&scope=read_products,read_orders,read_fulfillments&redirect_uri=http://localhost:5000/oauth/callback&state=opinewTesting'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
@@ -87,7 +87,7 @@ class TestClient(TestFlaskApplication):
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_signature(self):
-        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinewTesting',
                                                                                    'hmac': 'fdsa',
                                                                                    'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                                    'code': 'abc'})
@@ -95,7 +95,7 @@ class TestClient(TestFlaskApplication):
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_hmac_wrong(self):
-        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
+        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinewTesting',
                                                                                    'hmac': 'fdsa',
                                                                                    'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                                    'code': 'abc',
@@ -472,8 +472,10 @@ class TestClient(TestFlaskApplication):
 
     @freeze_time(testing_constants.ORDER_NOW)
     def test_shopify_fulfill_order(self):
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME)
         order = Order(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID,
-                      shop_id=testing_constants.SHOPIFY_SHOP_ID)
+                      shop_id=testing_constants.SHOPIFY_SHOP_ID, user=self.reviewer_user)
+        order.products.append(product)
         db.session.add(order)
         db.session.commit()
         data = json.dumps({

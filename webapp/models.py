@@ -54,13 +54,20 @@ def schedule_email_task(order_id, notify_dt):
     if not order.review_requests:
         return None
     from async import celery_async, tasks
+
     if order.user:
         recipients = [order.user.email]
-    else:
+        user_name = order.user.name
+    elif order.user_legacy:
         recipients = [order.user_legacy.email] if order.user_legacy else []
+        user_name = order.user_legacy.name if order.user_legacy else ""
+    else:
+        return None
     template = Constants.DEFAULT_REVIEW_EMAIL_TEMPLATE
     template_ctx = order.build_review_email_context()
-    subject = Constants.DEFAULT_REVIEW_SUBJECT % order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
+    shop_name = order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
+    subject = Constants.DEFAULT_REVIEW_SUBJECT % (user_name.split()[0], shop_name)
+
     args = dict(recipients=recipients,
                 template=template,
                 template_ctx=template_ctx,
@@ -428,7 +435,7 @@ class Notification(db.Model):
     @classmethod
     def create(cls, for_user, token, for_product=None, for_shop=None):
         if for_product:
-            n_message = 'We hope you love your new <b>%s</b>. <br> Could do you like it?' % for_product.name
+            n_message = 'We hope you love your new <b>%s</b>. <br> Could do you review it?' % for_product.name
         elif for_shop:
             n_message = 'Thank you for shopping at <b>%s</b>. How did you like the experience?' % for_shop.name
         else:
@@ -498,7 +505,8 @@ class Order(db.Model, Repopulatable):
     def build_review_email_context(self):
         return {
             'order': self,
-            'name': self.user.name if self.user else (self.user_legacy.name if self.user_legacy else ''),
+            'name': self.user.name.split()[0] if self.user else (self.user_legacy.name.split()[0] if self.user_legacy else ''),
+            'user_email': self.user,
             'shop_name': self.shop.name if self.shop else '',
             'review_requests': [{'token': rr.token, 'product_name': rr.for_product.name} for rr in
                                 self.review_requests],
@@ -515,6 +523,8 @@ class Order(db.Model, Repopulatable):
 
     def set_notifications(self):
         # Notify timestamp = shipment + 7
+        if self.shipment_timestamp is None:
+            raise DbException(message="Shipment timestamp is None for this order: %d" % self.id, status_code=400)
         notify_dt = self.shipment_timestamp + datetime.timedelta(days=Constants.DIFF_SHIPMENT_NOTIFY)
         self.to_notify_timestamp = notify_dt
 
@@ -522,9 +532,16 @@ class Order(db.Model, Repopulatable):
         now = datetime.datetime.utcnow()
         if now > self.to_notify_timestamp:
             return
+
+        if self.user is None and self.user_legacy is None:
+            raise DbException(message="No user associated with this order: %d" % self.id, status_code=400)
+        if self.shop is None:
+            raise DbException(message="No shop associated with this order: %d" % self.id, status_code=400)
+        if self.products is None or len(self.products) < 1:
+            raise DbException(message="No products associated with this order: %d" % self.id, status_code=400)
         order_id = self.id
         create_review_requests(order_id=order_id)
-        task_notify = schedule_notification_task(order_id=order_id , notify_dt=notify_dt)
+        task_notify = schedule_notification_task(order_id=order_id, notify_dt=notify_dt)
         task_email = schedule_email_task(order_id=order_id, notify_dt=notify_dt)
 
         db.session.add(self)
@@ -549,13 +566,13 @@ class Order(db.Model, Repopulatable):
         db.session.commit()
 
     def cancel_review(self):
-        self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
         for task in self.tasks:
             from async import celery_async
             if task:
                 celery_async.revoke_task(task.celery_uuid)
                 task.status = 'REVOKED'
                 db.session.add(task)
+        self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
         db.session.commit()
 
 

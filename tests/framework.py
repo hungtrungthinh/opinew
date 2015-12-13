@@ -130,6 +130,13 @@ class TestModel(TestCase):
         self.exit(self.mgr, None, None, None)
 
     @classmethod
+    def refresh_db(self):
+        db.session.remove()
+        db.drop_all()
+        db.create_all()
+        db.engine.dialect.supports_sane_multi_rowcount = False
+
+    @classmethod
     def tearDownClass(cls):
         db.session.remove()
         db.drop_all()

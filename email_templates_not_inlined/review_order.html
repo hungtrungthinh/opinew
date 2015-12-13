@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>{{ subject }}</title>
+    <meta name="viewport" content="width=device-width"/>
+
+    <!-- For development, pass document through inliner -->
+     <link rel="stylesheet" href="css/simple.css">
+    <!-- Put your css below here after you are done developing  -->
+    <style type="text/css">
+
+    </style>
+</head>
+<body>
+      <div class="preheader" style="display: none !important; visibility: hidden; opacity: 0; height: 0; width: 0;">
+Make a review and we'll help you spread the word!😄 &zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+<table class="body-wrap">
+    <tr>
+        <td class="container">
+
+            <table>
+                <tr>
+                    <td class="content">
+
+                        <h2>Hi {{ name if name else '' }},</h2>
+
+                        <p>What do you think about the products you recently bought from <b>{{ shop_name if shop_name else g.constants.DEFAULT_SHOP_NAME }}</b>?
+                    Your review will be very helpful because there are people out there thinking about buying the same things.
+                 <br /><br />Just click on the things you'd like to review:</p>
+
+                        <table>
+                        {% for review_request in review_requests %}
+                            <tr>
+                                <td align="center">
+                                    <p>
+                                        <!--[if !mso]--><a href="http://localhost:5000/{{ review_request.token }}" class="button" target="_blank">
+                                        {{ review_request.product_name if  review_request.product_name else g.constants.DEFAULT_PRODUCT_NAME }}
+                                        </a><!--[endif]-->
+                                        <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="http://localhost:5000/{{ review_request.token }}" style="width:258px" arcsize="7%" fillcolor="#1C9298" stroke="f"><v:textbox style="mso-fit-shape-to-text:t" inset="0px,12px,0px,11px"><center style="font-size:14px;line-height:24px;color:#FFFFFF;font-family:sans-serif;font-weight:700;mso-line-height-rule:exactly;mso-text-raise:4px">{{ review_request.product_name if  review_request.product_name else g.constants.DEFAULT_PRODUCT_NAME }}</center></v:textbox></v:roundrect><![endif]-->
+                                    </p>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </table>
+
+                        <p>Afterwards you'll be able to see how many people have seen and liked your reviews! Just log into your Opinew at <a href="https://www.opinew.com">www.opinew.com</a><br /><br />
+                			Thanks for participating,<br />
+                        	<b>Team Opinew</b>
+                        </p>
+
+                    </td>
+                </tr>
+            </table>
+
+        </td>
+    </tr>
+    <tr>
+        <td class="container">
+
+            <table>
+                <tr>
+                    <td class="content footer" align="center">
+                    </td>
+                </tr>
+            </table>
+
+        </td>
+    </tr>
+</table>
+</body>
+</html>
