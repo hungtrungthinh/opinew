@@ -14,6 +14,7 @@ this_celery = make_celery(app)
 def add_together(a, b):
     return a + b
 
+
 @this_celery.task()
 def delete(a, b):
     # used for testing failing tasks like division/0
@@ -97,7 +98,8 @@ def create_shopify_shop(shopify_api, shop_id):
             if product:
                 order.products.append(product)
             else:
-                variant = models.ProductVariant.query.filter_by(platform_variant_id=str(product_j.get('variant_id'))).first()
+                variant = models.ProductVariant.query.filter_by(
+                    platform_variant_id=str(product_j.get('variant_id'))).first()
                 if not variant:
                     continue
                 order.products.append(variant.product)
@@ -112,8 +114,18 @@ def update_orders():
     for shop in shops:
         magento_api.init(shop)
 
+
 @this_celery.task()
 def notify_for_review(order_id, *args, **kwargs):
     order = models.Order.query.filter_by(id=order_id).first()
     if order:
         order.notify()
+
+
+@this_celery.task
+def task_wrapper(task, task_instance_id, **kwargs):
+    task(**kwargs)
+    task_instance = models.Task.query.filter_by(id=task_instance_id).first()
+    task_instance.status = 'SUCCESS'
+    db.session.add(task_instance)
+    db.session.commit()
