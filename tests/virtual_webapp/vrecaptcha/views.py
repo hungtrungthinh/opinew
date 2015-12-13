@@ -1,6 +1,7 @@
-from flask import jsonify, current_app
-from webapp.vrecaptcha import vrecaptcha
-from webapp.common import get_post_payload, param_required
+from flask import jsonify
+
+from tests.virtual_webapp.vrecaptcha import vrecaptcha
+from webapp.common import get_post_payload
 from tests import testing_constants
 import sensitive
 

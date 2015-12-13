@@ -1,4 +1,5 @@
 import datetime
+from flask import current_app
 from webapp import models, db
 from magento import MagentoAPI
 from config import Constants
@@ -16,7 +17,11 @@ class API(object):
     }
 
     def __init__(self, domain, username, password, port=80):
-        self.magento = MagentoAPI(domain, port, username, password)
+        if current_app.config.get('TESTING'):
+            from tests.virtual_webapp.vmagento.fake_api import FakeMagentoAPI
+            self.magento = FakeMagentoAPI()
+        else:
+            self.magento = MagentoAPI(domain, port, username, password)
 
     def create_new_order(self, morder, shop_id):
         platform_order_id = morder.get('order_id')
@@ -43,8 +48,8 @@ class API(object):
             if product and product not in order.products:
                 order.products.append(product)
 
-        if len(order.products) < 1:
-            raise MagentoException(message="No products connected to this order", status_code=400)
+        # if len(order.products) < 1:
+        #     raise MagentoException(message="No products connected to this order", status_code=400)
 
         return order
 

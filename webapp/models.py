@@ -418,6 +418,12 @@ class Task(db.Model):
         task_instance.status = celery_task.status
         return task_instance
 
+    def revoke(self):
+        from async import celery_async
+        if self.celery_uuid:
+            celery_async.revoke_task(self.celery_uuid)
+        self.status = Constants.TASK_STATUS_REVOKED
+
 
 class Order(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -589,11 +595,8 @@ class Order(db.Model, Repopulatable):
 
     def cancel_review(self):
         for task in self.tasks:
-            from async import celery_async
-
             if task:
-                celery_async.revoke_task(task.celery_uuid)
-                task.status = 'REVOKED'
+                task.revoke()
                 db.session.add(task)
         self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
         db.session.commit()

@@ -1,5 +1,6 @@
 from flask import jsonify
-from webapp.vshopify import vshopify
+
+from tests.virtual_webapp.vshopify import vshopify
 from tests import testing_constants
 from webapp.common import get_post_payload
 

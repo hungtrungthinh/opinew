@@ -69,6 +69,9 @@ class Constants(object):
 
     MAX_BODY_LENGTH = 300
 
+    TASK_STATUS_SUCCESS = 'SUCCESS'
+    TASK_STATUS_REVOKED = 'REVOKED'
+
     VIRTUAL_SERVER_PORT = 5678
     VIRTUAL_SERVER = 'http://localhost:%s' % VIRTUAL_SERVER_PORT
 

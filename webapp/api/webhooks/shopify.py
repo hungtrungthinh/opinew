@@ -171,12 +171,13 @@ def platform_shopify_app_uninstalled():
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
+    shop.access_token = None
+    db.session.add(shop)
+
     # revoke tasks
-    from async import celery_async
     for order in shop.orders:
         for task in order.tasks:
-            celery_async.revoke_task(task.celery_id)
-            task.status = 'REVOKED'
+            task.revoke()
             db.session.add(task)
     db.session.commit()
     return jsonify({}), 200

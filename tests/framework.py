@@ -1,14 +1,16 @@
 import os
-import requests
 from unittest import TestCase
+import threading
+
+import requests
+from flask import Flask, request, jsonify
+
 import webapp
 from webapp import db, common, mail
 from webapp.models import User, Role
 from config import Constants, basedir
 import sensitive
 from repopulate import import_tables
-import threading
-from flask import Flask, request, jsonify
 
 app = webapp.create_app('testing')
 
@@ -147,10 +149,10 @@ class VirtualServerManager(object):
 
     def start(self):
         # Start a virtual server on port 5678
-        from webapp.vshopify import vshopify
-        from webapp.vstripe import vstripe
-        from webapp.vrecaptcha import vrecaptcha
-        from webapp.vgiphy import vgiphy
+        from tests.virtual_webapp.vshopify import vshopify
+        from tests.virtual_webapp.vstripe import vstripe
+        from tests.virtual_webapp.vrecaptcha import vrecaptcha
+        from tests.virtual_webapp.vgiphy import vgiphy
 
         vserver_app = Flask(__name__)
         vserver_app.register_blueprint(vshopify, url_prefix='/vshopify')

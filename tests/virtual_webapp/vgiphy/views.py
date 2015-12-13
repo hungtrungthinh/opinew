@@ -1,5 +1,6 @@
 from flask import jsonify
-from webapp.vgiphy import vgiphy
+
+from tests.virtual_webapp.vgiphy import vgiphy
 
 
 @vgiphy.route('/search')

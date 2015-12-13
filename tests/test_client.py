@@ -496,6 +496,42 @@ class TestClient(TestFlaskApplication):
         db.session.delete(order)
         db.session.commit()
 
+    @expect_mail
+    def test_shopify_uninstall_app(self):
+        shop = Shop.query.filter_by(id=testing_constants.SHOPIFY_SHOP_ID).first()
+        shop.owner = self.shop_owner_user
+        product = Product(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
+                          name=testing_constants.NEW_PRODUCT_NAME,
+                          shop_id=testing_constants.SHOPIFY_SHOP_ID)
+        order = Order(user_id=1, shop_id=testing_constants.SHOPIFY_SHOP_ID)
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+        order.ship()
+        order.set_notifications()
+        # emails are sent automatically anyway, just check it happened
+        self.assertEquals(len(self.outbox), 1)
+        data = json.dumps({})
+        sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
+        response_actual = self.desktop_client.post(url_for('api.platform_shopify_app_uninstalled'),
+                                                   data=data,
+                                                   headers={
+                                                       'X-Shopify-Hmac-SHA256': sha256,
+                                                       'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+        self.assertEquals(response_actual.status_code, 200)
+        shop = Shop.query.filter_by(id=testing_constants.SHOPIFY_SHOP_ID).first()
+        self.assertIsNone(shop.access_token)
+
+        # make sure tasks are revoked
+        self.assertEquals(len(shop.orders), 1)
+        for order in shop.orders:
+            self.assertEquals(len(order.tasks), 2)
+            for task in order.tasks:
+                self.assertEquals(task.status, Constants.TASK_STATUS_REVOKED)
+        db.session.delete(order)
+        db.session.delete(product)
+        db.session.commit()
+
     def test_password_change_get(self):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/change")

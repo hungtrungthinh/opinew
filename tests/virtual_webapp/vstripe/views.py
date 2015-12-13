@@ -1,6 +1,6 @@
 from flask import jsonify
-from webapp.vstripe import vstripe
-from tests import testing_constants
+
+from tests.virtual_webapp.vstripe import vstripe
 
 
 @vstripe.route('/v1/customers', methods=['POST'])
