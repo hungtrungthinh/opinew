@@ -248,7 +248,6 @@ class TestAPI(TestFlaskApplication):
         self.assertTrue(testing_constants.NEW_REVIEW_BODY in response_actual.data)
         self.assertTrue(testing_constants.NEW_REVIEW_IMAGE_URL in response_actual.data)
         self.assertTrue(testing_constants.RENDERED_STARS in response_actual.data)
-        self.logout()
 
     @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
     def test_api_post_review_full_pipeline_EXISTING_USER_logged_in(self):
@@ -431,6 +430,7 @@ class TestAPI(TestFlaskApplication):
 
         self.assertEqual(response_actual.status_code, 201)
         self.helper_check_verified_review(response_actual)
+        self.logout()
 
     @expect_mail
     @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
@@ -480,6 +480,159 @@ class TestAPI(TestFlaskApplication):
 
         self.assertEqual(response_actual.status_code, 201)
         self.helper_check_verified_review(response_actual)
+        self.logout()
+
+
+    @expect_mail
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_api_post_review_full_pipeline_Legacy_User_POST_EMAIL_multiple_rev_requests_logged_in_after_1st_review(self):
+        """
+        Use case when:
+        We haven't posted a review before and this is the first time we receive the review request.
+        There is temporary LegacyUser in the db.
+        On posting of the review Opinew
+        1.deletes the LegacyUser,
+        2.creates a normal user and transfers the data(orders and review requests) from legacy user,
+        3. sends post-registration email,
+        4.logs user in
+        We have additional review_request_id and review_request_token parameters because of posting
+        from inside the email review request link with a token.
+        """
+        self.refresh_db()
+        legacy_user = UserLegacy(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
+        order = Order()
+        product1 = Product.get_by_id(1)
+        product2 = Product.get_by_id(2)
+        product1_id = product1.id
+        product2_id = product2.id
+        order.user_legacy = legacy_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product1.shop = shop
+        product2.shop = shop
+        order.shop = shop
+        order.products.append(product1)
+        order.products.append(product2)
+
+        #creates a review request and returns a token associated with it
+        review_request_token1 = ReviewRequest.create(to_user=legacy_user, from_customer=customer,
+                                                    for_product=product1, for_shop=shop, for_order=order)
+        review_request_token2 = ReviewRequest.create(to_user=legacy_user, from_customer=customer,
+                                                    for_product=product2, for_shop=shop, for_order=order)
+        review_request1 = ReviewRequest.query.filter_by(token=review_request_token1).first()
+
+        params1 = {"product_id": product1_id,
+                  "body": testing_constants.NEW_REVIEW_BODY,
+                  "star_rating": testing_constants.NEW_REVIEW_STARS,
+                  "image_url": testing_constants.NEW_REVIEW_IMAGE_URL,
+                  "g-recaptcha-response": testing_constants.RECAPTCHA_FAKE_PASS,
+                  "user_name": testing_constants.NEW_USER_NAME,
+                  "user_email": testing_constants.NEW_USER_EMAIL,
+                  "review_request_token": review_request_token1,
+                  "review_request_id": review_request1.id}
+        payload1 = json.dumps(params1)
+        response_actual = self.desktop_client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload1)
+        self.assertEqual(response_actual.status_code, 201)
+        self.helper_check_verified_review(response_actual)
+
+        review_request2 = ReviewRequest.query.filter_by(token=review_request_token2).first()
+        created_normal_user = User.get_by_email(testing_constants.NEW_USER_EMAIL)
+        ###SECOND review request link from the email
+        params2 = {"product_id": product2_id,
+                  "body": testing_constants.NEW_REVIEW_BODY,
+                  "star_rating": testing_constants.NEW_REVIEW_STARS,
+                  "image_url": testing_constants.NEW_REVIEW_IMAGE_URL,
+                  "review_request_token": review_request_token2,
+                  "review_request_id": review_request2.id}
+        payload2 = json.dumps(params2)
+        response_actual2 = self.desktop_client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload2)
+        self.assertEqual(response_actual2.status_code, 201)
+        self.logout()
+
+    @expect_mail
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_api_post_review_full_pipeline_Legacy_User_POST_EMAIL_multiple_rev_requests_logout_after_1st_review(self):
+        """
+        Use case when:
+        We haven't posted a review before and this is the first time we receive the review request.
+        There is temporary LegacyUser in the db.
+        On posting of the review Opinew
+        1.deletes the LegacyUser,
+        2.creates a normal user and transfers the data(orders and review requests) from legacy user,
+        3. sends post-registration email,
+        4.logs user in
+        We have additional review_request_id and review_request_token parameters because of posting
+        from inside the email review request link with a token.
+        """
+        self.refresh_db()
+        legacy_user = UserLegacy(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
+        order = Order()
+        product1 = Product.get_by_id(1)
+        product2 = Product.get_by_id(2)
+        product1_id = product1.id
+        product2_id = product2.id
+        order.user_legacy = legacy_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product1.shop = shop
+        product2.shop = shop
+        order.shop = shop
+        order.products.append(product1)
+        order.products.append(product2)
+
+        #creates a review request and returns a token associated with it
+        review_request_token1 = ReviewRequest.create(to_user=legacy_user, from_customer=customer,
+                                                    for_product=product1, for_shop=shop, for_order=order)
+        review_request_token2 = ReviewRequest.create(to_user=legacy_user, from_customer=customer,
+                                                    for_product=product2, for_shop=shop, for_order=order)
+        review_request1 = ReviewRequest.query.filter_by(token=review_request_token1).first()
+
+        params1 = {"product_id": product1_id,
+                  "body": testing_constants.NEW_REVIEW_BODY,
+                  "star_rating": testing_constants.NEW_REVIEW_STARS,
+                  "image_url": testing_constants.NEW_REVIEW_IMAGE_URL,
+                  "g-recaptcha-response": testing_constants.RECAPTCHA_FAKE_PASS,
+                  "user_name": testing_constants.NEW_USER_NAME,
+                  "user_email": testing_constants.NEW_USER_EMAIL,
+                  "review_request_token": review_request_token1,
+                  "review_request_id": review_request1.id}
+        payload1 = json.dumps(params1)
+        response_actual = self.desktop_client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload1)
+        self.assertEqual(response_actual.status_code, 201)
+        self.helper_check_verified_review(response_actual)
+        self.logout()
+
+        review_request2 = ReviewRequest.query.filter_by(token=review_request_token2).first()
+        created_normal_user = User.get_by_email(testing_constants.NEW_USER_EMAIL)
+        ###SECOND review request link from the email
+        params2 = {"product_id": product2_id,
+                  "body": testing_constants.NEW_REVIEW_BODY,
+                  "star_rating": testing_constants.NEW_REVIEW_STARS,
+                  "image_url": testing_constants.NEW_REVIEW_IMAGE_URL,
+                  "g-recaptcha-response": testing_constants.RECAPTCHA_FAKE_PASS,
+                  "user_name": created_normal_user.name,
+                  "user_email": created_normal_user.email,
+                  "user_password": created_normal_user.temp_password,
+                  "review_request_token": review_request_token2,
+                  "review_request_id": review_request2.id}
+        payload2 = json.dumps(params2)
+        response_actual2 = self.desktop_client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload2)
+        self.assertEqual(response_actual2.status_code, 201)
+        self.logout()
+
+
+
+
 
     def test_api_post_review_not_logged_no_name(self):
         params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
