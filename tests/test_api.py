@@ -621,7 +621,7 @@ class TestAPI(TestFlaskApplication):
     def test_post_order_by_shop_owner(self):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         time = str(datetime.datetime.utcnow())
-        payload = json.dumps({"shop_id": 2, "platform_order_id": 2,
+        payload = json.dumps({"shop_id": 2, "platform_order_id": '2',
                               "user_id": 2, "user_legacy_id": 2, "delivery_tracking_number": "1234",
                               "discount": "20%", "status": "PURCHASED",
                               "purchase_timestamp": time, "shipment_timestamp": time,
@@ -632,7 +632,7 @@ class TestAPI(TestFlaskApplication):
         self.assertEqual(response_actual.status_code, 201)
         response_json_dict = json.loads(response_actual.data)
         self.assertEqual(response_json_dict["shop_id"], 2)
-        self.assertEqual(response_json_dict["platform_order_id"], 2)
+        self.assertEqual(response_json_dict["platform_order_id"], '2')
         self.assertEqual(response_json_dict["user_id"], 2)
         self.assertEqual(response_json_dict["user_legacy_id"], 2)
         self.assertEqual(response_json_dict["discount"], "20%")

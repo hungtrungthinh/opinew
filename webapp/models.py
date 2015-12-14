@@ -428,7 +428,7 @@ class Task(db.Model):
 class Order(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
 
-    platform_order_id = db.Column(db.Integer)
+    platform_order_id = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("orders"))
@@ -634,7 +634,7 @@ class ReviewRequest(db.Model):
     token = db.Column(db.String)
 
     from_customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
-    from_customer = db.relationship('Customer')
+    from_customer = db.relationship('Customer', backref=db.backref('review_requests'))
 
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     to_user = db.relationship('User', backref=db.backref('review_requests'))

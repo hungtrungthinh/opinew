@@ -3,118 +3,118 @@ from flask import current_app
 from webapp import models, db
 from magento import MagentoAPI
 from config import Constants
-from webapp.exceptions import MagentoException
 
 
 class API(object):
     order_statuses = {
-        'processing': Constants.ORDER_STATUS_PURCHASED,
-        'pending_payment': Constants.ORDER_STATUS_PURCHASED,
-        'csv_pending_hosted_payment': Constants.ORDER_STATUS_PURCHASED,
-        'csv_paid': Constants.ORDER_STATUS_PURCHASED,
-        'complete': Constants.ORDER_STATUS_SHIPPED,
-        'csv_failed_hosted_payment': Constants.ORDER_STATUS_FAILED,
+        Constants.MAGENTO_STATUS_PROCESSING: Constants.ORDER_STATUS_PURCHASED,
+        Constants.MAGENTO_STATUS_PENDING_PAYMENT: Constants.ORDER_STATUS_PURCHASED,
+        Constants.MAGENTO_STATUS_CSV_PENDING_HOSTED_PAYMENT: Constants.ORDER_STATUS_PURCHASED,
+        Constants.MAGENTO_STATUS_CSV_PAID: Constants.ORDER_STATUS_PURCHASED,
+        Constants.MAGENTO_STATUS_COMPLETE: Constants.ORDER_STATUS_SHIPPED,
+        Constants.MAGENTO_STATUS_CSV_FAILED_HOSTED_PAYMENT: Constants.ORDER_STATUS_FAILED,
     }
 
-    def __init__(self, domain, username, password, port=80):
-        if current_app.config.get('TESTING'):
-            from tests.virtual_webapp.vmagento.fake_api import FakeMagentoAPI
-            self.magento = FakeMagentoAPI()
-        else:
-            self.magento = MagentoAPI(domain, port, username, password)
+    def __init__(self, domain=None, username=None, password=None, port=80):
+        from tests.virtual_webapp.vmagento.fake_api import FakeMagentoAPI
 
-    def create_new_order(self, morder, shop_id):
+        self.magento = FakeMagentoAPI() if current_app.config.get('TESTING') else MagentoAPI(domain, port, username,
+                                                                                             password)
+
+    def create_new_order(self, morder):
+        """
+        Create new order object from morder
+        :param morder: magento order object
+        :return:
+        """
         platform_order_id = morder.get('order_id')
+        mplatfrom_order_increment_id = morder.get('increment_id')
+        morder_created_at = datetime.datetime.strptime(morder.get('created_at'), '%Y-%m-%d %H:%M:%S')
+        morder_customer_email = morder.get('customer_email')
+        morder_billing_name = morder.get('billing_name')
+        morder_status = self.order_statuses.get(morder.get('status'), Constants.ORDER_STATUS_PURCHASED)
+
         order = models.Order(
             platform_order_id=platform_order_id,
-            status=self.order_statuses.get(morder.get('status'), Constants.ORDER_STATUS_PURCHASED),
-            purchase_timestamp=datetime.datetime.strptime(morder.get('created_at'), '%Y-%m-%d %H:%M:%S'),
-            shop_id=shop_id
+            status=morder_status,
+            purchase_timestamp=morder_created_at,
         )
         # create user or get one from our db
-        customer_email = morder.get('customer_email')
-        customer_name = morder.get('billing_name')
-        existing_user = models.User.get_by_email_no_exception(customer_email)
+        existing_user = models.User.get_by_email_no_exception(morder_customer_email)
         if existing_user:
             order.user = existing_user
         else:
-            user_legacy, _ = models.UserLegacy.get_or_create_by_email(customer_email, name=customer_name)
+            user_legacy, _ = models.UserLegacy.get_or_create_by_email(morder_customer_email, name=morder_billing_name)
             order.user_legacy = user_legacy
 
         # get the products for this order
-        mproducts = self.magento.sales_order.info(morder.get('increment_id')).get('items', [])
+        mproducts = self.magento.sales_order.info(mplatfrom_order_increment_id).get('items', [])
         for mproduct in mproducts:
             product = models.Product.query.filter_by(platform_product_id=mproduct.get('sku')).first()
             if product and product not in order.products:
                 order.products.append(product)
-
-        # if len(order.products) < 1:
-        #     raise MagentoException(message="No products connected to this order", status_code=400)
-
         return order
 
-    def create_new_orders(self, morders, last_order_id, shop_id):
-        orders = []
-        for morder in morders:
-            # check if this morder is newer than the latest we have in our db
-            if int(morder.get('order_id', 0)) <= last_order_id:
-                continue
-            order = self.create_new_order(morder, shop_id)
-            orders.append(order)
-        return orders
-
-    def get_shipments_info(self, current_orders):
+    def get_shipments_info(self, earliest_purchase_day):
         rv_mshipments = {}
         mshipments = self.magento.sales_order_shipment.list()
         for mshipment in mshipments:
-            mshipment_details = self.magento.sales_order_shipment.info(mshipment.get('increment_id'))
-            mshipment_order_id = int(mshipment_details.get('order_id', 0))
-            if mshipment_order_id in [co.platform_order_id for co in current_orders]:
+            this_shipment_ts = datetime.datetime.strptime(mshipment.get('created_at'), '%Y-%m-%d %H:%M:%S')
+            if this_shipment_ts > earliest_purchase_day:
+                mshipment_details = self.magento.sales_order_shipment.info(mshipment.get('increment_id'))
+                mshipment_order_id = mshipment_details.get('order_id', '')
                 rv_mshipments[mshipment_order_id] = mshipment_details
         return rv_mshipments
 
-    def check_stalled_order(self, order):
-        # check for stalled order
-        purchase_dt = order.purchase_timestamp
-        now = datetime.datetime.utcnow()
-        diff = now - purchase_dt
-        if diff.days >= Constants.DIFF_PURCHASE_STALL:
-            order.status = Constants.ORDER_STATUS_STALLED
-        return order
-
     def update_order(self, morder, order, mshipment):
-        order.status = self.order_statuses.get(morder.get('status'), Constants.ORDER_STATUS_PURCHASED)
-        if not mshipment:
-            order = self.check_stalled_order(order)
-        else:
-            # shipment_timestamp
+        if order and mshipment:
+            order.status = self.order_statuses.get(morder.get('status'), Constants.ORDER_STATUS_PURCHASED)
             mshipment_ts = mshipment.get('created_at')
             shipment_dt = datetime.datetime.strptime(mshipment_ts, '%Y-%m-%d %H:%M:%S')
             order.ship(shipment_timestamp=shipment_dt)
             order.set_notifications()
         return order
 
-    def update_orders(self, morders, current_orders):
-        updated_orders = []
-        kv_morders = {}
+    def fetch_new_and_updated_orders(self, current_shop_orders, shop):
+        """
+        Gets newer and updated orders
+        :param current_shop_orders: list of current orders in the db
+        :return: list of new and updated orders
+        """
+        # Query the sales endpoint
+        morders = self.magento.sales_order.list()
+        new_and_updated_orders = []
+        current_purchased_shop_orders_dict = {o.platform_order_id: o for o in current_shop_orders if
+                                              o.status == Constants.ORDER_STATUS_PURCHASED}
+        order_by_purchase = sorted(current_purchased_shop_orders_dict.values(),
+                                   key=lambda x: getattr(x, 'purchase_timestamp'))
+        earliest_purchase_day = getattr(order_by_purchase[0], 'purchase_timestamp') if order_by_purchase else datetime.datetime(1970, 1, 1)
+        shipment_info = self.get_shipments_info(earliest_purchase_day)
 
-        # get shipments info
-        rv_mshipments = self.get_shipments_info(current_orders)
-
-        # creaate kv for quicker access
+        current_shop_orders_dict = {o.platform_order_id: o for o in current_shop_orders}
         for morder in morders:
-            kv_morders[int(morder.get('order_id'))] = morder
+            mplatfrom_order_id = morder.get('order_id')
+            if mplatfrom_order_id in current_purchased_shop_orders_dict and \
+                            mplatfrom_order_id in shipment_info:  # update order possibly
+                order = current_purchased_shop_orders_dict.get(mplatfrom_order_id)
+            elif mplatfrom_order_id not in current_shop_orders_dict:  # new order
+                order = self.create_new_order(morder)
+                order.shop = shop
+            else:
+                order = None
+            mshipment = shipment_info.get(mplatfrom_order_id)
+            order = self.update_order(morder, order, mshipment)
+            if order:
+                new_and_updated_orders.append(order)
+        return new_and_updated_orders
 
-        # update each order
-        for current_order in current_orders:
-            order_id = current_order.platform_order_id
-            morder = kv_morders.get(order_id, {})
-            mshipment = rv_mshipments.get(order_id, {})
-            updated_order = self.update_order(morder, current_order, mshipment)
-            updated_orders.append(updated_order)
-        return updated_orders
-
-    def update_products(self, mproducts, current_shop_products):
+    def fetch_new_and_updated_products(self, current_shop_products):
+        """
+        Gets newer and updated products
+        :param current_shop_products: list of current products in the db
+        :return: list of new and updated products
+        """
+        mproducts = self.magento.catalog_product.list()
         new_and_updated_products = []
         current_shop_products_dict = {p.platform_product_id: p for p in current_shop_products}
         for mproduct in mproducts:
@@ -124,29 +124,50 @@ class API(object):
             except:
                 continue
             mproduct_name = mproduct.get('name', None)
-            mproduct_active = True if mproduct_details['status'] == '1' else False
-            mproduct_description = mproduct_details['short_description']
-            mproduct_urlkey = mproduct_details['url_key']
-            if mplatform_product_id not in current_shop_products_dict:
-                new_product = models.Product(platform_product_id=mplatform_product_id)
+            mproduct_active = True if mproduct_details.get(
+                'status') == Constants.MAGENTO_PRODUCT_STATUS_AVAILABLE else False
+            mproduct_description = mproduct_details.get('short_description')
+            mproduct_urlkey = mproduct_details.get('url_key')
+            if mplatform_product_id in current_shop_products_dict:
+                # update product possibly
+                product = current_shop_products_dict.get(mplatform_product_id)
+                if not mproduct_name == product.name or \
+                        not mproduct_active == product.active or \
+                        not mproduct_description == product.short_description:
+                    product.name = mproduct_name
+                    product.active = mproduct_active
+                    product.short_description = mproduct_description
+                    new_and_updated_products.append(product)
+            else:  # new product
+                new_product = models.Product()
+                new_product.platform_product_id = mplatform_product_id
                 new_product.name = mproduct_name
                 new_product.active = mproduct_active
                 new_product.short_description = mproduct_description
                 new_and_updated_products.append(new_product)
                 new_product.urlkey = mproduct_urlkey
-            else:
-                product = current_shop_products_dict.get(mplatform_product_id)
-                if not product:
-                    continue
-                if not mproduct_name == product.name or \
-                    not mproduct_active == product.active or \
-                    not mproduct_description == product.short_description:
-                    product.name = mproduct_name
-                    product.active = mproduct_active
-                    product.short_description = mproduct_description
-                    new_and_updated_products.append(product)
         return new_and_updated_products
 
+
+def merge_products(shop, current_shop_products, new_and_updated_products):
+    """
+    Merge existing with new products
+    :param shop: the shop
+    :param current_shop_products: array of current product instances
+    :param new_and_updated_products:  array of new and updated instances
+    :return:
+    """
+    for p in new_and_updated_products:
+        if p not in current_shop_products:
+            # new product
+            p.shop = shop
+            if hasattr(p, 'urlkey'):
+                pu_1 = models.ProductUrl(product=p, url="%s/%s" % (shop.domain, p.urlkey))
+                pu_2 = models.ProductUrl(product=p, url="%s/(.)*%s" % (shop.domain, p.urlkey), is_regex=True)
+                db.session.add(pu_1)
+                db.session.add(pu_2)
+        db.session.add(p)
+    db.session.commit()
 
 
 def init(shop):
@@ -154,39 +175,17 @@ def init(shop):
 
     # Update products
     current_shop_products = models.Product.query.filter_by(shop_id=shop.id).all()
+    new_and_updated_products = api.fetch_new_and_updated_products(current_shop_products)
 
-    # Query the products endpoint
-    mproducts = api.magento.catalog_product.list()
-
-    # Merge
-    updated_products = api.update_products(mproducts, current_shop_products)
-    for p in updated_products:
-        p.shop = shop
-        if hasattr(p, 'urlkey'):
-            pu_1 = models.ProductUrl(product=p, url="%s/%s" % (shop.domain, p.urlkey))
-            pu_2 = models.ProductUrl(product=p, url="%s/(.)*%s" % (shop.domain, p.urlkey), is_regex=True)
-            db.session.add(pu_1)
-            db.session.add(pu_2)
-        db.session.add(p)
-    db.session.commit()
-
-    # Query the sales endpoint
-    morders = api.magento.sales_order.list()
+    # Merge products
+    merge_products(shop, current_shop_products, new_and_updated_products)
 
     # Create new orders
-    last_order = models.Order.query.filter_by(shop_id=shop.id).order_by(models.Order.platform_order_id.desc()).first()
-    new_orders = api.create_new_orders(morders, last_order.platform_order_id if last_order else 0, shop.id)
-    db.session.add_all(new_orders)
+    current_shop_orders = models.Order.query.filter_by(shop_id=shop.id).all()
+    new_and_updated_orders = api.fetch_new_and_updated_orders(current_shop_orders, shop)
 
-    # Flush to db
-    db.session.commit()
-
-    # Update orders that are waiting to be dispatched...
-    purchased_orders = models.Order.query.filter_by(shop_id=shop.id, status=Constants.ORDER_STATUS_PURCHASED).all()
-    shipped_orders = models.Order.query.filter_by(shop_id=shop.id, status=Constants.ORDER_STATUS_SHIPPED).all()
-    current_orders = purchased_orders + shipped_orders
-    updated_orders = api.update_orders(morders, current_orders)
-    db.session.add_all(updated_orders)
+    # Merge orders
+    db.session.add_all(new_and_updated_orders)
 
     # Flush to db
     db.session.commit()

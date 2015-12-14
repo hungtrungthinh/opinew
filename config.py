@@ -53,7 +53,6 @@ class Constants(object):
     ORDER_STATUS_REVIEWED = 'REVIEWED'
 
     ORDER_STATUS_FAILED = 'FAILED'
-    ORDER_STATUS_STALLED = 'STALLED'
     ORDER_STATUS_LEGACY = 'LEGACY'
     ORDER_STATUS_REVIEW_CANCELED = 'REVIEW_CANCELED'
 
@@ -62,7 +61,6 @@ class Constants(object):
     ORDER_ACTION_CANCEL_REVIEW = 'CANCEL_REVIEW'
 
     DIFF_SHIPMENT_NOTIFY = 14
-    DIFF_PURCHASE_STALL = 14
 
     DESKTOP_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36'
     MOBILE_USER_AGENT = 'Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_2_1 like Mac OS X; en-us) AppleWebKit/533.17.9 (KHTML, like Gecko) Version/5.0.2 Mobile/8C148 Safari/6533.18.5'
@@ -74,6 +72,16 @@ class Constants(object):
 
     VIRTUAL_SERVER_PORT = 5678
     VIRTUAL_SERVER = 'http://localhost:%s' % VIRTUAL_SERVER_PORT
+
+    MAGENTO_PRODUCT_STATUS_AVAILABLE = '1'
+    MAGENTO_PRODUCT_STATUS_NOT_AVAILABLE = '2'
+
+    MAGENTO_STATUS_PROCESSING = 'processing'
+    MAGENTO_STATUS_PENDING_PAYMENT = 'pending_payment'
+    MAGENTO_STATUS_CSV_PENDING_HOSTED_PAYMENT = 'csv_pending_hosted_payment'
+    MAGENTO_STATUS_CSV_PAID = 'csv_paid'
+    MAGENTO_STATUS_COMPLETE = 'complete'
+    MAGENTO_STATUS_CSV_FAILED_HOSTED_PAYMENT = 'csv_failed_hosted_payment'
 
 
 class Config(object):
