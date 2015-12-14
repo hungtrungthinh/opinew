@@ -79,16 +79,6 @@ def catch_exceptions(f):
     return wrapper
 
 
-def role_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if not current_user.is_authenticated() or not current_user.role == Constants.SHOP_OWNER_ROLE:
-            abort(401)
-        return f(*args, **kwargs)
-
-    return wrapper
-
-
 def reviewer_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):

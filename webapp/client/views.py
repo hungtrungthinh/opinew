@@ -8,7 +8,7 @@ from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
-    Task
+    Task, UserLegacy
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -163,6 +163,7 @@ def index():
 def get_by_review_request_token(review_request_token):
     review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
     user_email = None
+    is_legacy = False
     # all below logic is to decide whether to display the Name, Email and Password fields
     if review_request:
         if review_request.to_user:
@@ -173,10 +174,15 @@ def get_by_review_request_token(review_request_token):
                 pass  # we don't need to do anything. current user is logged in
             elif not current_user.is_authenticated():
                 user_email = review_request.to_user.email
+        elif review_request.to_user_legacy:
+            is_legacy = True
+            user_email = review_request.to_user_legacy.email  # set the email to the user that got the email.
+            if current_user.is_authenticated():
+                logout_user()
 
         return redirect(url_for('client.add_review', review_request_id=review_request.id,
                                 review_request_token=review_request.token,
-                                user_email=user_email, **request.args))
+                                user_email=user_email, is_legacy=is_legacy, **request.args))
     return redirect(url_for('client.index'))
 
 
@@ -575,7 +581,7 @@ def update_order():
     failure, delete = False, False
     if order.shop_id not in [s.id for s in shops]:
         flash('Not your shop')
-        failure = True
+        return redirect(url_for('client.shop_dashboard'))
     if state == Constants.ORDER_STATUS_SHIPPED:
         order.ship()
         db.session.add(order)
@@ -590,14 +596,15 @@ def update_order():
         order.cancel_review()
         db.session.add(order)
         flash('Canceled review on order %s' % order_id)
-    if state == Constants.ORDER_ACTION_DELETE:
+    elif state == Constants.ORDER_ACTION_DELETE:
         db.session.delete(order)
         flash('Deleted order %s' % order_id)
-    if not failure:
-        db.session.commit()
-        return redirect(url_for('client.shop_dashboard'))
-    flash('Invalid state %s' % state)
+    else:
+        flash('Invalid state %s' % state)
+
+    db.session.commit()
     return redirect(url_for('client.shop_dashboard'))
+
 
 
 @client.route('/review-notification', defaults={'order_id': None})
