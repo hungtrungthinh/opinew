@@ -181,16 +181,24 @@ class User(db.Model, UserMixin, Repopulatable):
                            confirmed_at=datetime.datetime.utcnow(),
                            **kwargs)
 
-            # Reassign the orders on legacy user:
-            if user_legacy:
-                for order in user_legacy.orders:
-                    order.user_legacy = None
-                    order.user = instance
-                db.session.delete(user_legacy)
-
             # Check the role for the new user
             if role_name == Constants.SHOP_OWNER_ROLE:
                 instance.is_shop_owner = True
+
+            # Reassign the orders and review requests on legacy user:
+            if user_legacy:
+                #reassign the review requests
+                review_requests = ReviewRequest.query.filter_by(to_user_legacy_id=user_legacy.id)
+                for review_request in review_requests:
+                    review_request.to_user = instance
+                    review_request.to_user_legacy = None
+
+                #reassign the orders
+                for order in user_legacy.orders:
+                    order.user_legacy = None
+                    order.user = instance
+
+                db.session.delete(user_legacy)
 
             # Handle creation of customer and roles
             User.post_registration_handler(user=instance)

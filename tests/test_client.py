@@ -852,3 +852,161 @@ class TestClient(TestFlaskApplication):
         self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("value=\""+testing_constants.NEW_USER_EMAIL+"\"" in response_actual.data.decode('utf-8'))
         self.logout()
+
+    def test_update_order_wrong_shop(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = None
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+
+        payload = {"order_id": order.id, "state": Constants.ORDER_ACTION_DELETE}
+        response_actual = self.desktop_client.post('/update-order', data=payload, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue('Not your shop' in response_actual.data.decode('utf-8'))
+        self.logout()
+
+    def test_update_order_not_logged_in(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+
+        payload = {"order_id": order.id, "state": Constants.ORDER_ACTION_DELETE}
+        response_actual = self.desktop_client.post('/update-order', data=payload, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue('You do not have permission to view this resource.' in response_actual.data.decode('utf-8'))
+
+    def test_update_order_as_reviewer(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+
+        payload = {"order_id": order.id, "state": Constants.ORDER_ACTION_DELETE}
+        response_actual = self.desktop_client.post('/update-order', data=payload, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue('You do not have permission to view this resource.' in response_actual.data.decode('utf-8'))
+        self.logout()
+
+    def test_update_order_shipped(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+
+        payload = {"order_id": order.id, "state": Constants.ORDER_STATUS_SHIPPED}
+        response_actual = self.desktop_client.post('/update-order', data=payload, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue('Shipped order %s' % order.id in response_actual.data.decode('utf-8'))
+        self.logout()
+
+    def test_update_order_notify(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+
+        payload = {"order_id": order.id, "state": Constants.ORDER_ACTION_NOTIFY}
+        response_actual = self.desktop_client.post('/update-order', data=payload, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue('Please review how the email(s) will look like and press <strong>Send</strong>' in response_actual.data.decode('utf-8'))
+        self.logout()
+
+    def test_update_order_cancel_review(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+
+        payload = {"order_id": order.id, "state": Constants.ORDER_ACTION_CANCEL_REVIEW}
+        response_actual = self.desktop_client.post('/update-order', data=payload, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue('Canceled review on order %s' % order.id in response_actual.data.decode('utf-8'))
+        self.logout()
+
+    def test_update_order_delete(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+
+        payload = {"order_id": order.id, "state": Constants.ORDER_ACTION_DELETE}
+        response_actual = self.desktop_client.post('/update-order', data=payload, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue('Deleted order %s' % order.id in response_actual.data.decode('utf-8'))
+        self.logout()
+
+    def test_update_order_wrong_state(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+
+        payload = {"order_id": order.id, "state": "BOGUS_STATE"}
+        response_actual = self.desktop_client.post('/update-order', data=payload, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue('Invalid state BOGUS_STATE' in response_actual.data.decode('utf-8'))
+        self.logout()

@@ -581,7 +581,7 @@ def update_order():
     failure, delete = False, False
     if order.shop_id not in [s.id for s in shops]:
         flash('Not your shop')
-        failure = True
+        return redirect(url_for('client.shop_dashboard'))
     if state == Constants.ORDER_STATUS_SHIPPED:
         order.ship()
         db.session.add(order)
@@ -596,14 +596,15 @@ def update_order():
         order.cancel_review()
         db.session.add(order)
         flash('Canceled review on order %s' % order_id)
-    if state == Constants.ORDER_ACTION_DELETE:
+    elif state == Constants.ORDER_ACTION_DELETE:
         db.session.delete(order)
         flash('Deleted order %s' % order_id)
-    if not failure:
-        db.session.commit()
-        return redirect(url_for('client.shop_dashboard'))
-    flash('Invalid state %s' % state)
+    else:
+        flash('Invalid state %s' % state)
+
+    db.session.commit()
     return redirect(url_for('client.shop_dashboard'))
+
 
 
 @client.route('/review-notification', defaults={'order_id': None})

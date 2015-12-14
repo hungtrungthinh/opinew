@@ -3,6 +3,8 @@ NEW_USER_EMAIL = 'test@test.test'
 NEW_USER_NAME = 'Test Test'
 NEW_USER_PWD = 'password'
 CHANGED_PASSWORD = 'something'
+USER_BOGUS_PWD = 'bogus'
+USER_BOGUS_EMAIL = 'bogus@bogus.bogus'
 
 NEW_PRODUCT_ID = 1
 NEW_PRODUCT_PLATFORM_ID = "26"

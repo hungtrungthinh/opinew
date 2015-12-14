@@ -154,7 +154,6 @@ def is_notification_by_user(instance_id, *args, **kwargs):
 def get_many_notifications_preprocessor(search_params, **kw):
     """Accepts a single argument, `search_params`, which is a dictionary
     containing the search parameters for the request.
-
     """
     search_params["filters"] = [{"name":"user_id", "op":"==", "val":current_user.id}]
 
@@ -212,10 +211,12 @@ def check_if_user_exists(data, *args, **kwargs):
 
     user, is_new = models.User.get_or_create_by_email(email=user_email, role_name=Constants.REVIEWER_ROLE, name=user_name)
     if not is_new:
+        #TODO maybe display a passwd field if user is not new?
         raise ProcessingException(description=ExceptionMessages.USER_EXISTS % user_email, code=401)
 
     db.session.add(user)
     db.session.commit()
+    login_user(user)
 
     del data['user_name']
     del data['user_email']
@@ -236,22 +237,15 @@ def login_user_if_possible(data, *args, **kwargs):
         password = data["user_password"]
         user = models.User.query.filter_by(email=email).first()
         if not user:
-            raise DbException('unknown user', 400)
+            raise ProcessingException(description='unauthorized', code=401)
         if not verify_password(password, user.password):
-            raise DbException('invalid password', 400)
+            raise ProcessingException(description='unauthorized', code=401)
         login_user(user)
         del data["user_password"]
         del data['user_name']
         del data['user_email']
 
 
-api_manager.create_api(models.Product,
-                       url_prefix=Constants.API_V1_URL_PREFIX,
-                       methods=['GET', 'POST', 'PATCH'],
-                       preprocessors={
-                           'POST': [del_csrf, req_shop_owner, pre_create_product],
-                           'PATCH_SINGLE': [del_csrf, req_shop_owner]
-                       }, )
 
 def pre_post_question(data, *args, **kwargs):
     if current_user and current_user.is_authenticated():
@@ -289,7 +283,7 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [del_csrf, check_recaptcha, check_if_user_exists, login_user_if_possible, is_verified_review],
+                           'POST': [del_csrf, check_recaptcha, login_user_if_possible, check_if_user_exists, is_verified_review],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.Review.exclude_fields(),
@@ -356,6 +350,14 @@ api_manager.create_api(models.Shop,
                        },
                        validation_exceptions=[DbException])
 
+api_manager.create_api(models.Product,
+                       url_prefix=Constants.API_V1_URL_PREFIX,
+                       methods=['GET', 'POST', 'PATCH'],
+                       preprocessors={
+                           'POST': [del_csrf, req_shop_owner, pre_create_product],
+                           'PATCH_SINGLE': [del_csrf, req_shop_owner]
+                       }, )
+
 api_manager.create_api(models.Question,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['POST'],
@@ -371,6 +373,7 @@ api_manager.create_api(models.Answer,
                            'POST': [del_csrf, req_shop_owner, pre_post_answer],
                        },
                        validation_exceptions=[DbException])
+
 
 @login_required
 @api.route('/token')

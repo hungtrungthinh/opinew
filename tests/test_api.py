@@ -2,7 +2,8 @@ import json
 import datetime
 from flask import url_for
 from freezegun import freeze_time
-from webapp.models import Review, Notification, User, Customer, Product, Shop
+from webapp.models import Review, Notification, User, Order,\
+    Customer, Product, Shop, ReviewRequest, UserLegacy
 from tests import testing_constants
 from config import Constants
 from tests.framework import TestFlaskApplication, expect_mail
@@ -213,8 +214,44 @@ class TestAPI(TestFlaskApplication):
         self.assertTrue(testing_constants.RENDERED_STARS in response_actual.data)
         self.logout()
 
+    def helper_check_verified_review(self, response_actual):
+        split_frozen_time = testing_constants.NEW_REVIEW_CREATED_TS.split('-')
+        frozen_time = datetime.datetime(int(split_frozen_time[0]), int(split_frozen_time[1]), int(split_frozen_time[2]))
+        # First, check if API response is good...
+        self.assertEquals(response_actual.status_code, 201)
+        jsonified_response = json.loads(response_actual.data)
+        self.assertTrue('body' in jsonified_response and
+                        unicode(testing_constants.NEW_REVIEW_BODY) == jsonified_response['body'])
+        self.assertTrue('star_rating' in jsonified_response and
+                        testing_constants.NEW_REVIEW_STARS == jsonified_response['star_rating'])
+        self.assertTrue('image_url' in jsonified_response and
+                        testing_constants.NEW_REVIEW_IMAGE_URL == jsonified_response['image_url'])
+        self.assertTrue('product_id' in jsonified_response and
+                        testing_constants.NEW_REVIEW_PRODUCT_ID == jsonified_response['product_id'])
+        self.assertTrue(jsonified_response['user'] is not None and 'password' not in jsonified_response['user'])
+
+        # Check if db records are fine and dandy...
+        review_id = jsonified_response['id']
+        review = Review.query.filter_by(id=review_id).first()
+        self.assertEquals(testing_constants.NEW_REVIEW_BODY, review.body)
+        self.assertEquals(testing_constants.NEW_REVIEW_STARS, review.star_rating)
+        self.assertEquals(testing_constants.NEW_REVIEW_IMAGE_URL, review.image_url)
+        self.assertFalse(review.approval_pending)
+        self.assertFalse(review.by_shop_owner)
+        self.assertTrue(review.verified_review)
+        self.assertEquals(frozen_time, review.created_ts)
+        self.assertTrue(review.approved_by_shop)
+
+        # Finally, check that what needs to be rendered, is rendered..
+        response_actual = self.desktop_client.get(url_for('client.get_product', product_id=1))
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue(testing_constants.NEW_REVIEW_BODY in response_actual.data)
+        self.assertTrue(testing_constants.NEW_REVIEW_IMAGE_URL in response_actual.data)
+        self.assertTrue(testing_constants.RENDERED_STARS in response_actual.data)
+        self.logout()
+
     @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
-    def test_api_post_review_full_pipeline(self):
+    def test_api_post_review_full_pipeline_EXISTING_USER_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
         params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
                   "body": testing_constants.NEW_REVIEW_BODY,
@@ -229,7 +266,7 @@ class TestAPI(TestFlaskApplication):
 
     @expect_mail
     @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
-    def test_api_post_review_full_pipeline_not_logged_in(self):
+    def test_api_post_review_full_pipeline_not_logged_in_NEW_USER(self):
         self.refresh_db()
         params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
                   "body": testing_constants.NEW_REVIEW_BODY,
@@ -252,6 +289,74 @@ class TestAPI(TestFlaskApplication):
         # self.assertTrue(testing_constants.NEW_PRODUCT_NAME in outbox[0].body)
         # self.assertTrue(testing_constants.NEW_SHOP_NAME in outbox[0].body)
         self.helper_check_review(response_actual)
+
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_api_post_review_full_pipeline_EXISTING_USER_not_logged_in(self):
+        self.refresh_db()
+        params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
+                  "body": testing_constants.NEW_REVIEW_BODY,
+                  "star_rating": testing_constants.NEW_REVIEW_STARS,
+                  "image_url": testing_constants.NEW_REVIEW_IMAGE_URL,
+                  "g-recaptcha-response": testing_constants.RECAPTCHA_FAKE_PASS,
+                  "user_name": self.reviewer_user.name,
+                  "user_email": self.reviewer_user.email,
+                  "user_password": self.reviewer_password}
+        payload = json.dumps(params)
+        response_actual = self.desktop_client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload)
+
+        #self.assertEquals(len(self.outbox), 0)
+        # TODO
+        # self.assertEquals(len(outbox[0].send_to), 1)
+        # self.assertEquals(outbox[0].send_to.pop(), testing_constants.NEW_USER_EMAIL)
+        # self.assertEquals(outbox[0].subject, Constants.DEFAULT_NEW_REVIEWER_SUBJECT)
+        # self.assertTrue(testing_constants.NEW_USER_NAME in outbox[0].body)
+        # self.assertTrue(testing_constants.NEW_PRODUCT_NAME in outbox[0].body)
+        # self.assertTrue(testing_constants.NEW_SHOP_NAME in outbox[0].body)
+        self.helper_check_review(response_actual)
+
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_api_post_review_full_pipeline_EXISTING_USER_not_logged_in_bad_passwd(self):
+        self.refresh_db()
+        params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
+                  "body": testing_constants.NEW_REVIEW_BODY,
+                  "star_rating": testing_constants.NEW_REVIEW_STARS,
+                  "image_url": testing_constants.NEW_REVIEW_IMAGE_URL,
+                  "g-recaptcha-response": testing_constants.RECAPTCHA_FAKE_PASS,
+                  "user_name": self.reviewer_user.name,
+                  "user_email": self.reviewer_user.email,
+                  "user_password": testing_constants.USER_BOGUS_PWD}
+        payload = json.dumps(params)
+        response_actual = self.desktop_client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload)
+
+        self.assertEqual(response_actual.status_code, 401)
+        jsonified_response = json.loads(response_actual.data)
+        expected_response = {'message': 'unauthorized'}
+        self.assertEquals(jsonified_response, expected_response)
+
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_api_post_review_full_pipeline_EXISTING_USER_not_logged_in_bad_username(self):
+        self.refresh_db()
+        params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
+                  "body": testing_constants.NEW_REVIEW_BODY,
+                  "star_rating": testing_constants.NEW_REVIEW_STARS,
+                  "image_url": testing_constants.NEW_REVIEW_IMAGE_URL,
+                  "g-recaptcha-response": testing_constants.RECAPTCHA_FAKE_PASS,
+                  "user_name": self.reviewer_user.name,
+                  "user_email": testing_constants.USER_BOGUS_EMAIL,
+                  "user_password": self.reviewer_password}
+        payload = json.dumps(params)
+        response_actual = self.desktop_client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload)
+
+        self.assertEqual(response_actual.status_code, 401)
+        jsonified_response = json.loads(response_actual.data)
+        expected_response = {'message': 'unauthorized'}
+        self.assertEquals(jsonified_response, expected_response)
 
     def test_api_post_review_not_logged_in_no_recaptcha(self):
         params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
@@ -285,6 +390,96 @@ class TestAPI(TestFlaskApplication):
         jsonified_response = json.loads(response_actual.data)
         expected_response = {'message': ExceptionMessages.CAPTCHA_FAIL}
         self.assertEquals(jsonified_response, expected_response)
+
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_api_post_review_full_pipeline_EXISTING_USER_not_logged_in_POST_EMAIL(self):
+        """
+        Use case when we post the review after clicking thorough from the email
+        review request. We have additional review_request_id and review_request_token
+        parameters
+        """
+        self.refresh_db()
+        order = Order()
+        product = Product.get_by_id(1)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+
+        #creates a review request and returns a token associated with it
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                           for_product=product, for_shop=shop, for_order=order)
+        review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
+
+        params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
+                  "body": testing_constants.NEW_REVIEW_BODY,
+                  "star_rating": testing_constants.NEW_REVIEW_STARS,
+                  "image_url": testing_constants.NEW_REVIEW_IMAGE_URL,
+                  "g-recaptcha-response": testing_constants.RECAPTCHA_FAKE_PASS,
+                  "user_name": self.reviewer_user.name,
+                  "user_email": self.reviewer_user.email,
+                  "user_password": self.reviewer_password,
+                  "review_request_token": review_request_token,
+                  "review_request_id": review_request.id}
+        payload = json.dumps(params)
+        response_actual = self.desktop_client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload)
+
+        self.assertEqual(response_actual.status_code, 201)
+        self.helper_check_verified_review(response_actual)
+
+    @expect_mail
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_api_post_review_full_pipeline_Legacy_User_POST_EMAIL(self):
+        """
+        Use case when:
+        We haven't posted a review before and this is the first time we receive the review request.
+        There is temporary LegacyUser in the db.
+        On posting of the review Opinew
+        1.deletes the LegacyUser,
+        2.creates a normal user and transfers the data(orders and review requests) from legacy user,
+        3. sends post-registration email,
+        4.logs user in
+        We have additional review_request_id and review_request_token parameters because of posting
+        from inside the email review request link with a token.
+        """
+        self.refresh_db()
+        legacy_user = UserLegacy(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
+        order = Order()
+        product = Product.get_by_id(1)
+        order.user_legacy = legacy_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+
+        #creates a review request and returns a token associated with it
+        review_request_token = ReviewRequest.create(to_user=legacy_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
+
+        params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
+                  "body": testing_constants.NEW_REVIEW_BODY,
+                  "star_rating": testing_constants.NEW_REVIEW_STARS,
+                  "image_url": testing_constants.NEW_REVIEW_IMAGE_URL,
+                  "g-recaptcha-response": testing_constants.RECAPTCHA_FAKE_PASS,
+                  "user_name": legacy_user.name,
+                  "user_email": legacy_user.email,
+                  "review_request_token": review_request_token,
+                  "review_request_id": review_request.id}
+        payload = json.dumps(params)
+        response_actual = self.desktop_client.post("/api/v1/review",
+                                           headers={'content-type': 'application/json'},
+                                           data=payload)
+
+        self.assertEqual(response_actual.status_code, 201)
+        self.helper_check_verified_review(response_actual)
 
     def test_api_post_review_not_logged_no_name(self):
         params = {"product_id": testing_constants.NEW_REVIEW_PRODUCT_ID,
@@ -831,6 +1026,6 @@ class TestAPI(TestFlaskApplication):
         self.logout()
 
 
-    ###########ReviewRequest##############
+    ###########ReviewRequest############
 
 
