@@ -631,7 +631,7 @@ class TestClient(TestFlaskApplication):
         db.session.add(self.shop_owner_user)
         db.session.commit()
 
-    def test_display_add_review_screen(self):
+    def test_display_post_email_add_review_screen(self):
         order = Order()
         product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         order.user = self.reviewer_user
@@ -651,7 +651,7 @@ class TestClient(TestFlaskApplication):
         self.logout()
 
 
-    def test_display_add_review_screen_by_token_in_query_param(self):
+    def test_display_post_email_add_review_screen_by_token_in_query_param(self):
         order = Order()
         product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         order.user = self.reviewer_user
@@ -668,10 +668,50 @@ class TestClient(TestFlaskApplication):
         self.login(self.reviewer_user.email, self.reviewer_password)
         response_actual = self.desktop_client.get("/", query_string=dict(review_request_token=review_request_token))
         self.assertEqual(response_actual.status_code, 302)
-
         self.logout()
 
-    def test_display_add_review_screen_template_text_reviewer_logged_in_NORMAL_USER(self):
+    def test_display_post_email_add_review_screen_bad_token(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+
+        review_request_token = "BOGUSTOKEN"
+
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.desktop_client.get("/" + review_request_token, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue(self.reviewer_user.name in response_actual.data.decode('utf-8'))
+        self.assertFalse("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
+        self.logout()
+
+    def test_display_post_email_add_review_screen_bad_token_not_logged_in(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+
+        review_request_token = "BOGUSTOKEN"
+
+
+        response_actual = self.desktop_client.get("/" + review_request_token, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertFalse(self.reviewer_user.name in response_actual.data.decode('utf-8'))
+        self.assertTrue('<h1>Opinew - Photo Product Reviews</h1>' in response_actual.data.decode('utf-8'))
+        self.assertFalse("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
+
+
+    def test_display_post_email_add_review_screen_template_text_reviewer_logged_in_NORMAL_USER(self):
         order = Order()
         product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         order.user = self.reviewer_user
@@ -699,7 +739,7 @@ class TestClient(TestFlaskApplication):
         self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
         self.logout()
 
-    def test_display_add_review_screen_template_text_reviewer_not_logged_in_NORMAL_USER(self):
+    def test_display_post_email_add_review_screen_template_text_reviewer_not_logged_in_NORMAL_USER(self):
         order = Order()
         product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
         order.user = self.reviewer_user
@@ -726,7 +766,36 @@ class TestClient(TestFlaskApplication):
         self.assertTrue("value=\""+self.reviewer_user.email+"\"" in response_actual.data.decode('utf-8'))
         self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
 
-    def test_display_add_review_screen_template_text_reviewer_not_logged_in_LEGACY_USER(self):
+    def test_display_post_email_add_review_screen_template_text_different_user_logged_in_NORMAL_USER(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+
+        response_actual = self.desktop_client.get("/" + review_request_token, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue(self.reviewer_user.name.split()[0]+"'s review of" in response_actual.data.decode('utf-8'))
+        self.assertTrue(testing_constants.NEW_PRODUCT_NAME in response_actual.data.decode('utf-8'))
+        self.assertTrue("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
+        self.assertTrue("id=\"review-img-upload-form\">" in response_actual.data.decode('utf-8'))
+        self.assertTrue("<div id='giphy-container' hidden>" in response_actual.data.decode('utf-8'))
+        self.assertTrue("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
+        self.assertTrue("<input type=\"password\"" in response_actual.data.decode('utf-8'))
+        self.assertTrue("placeholder=\"Please type your email here\"" in response_actual.data.decode('utf-8'))
+        self.assertTrue("value=\""+self.reviewer_user.email+"\"" in response_actual.data.decode('utf-8'))
+        self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
+        self.logout()
+
+    def test_display_post_email_add_review_screen_template_text_reviewer_not_logged_in_LEGACY_USER(self):
         legacy_user = UserLegacy(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
         order = Order()
         product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
@@ -753,3 +822,33 @@ class TestClient(TestFlaskApplication):
         self.assertTrue("placeholder=\"Please type your email here\"" in response_actual.data.decode('utf-8'))
         self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("value=\""+testing_constants.NEW_USER_EMAIL+"\"" in response_actual.data.decode('utf-8'))
+
+    def test_display_post_email_add_review_screen_template_text_different_user_logged_in_LEGACY_USER(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        legacy_user = UserLegacy(email=testing_constants.NEW_USER_EMAIL, name=testing_constants.NEW_USER_NAME)
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user_legacy = legacy_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
+        shop.owner = self.shop_owner_user
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+
+        review_request_token = ReviewRequest.create(to_user=legacy_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+
+        response_actual = self.desktop_client.get("/" + review_request_token, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue(testing_constants.NEW_USER_NAME.split()[0]+"'s review of" in response_actual.data.decode('utf-8'))
+        self.assertTrue(testing_constants.NEW_PRODUCT_NAME in response_actual.data.decode('utf-8'))
+        self.assertTrue("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
+        self.assertTrue("id=\"review-img-upload-form\">" in response_actual.data.decode('utf-8'))
+        self.assertTrue("<div id='giphy-container' hidden>" in response_actual.data.decode('utf-8'))
+        self.assertTrue("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
+        self.assertFalse("<input type=\"password\"" in response_actual.data.decode('utf-8'))
+        self.assertTrue("placeholder=\"Please type your email here\"" in response_actual.data.decode('utf-8'))
+        self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
+        self.assertTrue("value=\""+testing_constants.NEW_USER_EMAIL+"\"" in response_actual.data.decode('utf-8'))
+        self.logout()
