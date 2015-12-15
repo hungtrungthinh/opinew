@@ -476,7 +476,6 @@ class Order(db.Model, Repopulatable):
 
     def build_review_email_context(self):
         return {
-            'order': self,
             'name': self.user.name.split()[0] if self.user else (
             self.user_legacy.name.split()[0] if self.user_legacy else ''),
             'user_email': self.user,
