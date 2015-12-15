@@ -158,14 +158,16 @@ class User(db.Model, UserMixin, Repopulatable):
         db.session.commit()
 
     @classmethod
-    def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, **kwargs):
+    def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, user_legacy_email=None, **kwargs):
         is_new = False
         instance = cls.query.filter_by(email=email).first()
         if not instance:
             is_new = True
 
             # Check for legacy user and merge if exists
-            user_legacy = UserLegacy.query.filter_by(email=email).first()
+            user_legacy = None
+            if user_legacy_email:
+                user_legacy = UserLegacy.query.filter_by(email=user_legacy_email).first()
             if user_legacy:
                 kwargs['name'] = kwargs.get('name') or user_legacy.name
                 kwargs['image_url'] = kwargs.get('image_url') or user_legacy.image_url
@@ -185,24 +187,30 @@ class User(db.Model, UserMixin, Repopulatable):
             if role_name == Constants.SHOP_OWNER_ROLE:
                 instance.is_shop_owner = True
 
-            # Reassign the orders and review requests on legacy user:
+            # Reassign the orders and review requests from legacy user
             if user_legacy:
-                #reassign the review requests
-                review_requests = ReviewRequest.query.filter_by(to_user_legacy_id=user_legacy.id)
-                for review_request in review_requests:
-                    review_request.to_user = instance
-                    review_request.to_user_legacy = None
-
-                #reassign the orders
-                for order in user_legacy.orders:
-                    order.user_legacy = None
-                    order.user = instance
-
-                db.session.delete(user_legacy)
+                cls.reassign_legacy_user_data_and_delete(user_legacy, instance)
 
             # Handle creation of customer and roles
             User.post_registration_handler(user=instance)
         return instance, is_new
+
+    @classmethod
+    def reassign_legacy_user_data_and_delete(cls, user_legacy, normal_user):
+        # reassign the review requests
+        review_requests = ReviewRequest.query.filter_by(to_user_legacy_id=user_legacy.id)
+        for review_request in review_requests:
+            review_request.to_user = normal_user
+            review_request.to_user_legacy = None
+
+        # reassign the orders
+        for order in user_legacy.orders:
+            order.user_legacy = None
+            order.user = normal_user
+
+        # delete legacy user
+        db.session.delete(user_legacy)
+
 
     def unread_notifications(self):
         notifications = Notification.query.filter(and_(Notification.user_id == self.id,

@@ -578,7 +578,6 @@ def update_order():
     state = param_required('state', post)
     shops = Shop.query.filter_by(owner_id=current_user.id).all()
     order = Order.query.filter_by(id=order_id).first()
-    failure, delete = False, False
     if order.shop_id not in [s.id for s in shops]:
         flash('Not your shop')
         return redirect(url_for('client.shop_dashboard'))

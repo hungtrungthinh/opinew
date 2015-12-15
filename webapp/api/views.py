@@ -202,6 +202,10 @@ def check_if_user_exists(data, *args, **kwargs):
         return
     user_name = data.get('user_name')
     user_email = data.get('user_email')
+    user_legacy_email = None
+    if 'user_legacy_email' in data:
+        user_legacy_email = data.get('user_legacy_email')
+        del data['user_legacy_email']
 
     if not user_name:
         raise ProcessingException(description=ExceptionMessages.MISSING_PARAM % 'user_name', code=401)
@@ -209,7 +213,8 @@ def check_if_user_exists(data, *args, **kwargs):
     if not user_email:
         raise ProcessingException(description=ExceptionMessages.MISSING_PARAM % 'user_email', code=401)
 
-    user, is_new = models.User.get_or_create_by_email(email=user_email, role_name=Constants.REVIEWER_ROLE, name=user_name)
+    user, is_new = models.User.get_or_create_by_email(email=user_email, role_name=Constants.REVIEWER_ROLE,
+                                                      user_legacy_email=user_legacy_email, name=user_name)
     if not is_new:
         #TODO maybe display a passwd field if user is not new?
         raise ProcessingException(description=ExceptionMessages.USER_EXISTS % user_email, code=401)
