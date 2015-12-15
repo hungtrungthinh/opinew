@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 NEW_USER_EMAIL = 'test@test.test'
+USER_EMAIL_CHANGED = 'changed@test.test'
 NEW_USER_NAME = 'Test Test'
 NEW_USER_PWD = 'password'
 CHANGED_PASSWORD = 'something'

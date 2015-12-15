@@ -89,7 +89,7 @@
                 <span class="input-group-addon" id="basic-addon1">Email: </span>
                 <input type="email" class="form-control" id="input-user-email" name="email"
                        placeholder="Please type your email here" value="{{ user_email }}"/>
-
+                <input id="user-legacy-email" type=hidden name=user_legacy_email value="{{ user_email }}">
             </div>
         {% else %}
             <div class="input-group">
