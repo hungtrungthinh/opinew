@@ -23,6 +23,16 @@ Create python virtual environment, install required packages and populate the da
 1. Initialize database
 
     ./run_development.py db init
+    
+## Changes
+
+If you change the database, first let alembic write a migration:
+
+    ./run_development.py db migrate
+    
+Then execute the upgrade of your database
+
+    ./run_development.py db upgrade
 
 ## Run
 Once everything is setup, just run with
