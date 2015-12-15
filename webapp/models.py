@@ -483,9 +483,14 @@ class Order(db.Model, Repopulatable):
         return order
 
     def build_review_email_context(self):
+        if self.user and self.user.name:
+            name = self.user.name.split()[0]
+        elif self.user_legacy and self.user_legacy.name:
+            name = self.user_legacy.name.split()[0]
+        else:
+            name = ''
         return {
-            'name': self.user.name.split()[0] if self.user else (
-            self.user_legacy.name.split()[0] if self.user_legacy else ''),
+            'name': name,
             'user_email': self.user,
             'shop_name': self.shop.name if self.shop else '',
             'review_requests': [{'token': rr.token, 'product_name': rr.for_product.name} for rr in
