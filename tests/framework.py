@@ -14,6 +14,7 @@ from repopulate import import_tables
 
 app = webapp.create_app('testing')
 
+
 class TestFlaskApplication(TestCase):
     @classmethod
     def setUpClass(cls):

@@ -9,7 +9,7 @@ from freezegun import freeze_time
 from flask import url_for
 from flask.ext.security.utils import verify_password
 from webapp import db
-from webapp.models import User, Shop, Product, Order, ReviewRequest, Customer, UserLegacy
+from webapp.models import User, Shop, Product, Order, ReviewRequest, Customer, UserLegacy, Role
 from tests import testing_constants
 from config import Constants
 from tests.framework import TestFlaskApplication, expect_mail
@@ -267,29 +267,6 @@ class TestClient(TestFlaskApplication):
         response_actual = self.desktop_client.get("/admin/", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('<h1>Welcome to admin panel' in response_actual.data)
-        self.logout()
-
-    def test_dashboard(self):
-        self.login(self.shop_owner_user.email, self.shop_owner_password)
-        response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('General settings' in response_actual.data)
-        self.assertTrue('Orders' in response_actual.data)
-        self.assertTrue('Reviews' in response_actual.data)
-        self.logout()
-
-    def test_dashboard_orders(self):
-        self.login(self.shop_owner_user.email, self.shop_owner_password)
-        response_actual = self.desktop_client.get("/dashboard/2/orders", follow_redirects=True)
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h2>Orders</h2>' in response_actual.data)
-        self.logout()
-
-    def test_dashboard_reviews(self):
-        self.login(self.shop_owner_user.email, self.shop_owner_password)
-        response_actual = self.desktop_client.get("/dashboard/2/reviews", follow_redirects=True)
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h2>Reviews</h2>' in response_actual.data)
         self.logout()
 
     def test_render_add_review_no_product(self):
@@ -1010,3 +987,108 @@ class TestClient(TestFlaskApplication):
         self.assertEqual(response_actual.status_code, 200)
         self.assertTrue('Invalid state BOGUS_STATE' in response_actual.data.decode('utf-8'))
         self.logout()
+
+    ###########SHOP DASHBOARD#########
+    def test_dashboard(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('General settings' in response_actual.data)
+        self.assertTrue('Orders' in response_actual.data)
+        self.assertTrue('Reviews' in response_actual.data)
+        self.logout()
+
+    def test_dashboard_specific_shop(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('General settings' in response_actual.data)
+        self.assertTrue('Orders' in response_actual.data)
+        self.assertTrue('Reviews' in response_actual.data)
+        self.logout()
+
+    def test_dashboard_somebody_elses_specific_shop(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard/3", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Not your shop' in response_actual.data)
+        self.assertTrue('Shopify shop' not in response_actual.data)
+        self.logout()
+
+    def test_dashboard_orders_somebody_elses_specific_shop(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard/3/orders", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Not your shop' in response_actual.data)
+        self.logout()
+
+    def test_dashboard_reviews_somebody_elses_specific_shop(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard/3/reviews", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Not your shop' in response_actual.data)
+        self.logout()
+
+    def test_dashboard_multiple_shops(self):
+        new_shop = Shop(name=testing_constants.NEW_SHOP_NAME, owner=self.shop_owner_user)
+        db.session.add(new_shop)
+        db.session.commit()
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Please choose a shop to administrate:' in response_actual.data)
+        self.assertTrue(testing_constants.NEW_SHOP_NAME in response_actual.data)
+        self.logout()
+        db.session.delete(new_shop)
+        db.session.commit()
+
+    def test_dashboard_no_shops(self):
+        self.refresh_db()
+        shop_owner_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
+        new_shop_owner = User(email=testing_constants.NEW_USER_EMAIL,
+                              name=testing_constants.NEW_USER_NAME,
+                              password=testing_constants.NEW_USER_PWD,
+                              roles=[shop_owner_role], is_shop_owner=True,
+                              confirmed_at = datetime.datetime.utcnow()
+                              )
+
+        ll = self.login(testing_constants.NEW_USER_EMAIL, testing_constants.NEW_USER_PWD)
+        response_actual = self.desktop_client.get("/dashboard", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('Hi! Create your first shop' in response_actual.data)
+        self.logout()
+        self.refresh_db()
+
+    def test_dashboard_orders(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard/2/orders", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Orders</h2>' in response_actual.data)
+        self.logout()
+
+    def test_dashboard_reviews(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get("/dashboard/2/reviews", follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue('<h2>Reviews</h2>' in response_actual.data)
+        self.logout()
+
+
+    ##########DISPLAY EMAIL BEFORE NOTIFICATION############
+
+    def test_view_email_before_send_notification(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer(user=self.shop_owner_user)
+        shop = Shop.get_by_id(2)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
+        response_actual = self.desktop_client.get('/review-notification/' + str(review_request.id), follow_redirects=True)
+        self.assertTrue("Please review how the email(s) will look like and press <strong>Send</strong>" in response_actual.data)
+
+
