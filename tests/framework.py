@@ -161,6 +161,10 @@ class VirtualServerManager(object):
         vserver_app.register_blueprint(vrecaptcha, url_prefix='/vrecaptcha')
         vserver_app.register_blueprint(vgiphy, url_prefix='/vgiphy')
 
+        import logging
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.ERROR)
+
         def shutdown_server():
             func = request.environ.get('werkzeug.server.shutdown')
             if func is None:

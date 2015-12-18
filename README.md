@@ -9,7 +9,7 @@ Create python virtual environment, install required packages and populate the da
 1. Install the following packages (ubuntu 12.04 and 14.04):
 
     sudo apt-get update
-    sudo apt-get install git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev
+    sudo apt-get install git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev amqp-tools
 
 
 1. Set up a virtual environment
@@ -23,6 +23,16 @@ Create python virtual environment, install required packages and populate the da
 1. Initialize database
 
     ./run_development.py db init
+    
+## Changes
+
+If you change the database, first let alembic write a migration:
+
+    ./run_development.py db migrate
+    
+Then execute the upgrade of your database
+
+    ./run_development.py db upgrade
 
 ## Run
 Once everything is setup, just run with
@@ -79,4 +89,11 @@ To push to production server `opinew.com`:
 1. Import locally 
 
     psql -U opinew_user -h localhost opinew < dbexport.pgsql
+
+
+## Purging
+
+To delete all the tasks:
+    
+    amqp-delete-queue -q celery
     

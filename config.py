@@ -88,10 +88,10 @@ class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),
               ("Tomasz Sadowski", 'tomsz.sadowski@gmail.com')]
 
-    # Double assignment because of selery
+    # Double assignment because of celery
     EMAIL_HOST = MAIL_SERVER = "smtpout.europe.secureserver.net"
     SERVER_EMAIL = 'celery-error@opinew.com'  # celery
-    MAIL_DEFAULT_SENDER = 'team@opinew.com'
+    MAIL_DEFAULT_SENDER = ('Opinew Reviews', 'team@opinew.com')
     EMAIL_PORT = MAIL_PORT = 465
     EMAIL_USE_SSL = MAIL_USE_SSL = True
     EMAIL_HOST_USER = MAIL_USERNAME = "team@opinew.com"
@@ -190,7 +190,6 @@ class ConfigDev(Config):
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION
-    SERVER_NAME = 'opinew.com'
     SESSION_COOKIE_HTTPONLY = False
     SESSION_COOKIE_SECURE = True
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD

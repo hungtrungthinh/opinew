@@ -158,8 +158,8 @@ def index():
     return render_template('index.html')
 
 
-@client.route('/', defaults={'review_request_token': None})
-@client.route('/<review_request_token>')
+@client.route('/', defaults={'review_request_token': ''})
+@client.route('/<path:review_request_token>')
 def get_by_review_request_token(review_request_token):
     review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
     user_email = None
@@ -582,10 +582,15 @@ def update_order():
         flash('Not your shop')
         return redirect(url_for('client.shop_dashboard'))
     if state == Constants.ORDER_STATUS_SHIPPED:
-        order.ship()
+        if order.status == Constants.ORDER_STATUS_PURCHASED:
+            order.ship()
+            if not order.review_requests:
+                order.create_review_requests(order.id)
         db.session.add(order)
         flash('Shipped order %s' % order_id)
     elif state == Constants.ORDER_ACTION_NOTIFY:
+        if not order.review_requests:
+            order.create_review_requests(order.id)
         order.cancel_review()
         order.notify()
         db.session.add(order)

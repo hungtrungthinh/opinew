@@ -3,8 +3,6 @@ import base64
 import hmac
 import hashlib
 import datetime
-import pytz
-from dateutil import parser as date_parser
 from freezegun import freeze_time
 from flask import url_for
 from flask.ext.security.utils import verify_password

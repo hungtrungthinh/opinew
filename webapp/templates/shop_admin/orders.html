@@ -72,7 +72,7 @@
                        order.status == g.constants.ORDER_STATUS_REVIEW_CANCELED %}
                     {% if order.tasks %}
                       {% for task in order.tasks %}
-                        {% if not task.status == "REVOKED" and task.method == "async.tasks.send_email" %}
+                        {% if not task.status == "REVOKED" and task.method == "send_email" %}
                           {% if order.to_notify_timestamp < now %}
                               <span class="label label-success" title="{{ task.eta }}"> Notified ({{ task.method }})
                             {{ task.eta|timesince }}

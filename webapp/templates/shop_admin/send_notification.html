@@ -1,5 +1,12 @@
 {% extends "layout.html" %}
 {% block content %}
+    {% if order.user and order.user.name %}
+        {% set user_name = order.user.name.split(' ')[0] %}
+    {% elif order.user_legacy and order.user_legacy.name %}
+      {% set user_name = order.user_legacy.name.split(' ')[0] %}
+    {% else %}
+        {% set user_name = "Hi" %}
+    {% endif %}
     <div class="container">
         <div class="row">
 
@@ -19,7 +26,7 @@
                         <div style="border: 1px solid black; margin-bottom: 10px; background-color: white; padding:10px; font-size: 1.5em;">
                             <b>subject: </b><input name="subject" class="form-control" type="text"
                                                    style="width: 90%; font-size:1.2em;display:inline;  height: 1.5em;"
-                                                   value="Review your recent purchase at {{ order.shop.name }}"/>
+                                                   value="{{ g.constants.DEFAULT_REVIEW_SUBJECT % (user_name, order.shop.name) }}"/>
                         </div>
                         <iframe src="/render-order-review-email?order_id={{ order.id }}"
                                 style="width:100%; height: 350px; border: 1px solid black; background-color:white;"
