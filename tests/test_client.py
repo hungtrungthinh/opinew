@@ -1071,7 +1071,6 @@ class TestClient(TestFlaskApplication):
         self.assertTrue('<h2>Reviews</h2>' in response_actual.data)
         self.logout()
 
-
     ##########DISPLAY EMAIL BEFORE NOTIFICATION############
 
     def test_view_email_before_send_notification(self):
@@ -1085,8 +1084,217 @@ class TestClient(TestFlaskApplication):
         order.products.append(product)
         review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
                                                     for_product=product, for_shop=shop, for_order=order)
-        review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
-        response_actual = self.desktop_client.get('/review-notification/' + str(review_request.id), follow_redirects=True)
-        self.assertTrue("Please review how the email(s) will look like and press <strong>Send</strong>" in response_actual.data)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get('/review-notification/' + str(order.id), follow_redirects=True)
+        self.assertTrue("Please review how the email(s) will look like and press <strong>Send</strong>" in response_actual.data.decode('utf-8'))
+        self.assertTrue(Constants.DEFAULT_REVIEW_SUBJECT % (self.reviewer_user.name.split()[0], shop.name) in response_actual.data.decode('utf-8'))
+        self.logout()
+        self.refresh_db()
+
+    def test_view_email_before_send_notification_wrong_shop(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer.query.filter_by(user_id=3).first()
+        shop = Shop.get_by_id(3)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get('/review-notification/' + str(order.id), follow_redirects=True)
+        self.assertFalse("Please review how the email(s) will look like and press <strong>Send</strong>" in response_actual.data.decode('utf-8'))
+        self.assertFalse(Constants.DEFAULT_REVIEW_SUBJECT % (self.reviewer_user.name.split()[0], shop.name) in response_actual.data.decode('utf-8'))
+        self.assertTrue("Not your shop" in response_actual.data.decode('utf-8'))
+        self.logout()
+        self.refresh_db()
+
+    @expect_mail
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_send_review_notification_email_by_shop_owner(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer.query.filter_by(user_id=3).first()
+        shop = Shop.get_by_id(2)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        reviewer_user_email = self.reviewer_user.email
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        payload = {"subject":Constants.DEFAULT_REVIEW_SUBJECT % (self.reviewer_user.name.split()[0], shop.name)}
+        response_actual = self.desktop_client.post('/send-notification/' + str(order.id), data=payload, follow_redirects=True)
+        self.assertTrue('email to %s sent' % [reviewer_user_email] in response_actual.data.decode('utf-8'))
+        self.assertEquals(len(self.outbox), 1)
+        self.logout()
+        self.refresh_db()
+
+    @expect_mail
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_send_review_notification_email_by_shop_owner_to_legacy_user(self):
+        user_legacy = UserLegacy.query.filter_by(id=1).first()
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user_legacy = user_legacy
+        customer = Customer.query.filter_by(user_id=3).first()
+        shop = Shop.get_by_id(2)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        review_request_token = ReviewRequest.create(to_user=user_legacy, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        reviewer_user_email = user_legacy.email
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        payload = {"subject":Constants.DEFAULT_REVIEW_SUBJECT % (user_legacy.name.split()[0], shop.name)}
+        response_actual = self.desktop_client.post('/send-notification/' + str(order.id), data=payload, follow_redirects=True)
+        self.assertTrue('email to %s sent' % [reviewer_user_email] in response_actual.data.decode('utf-8'))
+        self.assertEquals(len(self.outbox), 1)
+        self.logout()
+        self.refresh_db()
+
+    @expect_mail
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_send_review_notification_email_by_shop_owner_wrong_shop(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer.query.filter_by(user_id=3).first()
+        shop = Shop.get_by_id(3)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        reviewer_user_email = self.reviewer_user.email
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        payload = {"subject":Constants.DEFAULT_REVIEW_SUBJECT % (self.reviewer_user.name.split()[0], shop.name)}
+        response_actual = self.desktop_client.post('/send-notification/' + str(order.id), data=payload, follow_redirects=True)
+        self.assertTrue('Not your shop' in response_actual.data.decode('utf-8'))
+        self.assertFalse('email to %s sent' % [reviewer_user_email] in response_actual.data.decode('utf-8'))
+        self.assertEquals(len(self.outbox), 0)
+        self.logout()
+        self.refresh_db()
+
+    @expect_mail
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_send_review_notification_email_by_shop_owner_no_review_request(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        customer = Customer.query.filter_by(user_id=3).first()
+        shop = Shop.get_by_id(3)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        reviewer_user_email = self.reviewer_user.email
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        payload = {"subject":Constants.DEFAULT_REVIEW_SUBJECT % (self.reviewer_user.name.split()[0], shop.name)}
+        response_actual = self.desktop_client.post('/send-notification/' + str(order.id), data=payload, follow_redirects=True)
+        self.assertTrue('No review request connected to this order' in response_actual.data.decode('utf-8'))
+        self.assertFalse('email to %s sent' % [reviewer_user_email] in response_actual.data.decode('utf-8'))
+        self.assertEquals(len(self.outbox), 0)
+        self.logout()
+        self.refresh_db()
+
+    ###############RENDER EMAIL##############
+
+    def test_render_order_review_email(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        shop = Shop.get_by_id(2)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        reviewer_user_email = self.reviewer_user.email
+        db.session.add(order)
+        db.session.commit()
+        customer = Customer.query.filter_by(user_id=3).first()
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        params = {"order_id": order.id}
+        response_actual = self.desktop_client.get('/render-order-review-email', query_string=params, follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue("Make a review and we'll help you spread the word!" in response_actual.data.decode('utf-8'))
+        self.assertTrue(product.name in response_actual.data.decode('utf-8'))
+        self.assertTrue("Hi %s," % self.reviewer_user.name.split()[0] in response_actual.data.decode('utf-8'))
+        self.logout()
+        self.refresh_db()
+
+    def test_render_order_review_email_wrong_shop(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        shop = Shop.get_by_id(3)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+        customer = Customer.query.filter_by(user_id=3).first()
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        params = {"order_id": order.id}
+        response_actual = self.desktop_client.get('/render-order-review-email', query_string=params, follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue("Not your shop" in response_actual.data.decode('utf-8'))
+        self.assertFalse(product.name in response_actual.data.decode('utf-8'))
+        self.assertFalse("Make a review and we'll help you spread the word!" in response_actual.data.decode('utf-8'))
+        self.assertFalse("Hi %s," % self.reviewer_user.name in response_actual.data.decode('utf-8'))
+        self.logout()
+        self.refresh_db()
 
 
+    def test_render_order_review_email_no_order_id(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        shop = Shop.get_by_id(2)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+        customer = Customer.query.filter_by(user_id=3).first()
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        params = {}
+        response_actual = self.desktop_client.get('/render-order-review-email', query_string=params, follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 404)
+        self.assertTrue("no order id supplied" in response_actual.data.decode('utf-8'))
+        self.assertFalse(product.name in response_actual.data.decode('utf-8'))
+        self.assertFalse("Make a review and we'll help you spread the word!" in response_actual.data.decode('utf-8'))
+        self.assertFalse("Hi %s," % self.reviewer_user.name in response_actual.data.decode('utf-8'))
+        self.logout()
+        self.refresh_db()
+
+
+    def test_render_order_review_email_wrong_order_id(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user = self.reviewer_user
+        shop = Shop.get_by_id(2)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        db.session.add(order)
+        db.session.commit()
+        customer = Customer.query.filter_by(user_id=3).first()
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        params = {"order_id": -1}
+        response_actual = self.desktop_client.get('/render-order-review-email', query_string=params, follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 404)
+        self.assertTrue("cant find the order" in response_actual.data.decode('utf-8'))
+        self.assertFalse(product.name in response_actual.data.decode('utf-8'))
+        self.assertFalse("Make a review and we'll help you spread the word!" in response_actual.data.decode('utf-8'))
+        self.assertFalse("Hi %s," % self.reviewer_user.name in response_actual.data.decode('utf-8'))
+        self.logout()
+        self.refresh_db()

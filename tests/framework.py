@@ -188,7 +188,6 @@ class VirtualServerManager(object):
         self.vserver_thread.join()
 
 
-
 def expect_mail(func):
     # Puts a local variable outbox for catching mail
     def _decorator(self, *args, **kwargs):

@@ -537,15 +537,19 @@ def sitemapxml():
 
 
 @client.route('/render-order-review-email')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
 def render_order_review_email():
     order_id = request.args.get('order_id')
     if not order_id:
         return 'no order id supplied', 404
     order = Order.query.filter_by(id=order_id).first()
     if not order:
-        order = Order.query.filter().all()[2]
-    if not order:
         return 'cant find the order', 404
+    shops = Shop.query.filter_by(owner_id=current_user.id).all()
+    if order.shop_id not in [s.id for s in shops]:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
     template_ctx = order.build_review_email_context()
     return render_template('email/review_order.html', **template_ctx)
 
@@ -631,8 +635,9 @@ def review_notification(order_id):
 def send_notification(order_id):
     shops = Shop.query.filter_by(owner_id=current_user.id).all()
     order = Order.query.filter_by(id=order_id).first()
-    review_request = order.review_requests[0]
+    review_request = order.review_requests[0] if order.review_requests else None
     if not review_request:
+        flash('No review request connected to this order')
         return redirect('client.shop_dashboard')
     if review_request.for_product.shop.id not in [s.id for s in shops]:
         flash('Not your shop')
