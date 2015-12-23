@@ -23,3 +23,6 @@ class ApiException(ResponseException):
 
 class MagentoException(ResponseException):
     pass
+
+class ProductNotFoundException(Exception):
+    pass
