@@ -2,3 +2,4 @@ id,email,name,image_url
 1,daniel@opinew.com,Daniel Tsvetkov,https://opinew.com/media/user/1_dani.jpg
 2,rose.castro@example.com,Rose Castro,https://opinew.com/media/user/3_rose_castro.jpg
 3,owner@opinew.com,Shop Owner,
+4,legacy@test.test,Test Test,

@@ -50,8 +50,9 @@ class YotpoImpoter():
             product_id = product.id
 
         dt = parse(date)
-        Review.create_from_import(body=review_content, image_url=None, star_rating=review_score, product_id=product_id,
+        review = Review.create_from_import(body=review_content, image_url=None, star_rating=review_score, product_id=product_id,
                         shop_id=self.shop_id, verified_review=None, created_ts=dt, user=user)
+        return review
 
     """
     creates a new user if his email doesn't match in the db

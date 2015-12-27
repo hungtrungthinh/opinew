@@ -281,11 +281,13 @@ class TestClient(TestFlaskApplication):
         self.assertTrue('<a href="/product/1">Ear rings</a>' in response_actual.data)
         self.logout()
 
+    @freeze_time(testing_constants.ORDER_NOW)
     def test_plugin_404(self):
         response_actual = self.desktop_client.get(url_for('client.get_plugin'))
         self.assertEquals(response_actual.status_code, 404)
         self.assertEquals('', response_actual.data)
 
+    @freeze_time(testing_constants.ORDER_NOW)
     def test_plugin_get_by_platform_id_not_logged_in(self):
         response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
             shop_id=2, platform_product_id=1, get_by='platform_id'
@@ -296,6 +298,7 @@ class TestClient(TestFlaskApplication):
         self.assertTrue('Write a review' in response_actual.data)
         self.assertTrue('modal-review' in response_actual.data)
 
+    @freeze_time(testing_constants.ORDER_NOW)
     def test_plugin_get_by_platform_id_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
         response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
@@ -311,6 +314,7 @@ class TestClient(TestFlaskApplication):
         self.assertTrue('https://opinew.com/media/user/3_rose_castro.jpg' in response_actual.data)
         self.logout()
 
+    @freeze_time(testing_constants.ORDER_NOW)
     def test_plugin_get_by_url_not_logged_in(self):
         response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
             shop_id=2, product_url='opinew_shop.local:5001/product/1', get_by='url'
@@ -321,6 +325,7 @@ class TestClient(TestFlaskApplication):
         self.assertTrue('Write a review' in response_actual.data)
         self.assertTrue('modal-review' in response_actual.data)
 
+    @freeze_time(testing_constants.ORDER_NOW)
     def test_plugin_get_by_url_regex_not_logged_in(self):
         response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
             shop_id=2, product_url='opinew_shop.local:5001/something_else/product/1', get_by='url'
@@ -331,6 +336,7 @@ class TestClient(TestFlaskApplication):
         self.assertTrue('Write a review' in response_actual.data)
         self.assertTrue('modal-review' in response_actual.data)
 
+    @freeze_time(testing_constants.ORDER_NOW)
     def test_plugin_get_by_url_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
         response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
@@ -1049,7 +1055,8 @@ class TestClient(TestFlaskApplication):
                               roles=[shop_owner_role], is_shop_owner=True,
                               confirmed_at = datetime.datetime.utcnow()
                               )
-
+        db.session.add(new_shop_owner)
+        db.session.commit()
         ll = self.login(testing_constants.NEW_USER_EMAIL, testing_constants.NEW_USER_PWD)
         response_actual = self.desktop_client.get("/dashboard", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)

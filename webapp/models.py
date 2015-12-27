@@ -42,10 +42,6 @@ class Repopulatable(object):
                 setattr(self, attr, val)
         return self
 
-class LegacyUserCompat(object):
-
-    user_legacy_id = db.Column(db.Integer, db.ForeignKey('user_legacy.id'))
-    user_legacy = db.relationship("UserLegacy", backref=db.backref())
 
 class Role(db.Model, RoleMixin, Repopulatable):
     id = db.Column(db.Integer(), primary_key=True)
@@ -247,6 +243,8 @@ class UserLegacy(db.Model, Repopulatable):
         if not instance:
             is_new = True
             instance = cls(email=email, **kwargs)
+            db.session.add(instance)
+            db.session.commit()
         return instance, is_new
 
 
@@ -747,46 +745,39 @@ class Review(db.Model, Repopulatable):
 
     youtube_video = db.Column(db.String)
 
-    def __init__(self):
-        pass
-
-    @classmethod
-    def create(cls,body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None,
+    def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None,
                  user_id=None, **kwargs):
-        review = Review()
-        review.body = unicode(body) if body else None
-        review.image_url = image_url
-        review.star_rating = star_rating
+        self.body = unicode(body) if body else None
+        self.image_url = image_url
+        self.star_rating = star_rating
         if shop_id and product_id:
             raise DbException(message="[consistency: Can't set both shop_id and product_id]", status_code=400)
-        review.product_id = product_id
-        review.shop_id = shop_id
-        review.verified_review = verified_review
-        # Set automatic variables
-        if current_user and current_user.is_authenticated():
-            review.user = current_user
+        self.product_id = product_id
+        self.shop_id = shop_id
+        self.verified_review = verified_review
+
         if user_id:
-            review.user = User.query.filter_by(id=user_id).first()
-        review.created_ts = datetime.datetime.utcnow()
+            self.user = User.query.filter_by(id=user_id).first()
+        self.created_ts = datetime.datetime.utcnow()
         # Is it by shop owner?
         if product_id:
             product = Product.query.filter_by(id=product_id).first()
             if product and product.shop and product.shop.owner and product.shop.owner == current_user:
-                review.by_shop_owner = True
+                self.by_shop_owner = True
         # Should we include youtube link?
-        if review.body and (Constants.YOUTUBE_WATCH_LINK in review.body or Constants.YOUTUBE_SHORT_LINK in review.body):
+        if self.body and (Constants.YOUTUBE_WATCH_LINK in self.body or Constants.YOUTUBE_SHORT_LINK in self.body):
             # we have youtube video somewhere in the body, let's extract it
-            if Constants.YOUTUBE_WATCH_LINK in review.body:
+            if Constants.YOUTUBE_WATCH_LINK in self.body:
                 youtube_link = Constants.YOUTUBE_WATCH_LINK
             else:
                 youtube_link = Constants.YOUTUBE_SHORT_LINK
             # find the youtube video id
-            youtube_video_id = review.body.split(youtube_link)[1].split(' ')[0].split('?')[0].split('&')[0]
-            review.youtube_video = Constants.YOUTUBE_EMBED_URL.format(youtube_video_id=youtube_video_id)
+            youtube_video_id = self.body.split(youtube_link)[1].split(' ')[0].split('?')[0].split('&')[0]
+            self.youtube_video = Constants.YOUTUBE_EMBED_URL.format(youtube_video_id=youtube_video_id)
             # Finally, remove the link from the body
-            to_remove = youtube_link + review.body.split(youtube_link)[1].split(' ')[0]
-            review.body = re.sub(r"\s*" + re.escape(to_remove) + r"\s*", '', review.body)
-        return review
+            to_remove = youtube_link + self.body.split(youtube_link)[1].split(' ')[0]
+            self.body = re.sub(r"\s*" + re.escape(to_remove) + r"\s*", '', self.body)
+
 
     """
     We are assuming that the created_ts has type datetime (from python's datetime module)
@@ -795,17 +786,17 @@ class Review(db.Model, Repopulatable):
     def create_from_import(cls, body=None, image_url=None, star_rating=None,
                            product_id=None, shop_id=None, verified_review=None, created_ts=None,
                            user=None, **kwargs):
-        review = Review()
-        review.body = unicode(body) if body else None
-        review.image_url = image_url
-        review.star_rating = star_rating
-        #TODO why?
-        if shop_id and product_id:
-            raise DbException(message="[consistency: Can't set both shop_id and product_id]", status_code=400)
-        review.product_id = product_id
-        review.shop_id = shop_id
-        review.verified_review = verified_review
-        # Set automatic variables
+
+        review = Review(body=body, image_url=image_url, star_rating=star_rating,
+                           product_id=product_id, shop_id=shop_id, verified_review=verified_review)
+
+        """
+        Import specific things
+        1.Deciding whether imported review's user is normal or legacy
+        2.Setting up the review date
+        3.Adding review to db
+        """
+
         if isinstance(user, User):
             review.user = user
         elif isinstance(user, UserLegacy):
@@ -813,26 +804,6 @@ class Review(db.Model, Repopulatable):
 
         if created_ts:
             review.created_ts = created_ts
-        else:
-            review.created_ts = datetime.datetime.utcnow()
-        # Is it by shop owner?
-        if product_id:
-            product = Product.query.filter_by(id=product_id).first()
-            if product and product.shop and product.shop.owner and product.shop.owner == current_user:
-                review.by_shop_owner = True
-        # Should we include youtube link?
-        if review.body and (Constants.YOUTUBE_WATCH_LINK in review.body or Constants.YOUTUBE_SHORT_LINK in review.body):
-            # we have youtube video somewhere in the body, let's extract it
-            if Constants.YOUTUBE_WATCH_LINK in review.body:
-                youtube_link = Constants.YOUTUBE_WATCH_LINK
-            else:
-                youtube_link = Constants.YOUTUBE_SHORT_LINK
-            # find the youtube video id
-            youtube_video_id = review.body.split(youtube_link)[1].split(' ')[0].split('?')[0].split('&')[0]
-            review.youtube_video = Constants.YOUTUBE_EMBED_URL.format(youtube_video_id=youtube_video_id)
-            # Finally, remove the link from the body
-            to_remove = youtube_link + review.body.split(youtube_link)[1].split(' ')[0]
-            review.body = re.sub(r"\s*" + re.escape(to_remove) + r"\s*", '', review.body)
 
         db.session.add(review)
         db.session.commit()

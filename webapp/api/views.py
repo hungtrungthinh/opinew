@@ -199,6 +199,7 @@ def check_recaptcha(data, *args, **kwargs):
 
 def check_if_user_exists(data, *args, **kwargs):
     if current_user.is_authenticated():
+        data["user_id"] = current_user.id
         return
     user_name = data.get('user_name')
     user_email = data.get('user_email')
@@ -249,6 +250,7 @@ def login_user_if_possible(data, *args, **kwargs):
         del data["user_password"]
         del data['user_name']
         del data['user_email']
+        data["user_id"] = user.id
 
 
 
@@ -379,12 +381,10 @@ api_manager.create_api(models.Answer,
                        },
                        validation_exceptions=[DbException])
 
-
 @login_required
 @api.route('/token')
 def token():
     return jsonify({'token': generate_csrf()})
-
 
 @api.route('/auth', methods=['POST'])
 @csrf.exempt
@@ -405,6 +405,5 @@ def authenticate():
         raise DbException('invalid password', 400)
     login_user(user)
     return jsonify({})
-
 
 from webapp.api.webhooks import shopify

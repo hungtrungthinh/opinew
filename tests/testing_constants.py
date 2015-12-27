@@ -7,6 +7,9 @@ CHANGED_PASSWORD = 'something'
 USER_BOGUS_PWD = 'bogus'
 USER_BOGUS_EMAIL = 'bogus@bogus.bogus'
 
+LEGACY_USER_EMAIL = 'legacy@test.test'
+LEGACY_USER_NAME = 'Legacy Legacy'
+
 NEW_PRODUCT_ID = 1
 NEW_PRODUCT_PLATFORM_ID = "26"
 NEW_PRODUCT_PLATFORM_ID_2 = "46"
@@ -32,7 +35,7 @@ NEW_REVIEW_BODY = 'This is a simple review, no youtube...'
 NEW_REVIEW_IMAGE_URL = 'http://images.thehollywoodgossip.com/iu/s--ssVDTDTP--/t_teaser_wide/f_auto,fl_lossy,q_75/v1420733814/nic-cage-is-nuts.png'
 NEW_REVIEW_YOUTUBE_VIDEO_ID = "dQw4w9WgXcQ"
 NEW_REVIEW_YOUTUBE_LINK = "https://www.youtube.com/watch?v=" + NEW_REVIEW_YOUTUBE_VIDEO_ID
-NEW_REVIEW_YOUTUBE_SHORT = "https://www.youtu.be/"  + NEW_REVIEW_YOUTUBE_VIDEO_ID
+NEW_REVIEW_YOUTUBE_SHORT = "https://www.youtu.be/" + NEW_REVIEW_YOUTUBE_VIDEO_ID
 
 RENDERED_STARS = """<span class="star-rating star-active">☆</span>
                 <span class="star-rating star-active">☆</span>
@@ -90,3 +93,9 @@ MAGENTO_ORDER_2_INCREMENT_ID = '100000256'
 
 MAGENTO_JUST_SHIPPED_FROZEN_TS = "2015-12-05T12:01:00-00:00"
 MAGENTO_NOTIFIED_FROZEN_TS = "2015-12-20T12:00:00-00:00"
+
+SHOPIFY_REVIEW_TIMESTAMP = "2014-02-19 21:07:30 -0500"
+SHOPIFY_SHOP_NAME = "shopify shop"
+YOTPO_SHOP_NAME = "yotpo shop"
+
+YOTPO_REVIEW_TIMESTAMP = "2015-12-22 04:00:00 UTC"

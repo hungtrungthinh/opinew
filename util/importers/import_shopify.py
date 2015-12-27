@@ -13,9 +13,9 @@ class ShopifyImpoter():
     def __init__(self, shop_id):
         self.shop_id = shop_id
 
-    def csv_to_dicts_SHOPIFY(self, filepath):
+    def csv_to_dicts_SHOPIFY(self, filepath=None):
         output =[]
-        with open('shopify_example.csv', 'rb') as csvfile:
+        with open(filepath, 'rb') as csvfile:
             reader = csv.DictReader(csvfile, quoting=csv.QUOTE_ALL)
             for row in reader:
                 row_dict = {'product_handle': row['product_handle'],
@@ -48,20 +48,21 @@ class ShopifyImpoter():
             product_id = product.id
 
         dt = parse(created_at)
-        Review.create_from_import(body=body, image_url=None, star_rating=rating, product_id=product_id,
+        review = Review.create_from_import(body=body, image_url=None, star_rating=rating, product_id=product_id,
                         shop_id=self.shop_id, verified_review=None, created_ts=dt, user=user)
 
-
+        return review
 
     """
     creates a new user if his email doesn't match in the db
     """
-    def create_or_match_user_from_shopify_data(self, author, email):
+    def create_or_match_user_from_shopify_data(self, author=None, email=None):
         user = None
         existing_user = User.get_by_email_no_exception(email)
         if existing_user:
             user = existing_user
         else:
             user, is_new = UserLegacy.get_or_create_by_email(email, name=author)
+
 
         return user
