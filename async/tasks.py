@@ -126,6 +126,7 @@ def notify_for_review(order_id, *args, **kwargs):
 def task_wrapper(task, task_instance_id, **kwargs):
     task(**kwargs)
     task_instance = models.Task.query.filter_by(id=task_instance_id).first()
-    task_instance.status = 'SUCCESS'
-    db.session.add(task_instance)
-    db.session.commit()
+    if task_instance:
+        task_instance.status = 'SUCCESS'
+        db.session.add(task_instance)
+        db.session.commit()

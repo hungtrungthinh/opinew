@@ -34,6 +34,10 @@ Then execute the upgrade of your database
 
     ./run_development.py db upgrade
 
+To manually update the table via SQL
+
+    psql opinew_user  -h 127.0.0.1 -d opinew
+
 ## Run
 Once everything is setup, just run with
 

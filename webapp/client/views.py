@@ -537,8 +537,6 @@ def sitemapxml():
 
 
 @client.route('/render-order-review-email')
-@roles_required(Constants.SHOP_OWNER_ROLE)
-@login_required
 def render_order_review_email():
     order_id = request.args.get('order_id')
     if not order_id:

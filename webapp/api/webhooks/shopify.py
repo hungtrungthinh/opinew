@@ -116,7 +116,7 @@ def platform_shopify_create_order():
         order.user = existing_user
     else:
         user_legacy, _ = models.UserLegacy.get_or_create_by_email(customer_email, name=customer_name)
-        order.user_legacy  = user_legacy
+        order.user_legacy = user_legacy
 
     line_items = payload.get('line_items', [])
     for line_item in line_items:
