@@ -17,8 +17,8 @@ from sqlalchemy.exc import InvalidRequestError
 def verify_initialization():
     from webapp import models
     # Check that the free plan exists in the database
-    free_plan = models.Plan.query.filter_by(name=Constants.FREE_PLAN_NAME).first()
-    assert free_plan is not None
+    basic_plan = models.Plan.query.filter_by(name=Constants.PLAN_NAME_BASIC).first()
+    assert basic_plan is not None
 
 # Make json error handlers
 def make_json_error(ex):

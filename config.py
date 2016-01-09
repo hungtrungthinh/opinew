@@ -83,7 +83,7 @@ class Constants(object):
     MAGENTO_STATUS_COMPLETE = 'complete'
     MAGENTO_STATUS_CSV_FAILED_HOSTED_PAYMENT = 'csv_failed_hosted_payment'
 
-    FREE_PLAN_NAME = 'free'
+    PLAN_NAME_BASIC = 'basic'
 
 
 class Config(object):
