@@ -83,6 +83,8 @@ class Constants(object):
     MAGENTO_STATUS_COMPLETE = 'complete'
     MAGENTO_STATUS_CSV_FAILED_HOSTED_PAYMENT = 'csv_failed_hosted_payment'
 
+    FREE_PLAN_NAME = 'free'
+
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),

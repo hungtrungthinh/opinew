@@ -18,7 +18,7 @@ class API(object):
         self.access_token = access_token
 
         self.url_prefix = current_app.config.get(
-            'SHOPIFY_PREFIX') % 'vshopify' if current_app.testing else 'http://%s' % self.shop_domain
+            'SHOPIFY_PREFIX') % 'vshopify' if current_app.testing else 'https://%s' % self.shop_domain
 
     def initialize_api(self, nonce_request, hmac_request, code):
         self.verify_nonce(nonce_request)
@@ -63,7 +63,8 @@ class API(object):
 
         if not r.status_code == 200:
             raise ApiException(r.text, r.status_code)
-        access_token = r.json().get('access_token')
+        json_r = r.json()
+        access_token = json_r.get('access_token')
         self.access_token = access_token
 
     def check_webhooks_count(self):

@@ -129,7 +129,7 @@ class User(db.Model, UserMixin, Repopulatable):
             if gravatar_image_url:
                 user.image_url = gravatar_image_url
             # create a customer account
-            plan = Plan.query.filter_by(name="Free").first()
+            plan = Plan.query.filter_by(name=Constants.FREE_PLAN_NAME).first()
             customer = Customer(user=user).create()
             subscription = Subscription(customer=customer, plan=plan).create()
             db.session.add(subscription)

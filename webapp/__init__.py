@@ -51,7 +51,7 @@ def create_app(option):
     app = FlaskOpinewExt(__name__)
     config = config_factory.get(option)
     app.config.from_object(config)
-    from common import create_jinja_filters, random_pwd
+    from common import create_jinja_filters, random_pwd, verify_initialization
 
     create_jinja_filters(app)
     from webapp.api import api
@@ -75,6 +75,9 @@ def create_app(option):
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
     with app.app_context():
+        if not app.testing:
+            verify_initialization()
+
         if app.testing:
             from async import tasks
         api_manager.init_app(app, flask_sqlalchemy_db=db)

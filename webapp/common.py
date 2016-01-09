@@ -14,6 +14,12 @@ from config import Constants, Config
 from sqlalchemy.exc import InvalidRequestError
 
 
+def verify_initialization():
+    from webapp import models
+    # Check that the free plan exists in the database
+    free_plan = models.Plan.query.filter_by(name=Constants.FREE_PLAN_NAME).first()
+    assert free_plan is not None
+
 # Make json error handlers
 def make_json_error(ex):
     current_app.logger.error(ex)
