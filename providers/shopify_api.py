@@ -18,7 +18,7 @@ class API(object):
         self.access_token = access_token
 
         self.url_prefix = current_app.config.get(
-            'SHOPIFY_PREFIX') % 'vshopify' if current_app.testing else self.shop_domain
+            'SHOPIFY_PREFIX') % 'vshopify' if current_app.testing else 'http://%s' % self.shop_domain
 
     def initialize_api(self, nonce_request, hmac_request, code):
         self.verify_nonce(nonce_request)

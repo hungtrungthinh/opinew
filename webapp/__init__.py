@@ -108,12 +108,8 @@ def create_app(option):
 
     configure_uploads(app, (user_images, review_images, shop_images, ))
     admins = [email for name, email in config.ADMINS]
-    if not app.debug and not app.testing:
-        @app.errorhandler(500)
-        def internal_error(exception):
-            app.logger.error(exception)
-            return render_template('errors/500.html'), 500
 
+    if not (app.debug or app.testing):
         mail_handler = SMTPHandler(app.config.get('MAIL_SERVER'),
                                    'server-error@opinew.com',
                                    admins,

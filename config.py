@@ -99,7 +99,6 @@ class Config(object):
 
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
-    PROPAGATE_EXCEPTIONS = True
 
     UPLOADED_USERIMAGES_DEST = os.path.join(basedir, 'media', 'user')
     UPLOADED_USERIMAGES_URL = '/media/user/'
