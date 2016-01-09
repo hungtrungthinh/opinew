@@ -11,7 +11,7 @@ chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}
 sudo su ${USER_NAME}
 cd
 
-PACKAGES="git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev screen amqp-tools postgresql-server-dev-9.3"
+PACKAGES="git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev screen amqp-tools postgresql-server-dev-9.3 amqp-tools"
 
 SOCKETS_DIR=${HOME_DIR}/sockets
 SOCKET_FILE=${SOCKETS_DIR}/opinew.sock

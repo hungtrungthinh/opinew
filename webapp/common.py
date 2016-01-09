@@ -5,6 +5,7 @@ import string
 import hmac
 import hashlib
 import datetime
+import traceback
 from functools import wraps
 from flask import jsonify, abort, request, url_for, current_app, render_template
 from flask.ext.login import current_user
@@ -20,9 +21,22 @@ def verify_initialization():
     basic_plan = models.Plan.query.filter_by(name=Constants.PLAN_NAME_BASIC).first()
     assert basic_plan is not None
 
+
 # Make json error handlers
 def make_json_error(ex):
-    current_app.logger.error(ex)
+    from webapp.flaskopinewext import error_string
+    content = """
+    Error: %s
+    ------
+    Request:
+    --------
+    %s
+    =========
+    Traceback:
+    ----------
+    %s
+    """ % (ex, error_string(), traceback.format_exc())
+    current_app.logger.error(content)
     status_code = ex.code if isinstance(ex, HTTPException) else 500
     # return pretty rendered templates messages to a client request
     if request.blueprint == 'client':

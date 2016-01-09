@@ -2,11 +2,8 @@ from flask import Flask, request
 from flask.ext.login import current_user
 
 
-class FlaskOpinewExt(Flask):
-    def log_exception(self, exc_info):
-        """...description omitted..."""
-        self.logger.error(
-            """
+def error_string():
+    return """
         Request:   {method} {path}
         IP:        {ip}
 
@@ -31,5 +28,10 @@ class FlaskOpinewExt(Flask):
                 agent_browser=request.user_agent.browser,
                 agent_browser_version=request.user_agent.version,
                 agent=request.user_agent.string,
-            ), exc_info=exc_info
-        )
+            )
+
+
+class FlaskOpinewExt(Flask):
+    def log_exception(self, exc_info):
+        """...description omitted..."""
+        self.logger.error(error_string(), exc_info=exc_info)

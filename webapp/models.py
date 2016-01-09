@@ -1073,6 +1073,17 @@ class Answer(db.Model, Repopulatable):
     to_question = db.relationship("Question", backref=db.backref("answers"))
 
 
+class SentEmail(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+    recipients = db.Column(db.String)
+    subject = db.Column(db.String)
+    template = db.Column(db.String)
+    template_ctx = db.Column(db.String)
+    body = db.Column(db.String)
+    traceback = db.Column(db.String)
+
 # Create customized model view class
 class AdminModelView(ModelView):
     def is_accessible(self):
@@ -1119,3 +1130,4 @@ admin.add_view(AdminModelView(ProductUrl, db.session))
 admin.add_view(AdminModelView(Question, db.session))
 admin.add_view(AdminModelView(Answer, db.session))
 admin.add_view(AdminModelView(Task, db.session))
+admin.add_view(AdminModelView(SentEmail, db.session))

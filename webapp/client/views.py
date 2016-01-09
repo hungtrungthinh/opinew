@@ -159,7 +159,7 @@ def index():
 
 
 @client.route('/', defaults={'review_request_token': ''})
-@client.route('/<path:review_request_token>')
+@client.route('/<review_request_token>')
 def get_by_review_request_token(review_request_token):
     review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
     user_email = None
