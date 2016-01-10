@@ -83,6 +83,8 @@ class Constants(object):
     MAGENTO_STATUS_COMPLETE = 'complete'
     MAGENTO_STATUS_CSV_FAILED_HOSTED_PAYMENT = 'csv_failed_hosted_payment'
 
+    PLAN_NAME_BASIC = 'basic'
+
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),
@@ -99,7 +101,6 @@ class Config(object):
 
     OPINEW_API_SERVER = 'https://opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
-    PROPAGATE_EXCEPTIONS = True
 
     UPLOADED_USERIMAGES_DEST = os.path.join(basedir, 'media', 'user')
     UPLOADED_USERIMAGES_URL = '/media/user/'
@@ -195,6 +196,7 @@ class ConfigProd(Config):
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     STRIPE_PUBLISHABLE_API_KEY = 'pk_test_YFZO6qldIQDkOcOQz88TudE3'  # TODO: 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
+    SERVER_NAME = 'opinew.com'
 
 
 config_factory = {

@@ -1,2 +1,2 @@
 id,customer_id,plan_id,stripe_subscription_id
-1,1,3,fake_stripe_subscription
+1,1,1,fake_stripe_subscription

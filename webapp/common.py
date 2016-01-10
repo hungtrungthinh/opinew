@@ -5,8 +5,9 @@ import string
 import hmac
 import hashlib
 import datetime
+import traceback
 from functools import wraps
-from flask import jsonify, abort, request, url_for, current_app
+from flask import jsonify, abort, request, url_for, current_app, render_template
 from flask.ext.login import current_user
 from werkzeug.exceptions import HTTPException
 from webapp.exceptions import ParamException, ApiException, DbException
@@ -14,12 +15,35 @@ from config import Constants, Config
 from sqlalchemy.exc import InvalidRequestError
 
 
+def verify_initialization():
+    from webapp import models
+    # Check that the free plan exists in the database
+    basic_plan = models.Plan.query.filter_by(name=Constants.PLAN_NAME_BASIC).first()
+    assert basic_plan is not None
+
+
 # Make json error handlers
 def make_json_error(ex):
+    from webapp.flaskopinewext import error_string
+    content = """
+    Error: %s
+    ------
+    Request:
+    --------
+    %s
+    =========
+    Traceback:
+    ----------
+    %s
+    """ % (ex, error_string(), traceback.format_exc())
+    current_app.logger.error(content)
+    status_code = ex.code if isinstance(ex, HTTPException) else 500
+    # return pretty rendered templates messages to a client request
+    if request.blueprint == 'client':
+        if status_code == 500:
+            return render_template('errors/500.html'), 500
     response = jsonify(error=str(ex))
-    response.status_code = (ex.code
-                            if isinstance(ex, HTTPException)
-                            else 500)
+    response.status_code = status_code
     return response
 
 

@@ -71,7 +71,7 @@ def create_shopify_shop(shopify_api, shop_id):
 
     # Import shop orders
     for order_j in shopify_orders:
-        platform_order_id = order_j.get('id')
+        platform_order_id = str(order_j.get('id', 0))
         existing_order = models.Order.query.filter_by(shop_id=shop_id, platform_order_id=platform_order_id).first()
         if existing_order:
             continue
@@ -126,6 +126,7 @@ def notify_for_review(order_id, *args, **kwargs):
 def task_wrapper(task, task_instance_id, **kwargs):
     task(**kwargs)
     task_instance = models.Task.query.filter_by(id=task_instance_id).first()
-    task_instance.status = 'SUCCESS'
-    db.session.add(task_instance)
-    db.session.commit()
+    if task_instance:
+        task_instance.status = 'SUCCESS'
+        db.session.add(task_instance)
+        db.session.commit()

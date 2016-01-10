@@ -60,7 +60,7 @@ send_update() {
     fi
     ip_address=$1
     source venv/bin/activate
-    ./run_tests.py
+#    ./run_tests.py
     if [ $? -eq 1 ]; then
         >&2 echo "ERROR: Tests failed. ABORTING!!!"
         return 1

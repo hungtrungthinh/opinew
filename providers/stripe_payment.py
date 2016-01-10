@@ -41,6 +41,7 @@ class StripeAPI(PaymentInterface):
     def create_customer(self, opinew_customer):
         # Create a Stripe Customer
         customer = self.stripe_proxy.Customer.create(
+            email=opinew_customer.user.email,
             description=opinew_customer.user.email
         )
         return customer

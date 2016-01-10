@@ -162,6 +162,7 @@ class TestClient(TestFlaskApplication):
         db.session.delete(new_user)
         db.session.commit()
 
+    @expect_mail
     def test_register_post_shop_owner(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
                                                                       'email': testing_constants.NEW_USER_EMAIL,
@@ -449,6 +450,33 @@ class TestClient(TestFlaskApplication):
         self.assertIn(product, order.products)
         db.session.delete(order)
         db.session.delete(product)
+        db.session.commit()
+
+    def test_shopify_create_order_already_exists(self):
+        order = Order(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID)
+        db.session.add(order)
+        db.session.commit()
+        data = json.dumps({
+            'id': testing_constants.NEW_ORDER_PLATFORM_ID,
+            'customer': {
+                'email': testing_constants.ORDER_USER_EMAIL
+            },
+            'line_items': [
+                {
+                    'product_id': testing_constants.NEW_PRODUCT_PLATFORM_ID
+                }
+            ]
+        })
+        sha256 = base64.b64encode(hmac.new(Config.SHOPIFY_APP_SECRET, msg=data, digestmod=hashlib.sha256).digest())
+        response_actual = self.desktop_client.post(url_for('api.platform_shopify_create_order'),
+                                                   data=data,
+                                                   headers={
+                                                       'X-Shopify-Hmac-SHA256': sha256,
+                                                       'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
+        self.assertEquals(response_actual.status_code, 401)
+        self.assertTrue('Order already exists' in response_actual.data)
+        order = Order.query.filter_by(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID).first()
+        db.session.delete(order)
         db.session.commit()
 
     @freeze_time(testing_constants.ORDER_NOW)

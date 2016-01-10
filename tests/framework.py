@@ -73,6 +73,8 @@ class TestFlaskApplication(TestCase):
         cls.vserver = VirtualServerManager()
         cls.vserver.start()
 
+        common.verify_initialization()
+
     def setUp(self):
         self.admin_user = User.query.filter_by(id=1).first()
         self.reviewer_user = User.query.filter_by(id=2).first()

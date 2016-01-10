@@ -36,7 +36,7 @@
 <div class="container" style="margin-top: -26px;">
     <div class="row">
         <div class="col-xs-12 col-md-10 col-md-offset-1">
-          {% if not reviews and not featured_reviews %}
+          {% if not rest_reviews and not featured_reviews and not own_review %}
               <h3>Bought it? Leave a review and help others!</h3>
           {% else %}
             {% set hide_buy_button = True %}
@@ -53,8 +53,8 @@
               {% endfor %}
                 <hr>
             {% endif %}
-            {% if reviews %}
-              {% for review in reviews %}
+            {% if rest_reviews %}
+              {% for review in rest_reviews %}
                 {% include "review/review.html" %}
               {% endfor %}
             {% endif %}

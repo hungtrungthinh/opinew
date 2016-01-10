@@ -51,7 +51,7 @@ def create_app(option):
     app = FlaskOpinewExt(__name__)
     config = config_factory.get(option)
     app.config.from_object(config)
-    from common import create_jinja_filters, random_pwd
+    from common import create_jinja_filters, random_pwd, verify_initialization
 
     create_jinja_filters(app)
     from webapp.api import api
@@ -75,6 +75,9 @@ def create_app(option):
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
     with app.app_context():
+        if not app.testing:
+            verify_initialization()
+
         if app.testing:
             from async import tasks
         api_manager.init_app(app, flask_sqlalchemy_db=db)
@@ -108,12 +111,8 @@ def create_app(option):
 
     configure_uploads(app, (user_images, review_images, shop_images, ))
     admins = [email for name, email in config.ADMINS]
-    if not app.debug and not app.testing:
-        @app.errorhandler(500)
-        def internal_error(exception):
-            app.logger.error(exception)
-            return render_template('errors/500.html'), 500
 
+    if not (app.debug or app.testing):
         mail_handler = SMTPHandler(app.config.get('MAIL_SERVER'),
                                    'server-error@opinew.com',
                                    admins,

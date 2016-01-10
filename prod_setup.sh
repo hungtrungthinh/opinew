@@ -8,10 +8,10 @@ useradd -G sudo -s /bin/bash ${USER_NAME}
 passwd ${USER_NAME}
 mkdir -p ${HOME_DIR} && cp -r ./ ${HOME_DIR}
 chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}
-sudo su opinew_server
+sudo su ${USER_NAME}
 cd
 
-PACKAGES="git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev screen amqp-tools"
+PACKAGES="git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev screen amqp-tools postgresql-server-dev-9.3 amqp-tools"
 
 SOCKETS_DIR=${HOME_DIR}/sockets
 SOCKET_FILE=${SOCKETS_DIR}/opinew.sock
@@ -40,7 +40,7 @@ cd ${HOME_DIR}/.ssh
 curl -L ${ID_RSA_DW} > id_rsa
 curl -L ${ID_RSA_PUB_DW} > id_rsa.pub
 chmod 600 id_rsa
-eval `ssh-agent`
+eval $(ssh-agent)
 ssh-add ~/.ssh/id_rsa
 
 echo "Set up required directories"
