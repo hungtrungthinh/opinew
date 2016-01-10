@@ -699,3 +699,9 @@ def admin_revoke_task():
         db.session.commit()
     flash("Removed task %s" % task_id)
     return redirect(url_for('client.index'))
+
+
+@client.route('/test')
+def testsss():
+    a = 1/0
+    return 'hello %s' % a

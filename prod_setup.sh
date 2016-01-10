@@ -97,49 +97,21 @@ server {
         access_log  /var/log/nginx/access.log;
         error_log  /var/log/nginx/error.log;
 
+        if (\$host = 'www.opinew.com' ) {
+          rewrite  ^/(.*)$  https://opinew.com/\$1  permanent;
+        }
+
         location / {
                 include uwsgi_params;
-                uwsgi_pass unix:${SOCKET_FILE};
+                uwsgi_pass unix:/home/opinew_server/sockets/opinew.sock;
         }
 
         location /static {
-                alias ${PROJECT_DIR}/webapp/static;
-        }
-
-        location /media {
-                alias ${PROJECT_DIR}/media;
+                alias /home/opinew_server/opinew_ecommerce_api/webapp/static;
         }
 }
 EOF"
 
-# !!!!!!!!!!!!!!!!!!
-# http only
-# !!!!!!!!!!!!!!!!!!
-# echo "Configure nginx"
-#sudo bash -c "cat << 'EOF' > /etc/nginx/sites-available/opinew
-#server {
-#        listen 80;
-#        server_tokens off;
-#        server_name localhost;
-#        charset utf-8;
-#
-#        access_log  /var/log/nginx/access.log;
-#        error_log  /var/log/nginx/error.log;
-#
-#        location / {
-#                include uwsgi_params;
-#                uwsgi_pass unix:${SOCKET_FILE};
-#        }
-#
-#        location /static {
-#                alias ${PROJECT_DIR}/webapp/static;
-#        }
-#
-#        location /media {
-#                alias ${PROJECT_DIR}/media;
-#        }
-#}
-#EOF"
 sudo rm /etc/nginx/sites-enabled/default
 sudo ln -s /etc/nginx/sites-available/opinew /etc/nginx/sites-enabled/opinew
 
@@ -161,10 +133,6 @@ sudo ln -s /etc/uwsgi/apps-available/opinew.ini /etc/uwsgi/apps-enabled/opinew.i
 echo "Open ports"
 sudo iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
 sudo iptables -I INPUT 1 -p tcp --dport 443 -j ACCEPT
-
-echo "Create db"
-cd ${PROJECT_DIR}
-./repopulate.py db_prod
 
 echo "Restart services"
 sudo service nginx restart

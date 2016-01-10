@@ -1084,6 +1084,7 @@ class SentEmail(db.Model):
     body = db.Column(db.String)
     traceback = db.Column(db.String)
 
+
 # Create customized model view class
 class AdminModelView(ModelView):
     def is_accessible(self):

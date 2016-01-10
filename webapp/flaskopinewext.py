@@ -1,34 +1,59 @@
+import traceback
 from flask import Flask, request
 from flask.ext.login import current_user
 
 
-def error_string():
+def build_curl():
+    return "curl -I {headers}{data}{method}{url}".format(
+            method=" -X %s " % request.method,
+            headers="-H " + " -H ".join(["'%s: %s'" % (h[0], h[1]) for h in request.headers]) + " ",
+            data=("--data '%s'" % request.data) if not request.method == "GET" else '',
+            url=request.base_url)
+
+
+def error_string(ex=None):
     return """
-        Request:   {method} {path}
-        IP:        {ip}
+ERROR: {ex}
 
-        Agent:     {agent_platform} | {agent_browser} {agent_browser_version}
-        Raw Agent: {agent}
+CURL:
+-----
+{curl}
 
-        Args:      {args}
-        Form:      {form}
-        User:      {current_user}
+REQUEST:
+--------
+{method} {path}
+base_url: {base_url}
 
-        Headers:   {headers}
+HEADERS:
+--------
+{headers}
 
-            """.format(
-                method=request.method,
-                path=request.path,
-                args=request.args,
-                form=request.form,
-                headers=request.headers,
-                current_user=current_user,
-                ip=request.remote_addr,
-                agent_platform=request.user_agent.platform,
-                agent_browser=request.user_agent.browser,
-                agent_browser_version=request.user_agent.version,
-                agent=request.user_agent.string,
-            )
+BODY:
+-----
+{body}
+
+TRACEBACK:
+----------
+{traceback}
+
+From IP   : {ip}
+Args      : {args}
+Form      : {form}
+User      : {current_user}
+""".format(
+        ex=ex,
+        base_url=request.base_url,
+        method=request.method,
+        path=request.path,
+        body=request.data,
+        args=request.args,
+        form=request.form,
+        headers=request.headers,
+        current_user=current_user,
+        ip=request.remote_addr,
+        curl=build_curl(),
+        traceback=traceback.format_exc()
+    )
 
 
 class FlaskOpinewExt(Flask):
