@@ -15,7 +15,7 @@ class YotpoImpoter():
 
     def csv_to_dicts_YOTPO(self, filepath):
         output =[]
-        with open('shopify_example.csv', 'rb') as csvfile:
+        with open(filepath, 'rb') as csvfile:
             reader = csv.DictReader(csvfile, quoting=csv.QUOTE_ALL)
             for row in reader:
                 if row["published"] and row["published"] == "true":
@@ -50,8 +50,11 @@ class YotpoImpoter():
             product_id = product.id
 
         dt = parse(date)
-        review = Review.create_from_import(body=review_content, image_url=None, star_rating=review_score, product_id=product_id,
-                        shop_id=self.shop_id, verified_review=None, created_ts=dt, user=user)
+        if review_score and isinstance(int(review_score), int):
+            review_score = int(review_score)
+        review = Review.create_from_import(body=review_content, image_url=None,
+                                           star_rating=review_score, product_id=product_id,
+                                           verified_review=None, created_ts=dt, user=user)
         return review
 
     """

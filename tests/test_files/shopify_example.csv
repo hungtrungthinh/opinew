@@ -1,4 +1,4 @@
 product_handle,rating,title,author,email,body,created_at
-testing product,4,This is an example of a review title,John Appleseed,john.appleseed@example.com,"This is a simple review, no youtube...",2014-02-19 21:07:30 -0500
+testing product,4,This is an example of a review title,Peter Griffin,Peter@Griffin.com,"This is a simple review, no youtube...",2014-02-19 21:07:30 -0500
 testing product,4,Review with normal user in our test db,Rose Castro,rose.castro@example.com,"This is a simple review, no youtube...",2014-02-19 21:07:30 -0500
 testing product,4,Review with a legacy user in our test db,Test Test,legacy@test.test,"This is a simple review, no youtube...",2014-02-19 21:07:30 -0500

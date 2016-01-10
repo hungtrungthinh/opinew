@@ -47,9 +47,12 @@ class ShopifyImpoter():
         else:
             product_id = product.id
 
+        if rating and isinstance(int(rating), int):
+            rating = int(rating)
         dt = parse(created_at)
-        review = Review.create_from_import(body=body, image_url=None, star_rating=rating, product_id=product_id,
-                        shop_id=self.shop_id, verified_review=None, created_ts=dt, user=user)
+        review = Review.create_from_import(body=body, image_url=None,
+                                           star_rating=rating, product_id=product_id,
+                                           verified_review=None, created_ts=dt, user=user)
 
         return review
 

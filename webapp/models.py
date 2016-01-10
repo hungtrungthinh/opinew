@@ -750,6 +750,8 @@ class Review(db.Model, Repopulatable):
         self.body = unicode(body) if body else None
         self.image_url = image_url
         self.star_rating = star_rating
+
+        # differentiate between a review about a product vs a review about a shop
         if shop_id and product_id:
             raise DbException(message="[consistency: Can't set both shop_id and product_id]", status_code=400)
         self.product_id = product_id
@@ -787,8 +789,10 @@ class Review(db.Model, Repopulatable):
                            product_id=None, shop_id=None, verified_review=None, created_ts=None,
                            user=None, **kwargs):
 
+        # go through Review.__init__()
         review = Review(body=body, image_url=image_url, star_rating=star_rating,
                            product_id=product_id, shop_id=shop_id, verified_review=verified_review)
+
 
         """
         Import specific things
