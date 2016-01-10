@@ -116,18 +116,16 @@ def create_app(option):
         mail_handler = SMTPHandler(app.config.get('MAIL_SERVER'),
                                    'server-error@opinew.com',
                                    admins,
-                                   'YourApplication Failed',
+                                   'Your Application Failed',
                                    credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')))
         mail_handler.setLevel(logging.ERROR)
         mail_handler.setFormatter(Formatter('''
-        Message type:       %(levelname)s
-        Location:           %(pathname)s:%(lineno)d
-        Module:             %(module)s
-        Function:           %(funcName)s
-        Time:               %(asctime)s
+Time        : %(asctime)s
+Location    : %(pathname)s:%(lineno)d
+Module      : %(module)s
+Function    : %(funcName)s
 
-        %(message)s
-        '''))
+%(message)s'''))
         app.logger.addHandler(mail_handler)
 
     return app

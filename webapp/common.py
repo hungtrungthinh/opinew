@@ -25,18 +25,7 @@ def verify_initialization():
 # Make json error handlers
 def make_json_error(ex):
     from webapp.flaskopinewext import error_string
-    content = """
-    Error: %s
-    ------
-    Request:
-    --------
-    %s
-    =========
-    Traceback:
-    ----------
-    %s
-    """ % (ex, error_string(), traceback.format_exc())
-    current_app.logger.error(content)
+    current_app.logger.error(error_string(ex))
     status_code = ex.code if isinstance(ex, HTTPException) else 500
     # return pretty rendered templates messages to a client request
     if request.blueprint == 'client':
