@@ -162,6 +162,7 @@ class TestClient(TestFlaskApplication):
         db.session.delete(new_user)
         db.session.commit()
 
+    @expect_mail
     def test_register_post_shop_owner(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
                                                                       'email': testing_constants.NEW_USER_EMAIL,
