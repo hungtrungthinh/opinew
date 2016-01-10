@@ -656,7 +656,7 @@ def send_notification(order_id):
     task = Task.create(method=tasks.send_email, args=args)
     db.session.add(task)
     db.session.commit()
-    flash('email to %s sent' % recipients)
+    flash('email to %s sent' % recipients[0])
     return redirect(url_for('client.shop_dashboard'))
 
 
@@ -699,9 +699,3 @@ def admin_revoke_task():
         db.session.commit()
     flash("Removed task %s" % task_id)
     return redirect(url_for('client.index'))
-
-
-@client.route('/test')
-def testsss():
-    a = 1/0
-    return 'hello %s' % a

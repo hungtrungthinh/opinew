@@ -1162,7 +1162,7 @@ class TestClient(TestFlaskApplication):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         payload = {"subject":Constants.DEFAULT_REVIEW_SUBJECT % (self.reviewer_user.name.split()[0], shop.name)}
         response_actual = self.desktop_client.post('/send-notification/' + str(order.id), data=payload, follow_redirects=True)
-        self.assertTrue('email to %s sent' % [reviewer_user_email] in response_actual.data.decode('utf-8'))
+        self.assertTrue('email to %s sent' % reviewer_user_email in response_actual.data.decode('utf-8'))
         self.assertEquals(len(self.outbox), 1)
         self.logout()
         self.refresh_db()
@@ -1185,7 +1185,7 @@ class TestClient(TestFlaskApplication):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         payload = {"subject":Constants.DEFAULT_REVIEW_SUBJECT % (user_legacy.name.split()[0], shop.name)}
         response_actual = self.desktop_client.post('/send-notification/' + str(order.id), data=payload, follow_redirects=True)
-        self.assertTrue('email to %s sent' % [reviewer_user_email] in response_actual.data.decode('utf-8'))
+        self.assertTrue('email to %s sent' % reviewer_user_email in response_actual.data.decode('utf-8'))
         self.assertEquals(len(self.outbox), 1)
         self.logout()
         self.refresh_db()
