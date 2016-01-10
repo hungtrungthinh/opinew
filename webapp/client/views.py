@@ -159,7 +159,7 @@ def index():
 
 
 @client.route('/', defaults={'review_request_token': ''})
-@client.route('/<review_request_token>')
+@client.route('/<path:review_request_token>')
 def get_by_review_request_token(review_request_token):
     review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
     user_email = None
@@ -183,7 +183,7 @@ def get_by_review_request_token(review_request_token):
         return redirect(url_for('client.add_review', review_request_id=review_request.id,
                                 review_request_token=review_request.token,
                                 user_email=user_email, is_legacy=is_legacy, **request.args))
-    return redirect(url_for('client.index'))
+    return redirect(url_for('client.index'), code=301)
 
 
 @client.route('/reviews')

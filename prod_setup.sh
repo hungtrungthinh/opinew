@@ -153,6 +153,8 @@ chdir = ${PROJECT_DIR}
 module = webapp.production
 callable = app
 plugins = python
+lazy = true
+lazy-apps = true
 EOF"
 sudo ln -s /etc/uwsgi/apps-available/opinew.ini /etc/uwsgi/apps-enabled/opinew.ini
 
