@@ -1,14 +1,17 @@
 import csv
-from webapp.models import User, UserLegacy, Review, Product
+from webapp.models import User, UserLegacy, Review, Product, Order
 from webapp.exceptions import ProductNotFoundException
 from dateutil.parser import parse
+from config import Constants
+from webapp import db
+from importer import OpinewImporter
 
 
 """
 We are assuming that the shop from which the reviews came, is already registered
 and we imported all of its products.
 """
-class ShopifyImpoter():
+class ShopifyImpoter(OpinewImporter):
 
     def __init__(self, shop_id):
         self.shop_id = shop_id
@@ -31,7 +34,7 @@ class ShopifyImpoter():
     def shopify_dict_to_Opinew_models(self, reviews):
         for row in reviews:
             #gets an instance of a user or legacy user
-            user = self.create_or_match_user_from_shopify_data(row["author"], row["email"])
+            user = self.create_or_match_user_from_review_data(row["author"], row["email"])
             self.create_review_from_shopify_data(row["body"], row["product_handle"],
                                                  row["rating"], row["created_at"],
                                                  user)
@@ -50,22 +53,22 @@ class ShopifyImpoter():
         if rating and isinstance(int(rating), int):
             rating = int(rating)
         dt = parse(created_at)
-        review = Review.create_from_import(body=body, image_url=None,
+        Review.create_from_import(body=body, image_url=None,
                                            star_rating=rating, product_id=product_id,
                                            verified_review=None, created_ts=dt, user=user)
 
-        return review
+        # in orders check if the user that left a review about that product also ordered that product.
+        # if yes, set order as notified so that we don't notify the user again
+        orders = None
+        if isinstance(user, User):
+            orders = Order.query.filter_by(shop_id=self.shop_id, user_id=user.id).all()
+        elif isinstance(user, UserLegacy):
+            orders = Order.query.filter_by(shop_id=self.shop_id, user_legacy_id=user.id).all()
 
-    """
-    creates a new user if his email doesn't match in the db
-    """
-    def create_or_match_user_from_shopify_data(self, author=None, email=None):
-        user = None
-        existing_user = User.get_by_email_no_exception(email)
-        if existing_user:
-            user = existing_user
-        else:
-            user, is_new = UserLegacy.get_or_create_by_email(email, name=author)
-
-
-        return user
+        if orders:
+            for order in orders:
+                if product in order.products:
+                    order.status = Constants.ORDER_STATUS_NOTIFIED
+                    db.session.add(order)
+                    db.session.commit()
+                    break

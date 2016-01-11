@@ -576,6 +576,9 @@ class Order(db.Model, Repopulatable):
         return Task.create(method=tasks.send_email, args=args, eta=notify_dt)
 
     def set_notifications(self):
+        if self.status == Constants.ORDER_STATUS_NOTIFIED:
+            # should probably raise an exception here if we attmpted to notify again
+            return
         # Notify timestamp = shipment + 7
         if self.shipment_timestamp is None:
             raise DbException(message="Shipment timestamp is None for this order: %d" % self.id, status_code=400)
