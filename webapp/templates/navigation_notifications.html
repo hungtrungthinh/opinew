@@ -19,7 +19,7 @@
               </li>
           {% else %}
             {% for notification in current_user.get_notifications(0, g.constants.NOTIFICATIONS_INITIAL) %}
-                <a href="{{ url_for('.read_notification', id=notification.id, next=notification.url) }}">
+                <a href="{{ url_for('client.read_notification', id=notification.id, next=notification.url) }}">
                     <li style="padding:10px; {% if not notification.is_read %} background-color: #eef;{% endif %}">
                       {{ notification.content|safe }}
                     </li>

@@ -197,6 +197,7 @@ def check_recaptcha(data, *args, **kwargs):
 
     del data['g-recaptcha-response']
 
+
 def check_if_user_exists(data, *args, **kwargs):
     if current_user.is_authenticated():
         data["user_id"] = current_user.id
@@ -237,6 +238,7 @@ def is_verified_review(data, *args, **kwargs):
         del data['review_request_id']
         del data['review_request_token']
 
+
 def login_user_if_possible(data, *args, **kwargs):
     if "user_email" in data and "user_password" in data:
         email = data["user_email"]
@@ -248,10 +250,10 @@ def login_user_if_possible(data, *args, **kwargs):
             raise ProcessingException(description='unauthorized', code=401)
         login_user(user)
         del data["user_password"]
-        del data['user_name']
+        if 'user_name' in data:
+            del data['user_name']
         del data['user_email']
         data["user_id"] = user.id
-
 
 
 def pre_post_question(data, *args, **kwargs):
@@ -267,6 +269,7 @@ def pre_post_question(data, *args, **kwargs):
         session['temp_user_id'] = temp_user_id
         data['user_id'] = temp_user_id
 
+
 def pre_post_answer(data, *args, **kwargs):
     question_id = data.get('to_question_id')
     if not question_id:
@@ -279,7 +282,6 @@ def pre_post_answer(data, *args, **kwargs):
     if not shop.owner == current_user:
         raise ProcessingException(description='Not your shop', code=401)
     data['user_id'] = current_user.id
-
 
 
 # To query the reviews:

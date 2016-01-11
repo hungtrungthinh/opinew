@@ -77,3 +77,4 @@ user-agents==1.0.1
 validators==0.9
 webassets==0.11.1
 wsgiref==0.1.2
+yappi==0.94
