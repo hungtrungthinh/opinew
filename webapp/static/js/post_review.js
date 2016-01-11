@@ -54,7 +54,7 @@ function getGiphyImages(form) {
   }).done(function (r) {
     $('#giphy-images').html("");
     for (var i = 0; i < r.data.length; i++) {
-      var imageUrl = r.data[i].images.fixed_height.url;
+      var imageUrl = r.data[i].images.fixed_height.url.replace('http://', 'https://');
       $('#giphy-images').append("<a href='javascript:setImageUrl(\"" + imageUrl + "\");'><img style='margin: 0 10px 0 0' class=' img-thumbnail' src='" + imageUrl + "' /></a>");
     }
   }).fail(function () {
@@ -123,6 +123,7 @@ $('#submit-review-form').bind('click', function (e) {
     }
 
   }).fail(function (r) {
+    grecaptcha.reset();
     var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
     $('#ajax-status')
         .addClass('alert-danger')
@@ -133,14 +134,14 @@ $('#submit-review-form').bind('click', function (e) {
   return false;
 });
 
-$.emojiarea.path = 'http://twemoji.maxcdn.com/36x36/';
+$.emojiarea.path = 'https://twemoji.maxcdn.com/36x36/';
 $.emojiarea.icons = EMOJIS;
 $('#textarea-body').emojiarea({button: '#emoji-button'});
 
 function hookEmojiAreaPlaceholder(){
     var wysiwygDiv = $('.emoji-wysiwyg-editor');
     var placeholder_text = $('#textarea-body').attr('placeholder');
-    wysiwygDiv.css('white-space','pre-wrap')
+    wysiwygDiv.css('white-space','pre-wrap');
     wysiwygDiv.text(placeholder_text);
     wysiwygDiv.css('color', 'grey');
     wysiwygDiv.css('font-size','1em');

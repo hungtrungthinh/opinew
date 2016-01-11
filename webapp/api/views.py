@@ -225,7 +225,8 @@ def check_if_user_exists(data, *args, **kwargs):
     db.session.commit()
     login_user(user)
 
-    del data['user_name']
+    if 'user_name' in data:
+        del data['user_name']
     del data['user_email']
     data['user_id'] = user.id
 
