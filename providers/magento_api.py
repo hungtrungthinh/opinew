@@ -72,7 +72,8 @@ class API(object):
             mshipment_ts = mshipment.get('created_at')
             shipment_dt = datetime.datetime.strptime(mshipment_ts, '%Y-%m-%d %H:%M:%S')
             order.ship(shipment_timestamp=shipment_dt)
-            order.set_notifications()
+            if not order.tasks:
+                order.set_notifications()
         return order
 
     def fetch_new_and_updated_orders(self, current_shop_orders, shop):
@@ -185,7 +186,8 @@ def init(shop):
     new_and_updated_orders = api.fetch_new_and_updated_orders(current_shop_orders, shop)
 
     # Merge orders
-    db.session.add_all(new_and_updated_orders)
+    for nu_order in new_and_updated_orders:
+        db.session.add(nu_order)
 
     # Flush to db
     db.session.commit()

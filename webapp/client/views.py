@@ -383,7 +383,7 @@ def get_plugin():
         next_arg = request.url
         product.plugin_views += 1
         db.session.commit()
-    except (ParamException, DbException, AssertionError) as e:
+    except (ParamException, DbException, AssertionError, AttributeError) as e:
         return '', 404
     return render_template('plugin/plugin.html', product=product, rest_reviews=rest_reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,

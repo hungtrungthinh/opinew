@@ -75,6 +75,14 @@ class API(object):
         response = r.json()
         return response.get('count', 0)
 
+    def check_webhooks(self):
+        r = requests.get("%s/admin/webhooks.json" % self.url_prefix,
+                         headers={'X-Shopify-Access-Token': self.access_token})
+        if not r.status_code == 200:
+            raise ApiException(r.text, r.status_code)
+        response = r.json()
+        return response
+
     def create_webhook(self, topic, address):
         requests.post("%s/admin/webhooks.json" % self.url_prefix,
                       headers={'X-Shopify-Access-Token': self.access_token},

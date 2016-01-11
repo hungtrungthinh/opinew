@@ -35,29 +35,29 @@ def create_shopify_shop(shopify_api, shop_id):
     # Create webhooks
     shopify_api.create_webhook("products/create",
                                "%s%s" % (app.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_create_product')))
+                                         "/api/v1/platform/shopify/products/create"))
     shopify_api.create_webhook("products/update",
                                "%s%s" % (app.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_update_product')))
+                                         "/api/v1/platform/shopify/products/update"))
     shopify_api.create_webhook("products/delete",
                                "%s%s" % (app.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_delete_product')))
+                                         "/api/v1/platform/shopify/products/delete"))
     shopify_api.create_webhook("orders/create",
                                "%s%s" % (app.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_create_order')))
+                                         "/api/v1/platform/shopify/orders/create"))
     shopify_api.create_webhook("fulfillments/create",
                                "%s%s" % (app.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_fulfill_order')))
+                                         "/api/v1/platform/shopify/orders/fulfill"))
     shopify_api.create_webhook("app/uninstalled",
                                "%s%s" % (app.config.get('OPINEW_API_SERVER'),
-                                         url_for('api.platform_shopify_fulfill_order')))
+                                         "/api/v1/platform/shopify/app/uninstalled"))
 
     # Get shopify products
     shopify_products = shopify_api.get_products()
 
     # Import shop products
     for product_j in shopify_products:
-        product_url = "https://%s/products/%s" % (shop.domain, product_j.get('handle', ''))
+        product_url = "%s/products/%s" % (shop.domain, product_j.get('handle', ''))
         product = models.Product(name=product_j.get('title', ''),
                                  shop=shop,
                                  platform_product_id=product_j.get('id', ''))
