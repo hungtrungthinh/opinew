@@ -723,6 +723,7 @@ class Review(db.Model, Repopulatable):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     product = db.relationship('Product', backref=db.backref('reviews'))
 
+    # if review is about a shop in general
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship('Shop', backref=db.backref('reviews'))
 

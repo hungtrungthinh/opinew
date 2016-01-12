@@ -1,10 +1,11 @@
 from framework import TestImporters
 import testing_constants
 import os
-from webapp.models import User, UserLegacy, Review, Product
+from webapp.models import User, UserLegacy, Review, Product, Order
 from webapp import db
 from webapp.exceptions import ProductNotFoundException
 from dateutil.parser import parse
+from webapp import Constants
 
 
 class TestModel(TestImporters):
@@ -62,7 +63,76 @@ class TestModel(TestImporters):
         self.assertEqual(user.email, testing_constants.ORDER_USER_EMAIL)
         self.assertEqual(user.name, testing_constants.ORDER_USER_NAME)
         self.assertEqual(len(User.query.filter_by(email=testing_constants.ORDER_USER_EMAIL).all()), 1)
-        
+
+    def test_shopify_import_reviews_products_not_imported(self):
+        self.refresh_db()
+        before_count = len(Review.query.all())
+        after_count = len(Review.query.all())
+        with self.assertRaises(ProductNotFoundException):
+            self.shopify_importer.import_reviews(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
+
+    def test_SHOPIFY_import_reviews(self):
+        self.refresh_db()
+        p = Product(shop_id=self.shopify_shop.id, name=testing_constants.NEW_PRODUCT_NAME)
+        db.session.add(p)
+        db.session.commit()
+        before_count = len(Review.query.all())
+        self.shopify_importer.import_reviews(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
+        after_count = len(Review.query.all())
+        u = UserLegacy.query.filter_by(email=testing_constants.ORDER_USER_EMAIL).first()
+        r = Review.query.filter_by(user_legacy=u).first()
+        self.assertEqual(after_count, before_count+3)
+        self.assertNotEqual(r, None)
+        self.assertEqual(r.body, testing_constants.NEW_REVIEW_BODY)
+        self.assertEqual(r.product, p)
+        self.assertEqual(r.star_rating, 4)
+        self.assertEqual(r.created_ts, parse(testing_constants.SHOPIFY_REVIEW_TIMESTAMP).replace(tzinfo=None))
+        self.assertEqual(r.youtube_video, None)
+        self.assertFalse(r.verified_review)
+
+    def test_shopify_import_reviews_verified_review(self):
+        self.refresh_db()
+        p = Product(shop_id=self.shopify_shop.id, name=testing_constants.NEW_PRODUCT_NAME)
+        user_legacy = UserLegacy(name=testing_constants.ORDER_USER_NAME, email=testing_constants.ORDER_USER_EMAIL)
+        o = Order(user_legacy=user_legacy, shop=self.shopify_shop, status=Constants.ORDER_STATUS_NOTIFIED)
+        o.products.append(p)
+        db.session.add(p)
+        db.session.add(o)
+        db.session.commit()
+        before_count = len(Review.query.all())
+        self.shopify_importer.import_reviews(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
+        after_count = len(Review.query.all())
+        r = Review.query.filter_by(user_legacy=user_legacy).first()
+        self.assertEqual(after_count, before_count+3)
+        self.assertNotEqual(r, None)
+        self.assertEqual(r.body, testing_constants.NEW_REVIEW_BODY)
+        self.assertEqual(r.product, p)
+        self.assertEqual(r.star_rating, 4)
+        self.assertEqual(r.created_ts, parse(testing_constants.SHOPIFY_REVIEW_TIMESTAMP).replace(tzinfo=None))
+        self.assertEqual(r.youtube_video, None)
+        self.assertTrue(r.verified_review)
+
+    def test_shopify_import_reviews_ordered_verified_review_2(self):
+        self.refresh_db()
+        p = Product(shop_id=self.shopify_shop.id, name=testing_constants.NEW_PRODUCT_NAME)
+        user_legacy = UserLegacy(name=testing_constants.ORDER_USER_NAME, email=testing_constants.ORDER_USER_EMAIL)
+        o = Order(user_legacy=user_legacy, shop=self.shopify_shop)
+        o.products.append(p)
+        db.session.add(p)
+        db.session.add(o)
+        db.session.commit()
+        before_count = len(Review.query.all())
+        self.shopify_importer.import_reviews(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
+        after_count = len(Review.query.all())
+        r = Review.query.filter_by(user_legacy=user_legacy).first()
+        self.assertEqual(after_count, before_count+3)
+        self.assertNotEqual(r, None)
+        self.assertEqual(r.body, testing_constants.NEW_REVIEW_BODY)
+        self.assertEqual(r.product, p)
+        self.assertEqual(r.star_rating, 4)
+        self.assertEqual(r.created_ts, parse(testing_constants.SHOPIFY_REVIEW_TIMESTAMP).replace(tzinfo=None))
+        self.assertEqual(r.youtube_video, None)
+        self.assertTrue(r.verified_review)
     
     #######YOTPO#######
     
@@ -141,10 +211,28 @@ class TestModel(TestImporters):
         self.assertEqual(r.body, testing_constants.NEW_REVIEW_BODY)
         self.assertEqual(r.product, p)
         self.assertEqual(r.star_rating, 4)
-        self.assertEqual(r.created_ts, parse(testing_constants.YOTPO_REVIEW_TIMESTAMP))
+        self.assertEqual(r.created_ts, parse(testing_constants.YOTPO_REVIEW_TIMESTAMP).replace(tzinfo=None))
         self.assertEqual(r.youtube_video, None)
+        self.assertFalse(r.verified_review)
 
-
-
-
-
+    def test_YOTPO_import_reviews_verified_review(self):
+        self.refresh_db()
+        p = Product(shop_id=self.yotpo_shop.id, name=testing_constants.NEW_PRODUCT_NAME)
+        user_legacy = UserLegacy(name=testing_constants.ORDER_USER_NAME, email=testing_constants.ORDER_USER_EMAIL)
+        o = Order(user_legacy=user_legacy, shop=self.yotpo_shop, status=Constants.ORDER_STATUS_NOTIFIED)
+        o.products.append(p)
+        db.session.add(p)
+        db.session.add(o)
+        db.session.commit()
+        before_count = len(Review.query.all())
+        self.yotpo_importer.import_reviews(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
+        after_count = len(Review.query.all())
+        r = Review.query.filter_by(user_legacy=user_legacy).first()
+        self.assertEqual(after_count, before_count+2)
+        self.assertNotEqual(r, None)
+        self.assertEqual(r.body, testing_constants.NEW_REVIEW_BODY)
+        self.assertEqual(r.product, p)
+        self.assertEqual(r.star_rating, 4)
+        self.assertEqual(r.created_ts, parse(testing_constants.YOTPO_REVIEW_TIMESTAMP).replace(tzinfo=None))
+        self.assertEqual(r.youtube_video, None)
+        self.assertTrue(r.verified_review)

@@ -54,7 +54,7 @@ class ShopifyImpoter(OpinewImporter):
 
         if rating and isinstance(int(rating), int):
             rating = int(rating)
-        dt = parse(created_at)
+        dt = parse(created_at).replace(tzinfo=None)
         review = Review.create_from_import(body=body, image_url=None,
                                            star_rating=rating, product_id=product_id,
                                            verified_review=None, created_ts=dt, user=user)
@@ -73,5 +73,6 @@ class ShopifyImpoter(OpinewImporter):
                     order.status = Constants.ORDER_STATUS_NOTIFIED
                     review.verified_review = True
                     db.session.add(order)
+                    db.session.add(review)
                     db.session.commit()
                     break

@@ -53,7 +53,7 @@ class YotpoImpoter(OpinewImporter):
         else:
             raise ProductNotFoundException
 
-        dt = parse(date)
+        dt = parse(date).replace(tzinfo=None)
         if review_score and isinstance(int(review_score), int):
             review_score = int(review_score)
         review = Review.create_from_import(body=review_content, image_url=None,
