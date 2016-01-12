@@ -1,8 +1,10 @@
 from framework import TestImporters
 import testing_constants
 import os
-from webapp.models import User, UserLegacy
+from webapp.models import User, UserLegacy, Review, Product
 from webapp import db
+from webapp.exceptions import ProductNotFoundException
+from dateutil.parser import parse
 
 
 class TestModel(TestImporters):
@@ -16,7 +18,7 @@ class TestModel(TestImporters):
                         'email': testing_constants.ORDER_USER_EMAIL,
                         'body': testing_constants.NEW_REVIEW_BODY,
                         'created_at': testing_constants.SHOPIFY_REVIEW_TIMESTAMP}
-        reviews = self.shopify_importer.csv_to_dicts_SHOPIFY(os.path.join(self.basedir, 'test_files', 'shopify_example.csv'))
+        reviews = self.shopify_importer.csv_to_dicts_SHOPIFY(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
         self.assertTrue(reviews is not None)
         self.assertTrue(len(reviews) > 0)
         self.assertTrue(len(reviews) > 1)
@@ -24,7 +26,7 @@ class TestModel(TestImporters):
 
     def test_shopify_import_get_or_create_legacy_user_doesnt_exist(self):
         self.refresh_db()
-        reviews = self.shopify_importer.csv_to_dicts_SHOPIFY(os.path.join(self.basedir, 'test_files', 'shopify_example.csv'))
+        reviews = self.shopify_importer.csv_to_dicts_SHOPIFY(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
         review_row_1 = reviews[0]
         user = self.shopify_importer.create_or_match_user_from_review_data(review_row_1["author"],
                                                                             review_row_1["email"])
@@ -38,7 +40,7 @@ class TestModel(TestImporters):
         user_legacy = UserLegacy(name=testing_constants.ORDER_USER_NAME, email=testing_constants.ORDER_USER_EMAIL)
         db.session.add(user_legacy)
         db.session.commit()
-        reviews = self.shopify_importer.csv_to_dicts_SHOPIFY(os.path.join(self.basedir, 'test_files', 'shopify_example.csv'))
+        reviews = self.shopify_importer.csv_to_dicts_SHOPIFY(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
         review_row_1 = reviews[0]
         user = self.shopify_importer.create_or_match_user_from_review_data(review_row_1["author"],
                                                                             review_row_1["email"])
@@ -52,7 +54,7 @@ class TestModel(TestImporters):
         existing_user = User(email=testing_constants.ORDER_USER_EMAIL, name=testing_constants.ORDER_USER_NAME)
         db.session.add(existing_user)
         db.session.commit()
-        reviews = self.shopify_importer.csv_to_dicts_SHOPIFY(os.path.join(self.basedir, 'test_files', 'shopify_example.csv'))
+        reviews = self.shopify_importer.csv_to_dicts_SHOPIFY(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
         review_row_1 = reviews[0]
         user = self.shopify_importer.create_or_match_user_from_review_data(review_row_1["author"],
                                                                             review_row_1["email"])
@@ -72,7 +74,7 @@ class TestModel(TestImporters):
                         'email': testing_constants.ORDER_USER_EMAIL,
                         'review_content': testing_constants.NEW_REVIEW_BODY,
                         'date': testing_constants.YOTPO_REVIEW_TIMESTAMP}
-        reviews = self.yotpo_importer.csv_to_dicts_YOTPO(os.path.join(self.basedir, 'test_files', 'yotpo_example.csv'))
+        reviews = self.yotpo_importer.csv_to_dicts_YOTPO(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
         self.assertTrue(reviews is not None)
         self.assertTrue(len(reviews) > 0)
         self.assertTrue(len(reviews) > 1)
@@ -80,7 +82,7 @@ class TestModel(TestImporters):
 
     def test_YOTPO_import_get_or_create_legacy_user_doesnt_exist(self):
         self.refresh_db()
-        reviews = self.yotpo_importer.csv_to_dicts_YOTPO(os.path.join(self.basedir, 'test_files', 'yotpo_example.csv'))
+        reviews = self.yotpo_importer.csv_to_dicts_YOTPO(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
         review_row_1 = reviews[0]
         user = self.yotpo_importer.create_or_match_user_from_review_data(review_row_1["display_name"],
                                                                             review_row_1["email"])
@@ -94,7 +96,7 @@ class TestModel(TestImporters):
         user_legacy = UserLegacy(name=testing_constants.ORDER_USER_NAME, email=testing_constants.ORDER_USER_EMAIL)
         db.session.add(user_legacy)
         db.session.commit()
-        reviews = self.yotpo_importer.csv_to_dicts_YOTPO(os.path.join(self.basedir, 'test_files', 'yotpo_example.csv'))
+        reviews = self.yotpo_importer.csv_to_dicts_YOTPO(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
         review_row_1 = reviews[0]
         user = self.shopify_importer.create_or_match_user_from_review_data(review_row_1["display_name"],
                                                                             review_row_1["email"])
@@ -108,7 +110,7 @@ class TestModel(TestImporters):
         existing_user = User(email=testing_constants.ORDER_USER_EMAIL, name=testing_constants.ORDER_USER_NAME)
         db.session.add(existing_user)
         db.session.commit()
-        reviews = self.yotpo_importer.csv_to_dicts_YOTPO(os.path.join(self.basedir, 'test_files', 'yotpo_example.csv'))
+        reviews = self.yotpo_importer.csv_to_dicts_YOTPO(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
         review_row_1 = reviews[0]
         user = self.shopify_importer.create_or_match_user_from_review_data(review_row_1["display_name"],
                                                                             review_row_1["email"])
@@ -116,5 +118,33 @@ class TestModel(TestImporters):
         self.assertEqual(user.email, testing_constants.ORDER_USER_EMAIL)
         self.assertEqual(user.name, testing_constants.ORDER_USER_NAME)
         self.assertEqual(len(User.query.filter_by(email=testing_constants.ORDER_USER_EMAIL).all()), 1)
+
+    def test_YOTPO_import_reviews_products_not_imported(self):
+        self.refresh_db()
+        before_count = len(Review.query.all())
+        after_count = len(Review.query.all())
+        with self.assertRaises(ProductNotFoundException):
+            self.yotpo_importer.import_reviews(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
+
+    def test_YOTPO_import_reviews(self):
+        self.refresh_db()
+        p = Product(shop_id=self.yotpo_shop.id, name=testing_constants.NEW_PRODUCT_NAME)
+        db.session.add(p)
+        db.session.commit()
+        before_count = len(Review.query.all())
+        self.yotpo_importer.import_reviews(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
+        after_count = len(Review.query.all())
+        u = UserLegacy.query.filter_by(email=testing_constants.ORDER_USER_EMAIL).first()
+        r = Review.query.filter_by(user_legacy=u).first()
+        self.assertEqual(after_count, before_count+2)
+        self.assertNotEqual(r, None)
+        self.assertEqual(r.body, testing_constants.NEW_REVIEW_BODY)
+        self.assertEqual(r.product, p)
+        self.assertEqual(r.star_rating, 4)
+        self.assertEqual(r.created_ts, parse(testing_constants.YOTPO_REVIEW_TIMESTAMP))
+        self.assertEqual(r.youtube_video, None)
+
+
+
 
 

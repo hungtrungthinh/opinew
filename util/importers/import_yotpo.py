@@ -33,31 +33,32 @@ class YotpoImpoter(OpinewImporter):
         return output
 
 
-    def yotpo_dict_to_Opinew_models(self, reviews):
-        for row in reviews:
+    def import_reviews(self, yotpo_csv_filepath=None):
+        yotpo_reviews = self.csv_to_dicts_YOTPO(yotpo_csv_filepath)
+        for row in yotpo_reviews:
             #gets an instance of a user or legacy user
             user = self.create_or_match_user_from_review_data(row["display_name"], row["email"])
-            self.create_review_from_yotpo_data(row["review_content"], row["product_title"],
+            self.import_review_from_yotpo_data(row["review_content"], row["product_title"],
                                                  row["review_score"], row["date"],
                                                  user)
 
-    def create_review_from_yotpo_data(self, review_content, product_title, review_score,
+    def import_review_from_yotpo_data(self, review_content, product_title, review_score,
                                         date, user):
         product = Product.query.filter_by(shop_id=self.shop_id,
                                              name=product_title
                                              ).first()
         product_id = None
-        if not product:
-            raise ProductNotFoundException
-        else:
+        if product:
             product_id = product.id
+        else:
+            raise ProductNotFoundException
 
         dt = parse(date)
         if review_score and isinstance(int(review_score), int):
             review_score = int(review_score)
-        Review.create_from_import(body=review_content, image_url=None,
+        review = Review.create_from_import(body=review_content, image_url=None,
                                   star_rating=review_score, product_id=product_id,
-                                  verified_review=None, created_ts=dt, user=user)
+                                  verified_review=False, created_ts=dt, user=user)
         # in orders check if the user that left a review about that product also ordered that product.
         # if yes, set order as notified so that we don't notify the user again
         orders = None
@@ -70,6 +71,8 @@ class YotpoImpoter(OpinewImporter):
             for order in orders:
                 if product in order.products:
                     order.status = Constants.ORDER_STATUS_NOTIFIED
+                    review.verified_review = True
                     db.session.add(order)
+                    db.session.add(review)
                     db.session.commit()
                     break

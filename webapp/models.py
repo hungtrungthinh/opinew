@@ -795,7 +795,7 @@ class Review(db.Model, Repopulatable):
     """
     @classmethod
     def create_from_import(cls, body=None, image_url=None, star_rating=None,
-                           product_id=None, shop_id=None, verified_review=None, created_ts=None,
+                           product_id=None, shop_id=None, verified_review=False, created_ts=None,
                            user=None, **kwargs):
 
         # go through Review.__init__()
