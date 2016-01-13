@@ -4,6 +4,7 @@ from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort, jsonify
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
+from flask_security.utils import verify_password
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
@@ -702,3 +703,15 @@ def admin_revoke_task():
         db.session.commit()
     flash("Removed task %s" % task_id)
     return redirect(url_for('client.index'))
+
+
+@client.route('/welcome')
+def welcome():
+    if 'email' in request.args and 'password' in request.args:
+        user = User.query.filter_by(email=request.args['email']).first()
+        if not user:
+            return redirect('/login')
+        if verify_password(request.args['password'], user.password):
+            login_user(user)
+            return redirect('/change')
+    return redirect('/login')
