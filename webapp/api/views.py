@@ -181,6 +181,11 @@ def del_user_id(data, *args, **kwargs):
 def check_recaptcha(data, *args, **kwargs):
     if current_user.is_authenticated():
         return
+    # TODO: return if the user comes from a verified source
+    if 'review_request_id' in data and 'review_request_token' in data:
+        review_request = models.ReviewRequest.query.filter_by(id=data.get('review_request_id')).first()
+        if review_request and review_request.token == data.get('review_request_token'):
+            return
     recaptcha = data.get('g-recaptcha-response')
     if not recaptcha:
         raise ProcessingException(description=ExceptionMessages.MISSING_PARAM % 'g-recaptcha-response', code=401)

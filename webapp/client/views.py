@@ -440,11 +440,14 @@ def add_review():
     if 'product_id' in request.args:
         ctx['product'] = Product.query.filter_by(id=request.args.get('product_id')).first()
     # Check if it's a review request and that the correct token is there
+    ctx['show_recaptcha'] = not current_user.is_authenticated()
     if 'review_request_id' in request.args and 'review_request_token' in request.args:
         review_request = ReviewRequest.query.filter_by(id=request.args.get('review_request_id')).first()
         if not review_request or not review_request.token == request.args.get('review_request_token'):
             flash('Incorrect review request token')
+            ctx['show_recaptcha'] = True
         else:
+            ctx['show_recaptcha'] = False
             ctx['product'] = review_request.for_product
             if review_request.to_user and review_request.to_user.name:
                 ctx['user_name'] = review_request.to_user.name.split()[0]

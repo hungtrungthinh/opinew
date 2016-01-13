@@ -146,13 +146,12 @@ $('#submit-review-form').bind('click', function (e) {
     }
 
   }).fail(function (r) {
-    grecaptcha.reset();
     var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
     $('#ajax-status')
         .addClass('alert-danger')
         .html('<p><strong>Something went wrong</strong>: ' + errors + '</p>')
         .slideDown();
-
+    grecaptcha.reset();
   });
   return false;
 });

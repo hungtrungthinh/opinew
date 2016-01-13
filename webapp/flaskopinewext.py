@@ -32,6 +32,10 @@ BODY:
 -----
 {body}
 
+FILES:
+-----
+{files}
+
 TRACEBACK:
 ----------
 {traceback}
@@ -48,6 +52,7 @@ User      : {current_user}
         body=request.data,
         args=request.args,
         form=request.form,
+        files=request.files,
         headers=request.headers,
         current_user=current_user,
         ip=request.remote_addr,
