@@ -571,7 +571,7 @@ class Order(db.Model, Repopulatable):
         template = Constants.DEFAULT_REVIEW_EMAIL_TEMPLATE
         template_ctx = order.build_review_email_context()
         shop_name = order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
-        subject = Constants.DEFAULT_REVIEW_SUBJECT % (user_name.split()[0], shop_name)
+        subject = Constants.DEFAULT_REVIEW_SUBJECT % (user_name.split()[0] if user_name else '', shop_name)
 
         from async import tasks
 
