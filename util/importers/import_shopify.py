@@ -33,12 +33,21 @@ class ShopifyImpoter(OpinewImporter):
 
     def import_reviews(self, shopify_csv_filepath=None):
         shopify_reviews = self.csv_to_dicts_SHOPIFY(shopify_csv_filepath)
+        num_of_reviews = len(shopify_reviews)
+        num_imported = 0
         for row in shopify_reviews:
             #gets an instance of a user or legacy user
             user = self.create_or_match_user_from_review_data(row["author"], row["email"])
-            self.import_review_from_shopify_data(row["body"], row["product_handle"],
-                                                 row["rating"], row["created_at"],
-                                                 user)
+            try:
+                self.import_review_from_shopify_data(row["body"], row["product_handle"],
+                                                     row["rating"], row["created_at"],
+                                                     user)
+                num_imported += 1
+            except ProductNotFoundException:
+                # log this?
+                continue
+
+        return {"num_of_reviews": num_of_reviews, "num_imported": num_imported}
 
     def import_review_from_shopify_data(self, body, product_handle, rating,
                                         created_at, user):

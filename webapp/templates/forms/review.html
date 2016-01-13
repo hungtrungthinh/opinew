@@ -74,11 +74,13 @@
 
 {% if not current_user.is_authenticated() %}
     <br>
+    {%  if not user_name %}
     <div class="input-group">
         <span class="input-group-addon" id="basic-addon1">Name: </span>
         <input type="text" class="form-control" id="input-user-name" name="name"
                placeholder="Please type your name here" value="{{ user_name }}"/>
     </div>
+    {% endif %}
     <br>
 
     {% if user_email %}
