@@ -769,11 +769,10 @@ class TestClient(TestFlaskApplication):
         self.assertTrue("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
         self.assertTrue("id=\"review-img-upload-form\">" in response_actual.data.decode('utf-8'))
         self.assertTrue("<div id='giphy-container' hidden>" in response_actual.data.decode('utf-8'))
-        self.assertTrue("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
+        self.assertFalse("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
         self.assertTrue("<input type=\"password\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("placeholder=\"Please type your email here\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("value=\""+self.reviewer_user.email+"\"" in response_actual.data.decode('utf-8'))
-        self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
 
     def test_display_post_email_add_review_screen_template_text_different_user_logged_in_NORMAL_USER(self):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
@@ -797,11 +796,10 @@ class TestClient(TestFlaskApplication):
         self.assertTrue("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
         self.assertTrue("id=\"review-img-upload-form\">" in response_actual.data.decode('utf-8'))
         self.assertTrue("<div id='giphy-container' hidden>" in response_actual.data.decode('utf-8'))
-        self.assertTrue("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
+        self.assertFalse("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
         self.assertTrue("<input type=\"password\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("placeholder=\"Please type your email here\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("value=\""+self.reviewer_user.email+"\"" in response_actual.data.decode('utf-8'))
-        self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
         self.logout()
 
     def test_display_post_email_add_review_screen_template_text_reviewer_not_logged_in_LEGACY_USER(self):
@@ -826,10 +824,9 @@ class TestClient(TestFlaskApplication):
         self.assertTrue("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
         self.assertTrue("id=\"review-img-upload-form\">" in response_actual.data.decode('utf-8'))
         self.assertTrue("<div id='giphy-container' hidden>" in response_actual.data.decode('utf-8'))
-        self.assertTrue("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
+        self.assertFalse("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
         self.assertFalse("<input type=\"password\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("placeholder=\"Please type your email here\"" in response_actual.data.decode('utf-8'))
-        self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("value=\""+testing_constants.NEW_USER_EMAIL+"\"" in response_actual.data.decode('utf-8'))
 
     def test_display_post_email_add_review_screen_template_text_different_user_logged_in_LEGACY_USER(self):
@@ -855,10 +852,9 @@ class TestClient(TestFlaskApplication):
         self.assertTrue("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
         self.assertTrue("id=\"review-img-upload-form\">" in response_actual.data.decode('utf-8'))
         self.assertTrue("<div id='giphy-container' hidden>" in response_actual.data.decode('utf-8'))
-        self.assertTrue("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
+        self.assertFalse("<div class=\"g-recaptcha\" data-sitekey=" in response_actual.data.decode('utf-8'))
         self.assertFalse("<input type=\"password\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("placeholder=\"Please type your email here\"" in response_actual.data.decode('utf-8'))
-        self.assertFalse("placeholder=\"Please type your name here\"" in response_actual.data.decode('utf-8'))
         self.assertTrue("value=\""+testing_constants.NEW_USER_EMAIL+"\"" in response_actual.data.decode('utf-8'))
         self.logout()
 
