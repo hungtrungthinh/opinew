@@ -23,7 +23,7 @@ $('#review-img-upload-input').change(function (e) {
   var progressBar = $('.progress-bar');
   $.ajax({
     beforeSend: function(){
-      progressBar.show();
+      progressBar.parent().show();
     },
     xhr: function() {
     var xhr = new window.XMLHttpRequest();
@@ -34,10 +34,6 @@ $('#review-img-upload-input').change(function (e) {
         var percent = percentComplete.toString() + '%';
         progressBar.html(percent);
         progressBar.css('width', percent);
-
-        if (percentComplete === 100) {
-
-        }
 
       }
     }, false);
@@ -51,7 +47,8 @@ $('#review-img-upload-input').change(function (e) {
     contentType: false,
     processData: false
   }).done(function (r) {
-    progressBar.hide();
+    progressBar.parent().hide();
+    progressBar.css('width', '5%');
     var image_url = r.image_url;
     setImageUrl(image_url);
   }).fail(function () {
