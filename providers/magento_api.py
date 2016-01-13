@@ -94,16 +94,16 @@ class API(object):
 
         current_shop_orders_dict = {o.platform_order_id: o for o in current_shop_orders}
         for morder in morders:
-            mplatfrom_order_id = morder.get('order_id')
-            if mplatfrom_order_id in current_purchased_shop_orders_dict and \
-                            mplatfrom_order_id in shipment_info:  # update order possibly
-                order = current_purchased_shop_orders_dict.get(mplatfrom_order_id)
-            elif mplatfrom_order_id not in current_shop_orders_dict:  # new order
+            mplatform_order_id = morder.get('order_id')
+            if mplatform_order_id in current_purchased_shop_orders_dict and \
+                            mplatform_order_id in shipment_info:  # update order possibly
+                order = current_purchased_shop_orders_dict.get(mplatform_order_id)
+            elif mplatform_order_id not in current_shop_orders_dict:  # new order
                 order = self.create_new_order(morder)
                 order.shop = shop
             else:
                 order = None
-            mshipment = shipment_info.get(mplatfrom_order_id)
+            mshipment = shipment_info.get(mplatform_order_id)
             order = self.update_order(morder, order, mshipment)
             if order:
                 new_and_updated_orders.append(order)
