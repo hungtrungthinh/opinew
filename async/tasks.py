@@ -81,25 +81,22 @@ def create_shopify_shop(shopify_api, shop_id):
         except:
             created_at_dt = datetime.datetime.utcnow()
 
-        user_name = "%s %s" % (
-            order_j.get('customer', {}).get('first_name'), order_j.get('customer', {}).get('last_name'))
+        order = models.Order(
+            purchase_timestamp=created_at_dt,
+            platform_order_id=platform_order_id,
+            shop_id=shop.id
+            )
 
         existing_user = models.User.get_by_email_no_exception(order_j.get('email'))
         if existing_user:
-            order = models.Order(
-            purchase_timestamp=created_at_dt,
-            platform_order_id=platform_order_id,
-            shop_id=shop.id,
-            user=existing_user
-            )
+            order.user = existing_user
         else:
+            user_name = "%s %s" % (order_j.get('customer', {}).get('first_name'),
+                                   order_j.get('customer', {}).get('last_name')
+                                   )
             user_legacy, _ = models.UserLegacy.get_or_create_by_email(email=order_j.get('email'), name=user_name)
-            order = models.Order(
-                purchase_timestamp=created_at_dt,
-                platform_order_id=platform_order_id,
-                shop_id=shop.id,
-                user_legacy=user_legacy
-            )
+            order.user_legacy = user_legacy
+
         if order_j.get('fulfillment_status'):
             order.status = Constants.ORDER_STATUS_SHIPPED
         if order_j.get('cancelled_at'):

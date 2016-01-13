@@ -582,6 +582,9 @@ class Order(db.Model, Repopulatable):
         return Task.create(method=tasks.send_email, args=args, eta=notify_dt)
 
     def set_notifications(self):
+        if self.status == Constants.ORDER_STATUS_NOTIFIED:
+            # should probably raise an exception here if we attmpted to notify again
+            return
         # Notify timestamp = shipment + 7
         if self.shipment_timestamp is None:
             raise DbException(message="Shipment timestamp is None for this order: %d" % self.id, status_code=400)
@@ -720,6 +723,7 @@ class Review(db.Model, Repopulatable):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     product = db.relationship('Product', backref=db.backref('reviews'))
 
+    # if review is about a shop in general
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship('Shop', backref=db.backref('reviews'))
 
@@ -792,7 +796,7 @@ class Review(db.Model, Repopulatable):
     """
     @classmethod
     def create_from_import(cls, body=None, image_url=None, star_rating=None,
-                           product_id=None, shop_id=None, verified_review=None, created_ts=None,
+                           product_id=None, shop_id=None, verified_review=False, created_ts=None,
                            user=None, **kwargs):
 
         # go through Review.__init__()

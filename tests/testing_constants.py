@@ -1,3 +1,4 @@
+import os
 # -*- coding: utf-8 -*-
 NEW_USER_EMAIL = 'test@test.test'
 USER_EMAIL_CHANGED = 'changed@test.test'
@@ -100,3 +101,6 @@ SHOPIFY_SHOP_NAME = "shopify shop"
 YOTPO_SHOP_NAME = "yotpo shop"
 
 YOTPO_REVIEW_TIMESTAMP = "2015-12-22 04:00:00 UTC"
+
+YOTPO_REVIEWS_CSV_FILEPATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'test_files', 'yotpo_example.csv')
+SHOPIFY_REVIEWS_CSV_FILEPATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'test_files', 'shopify_example.csv')
