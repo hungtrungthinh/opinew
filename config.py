@@ -183,7 +183,6 @@ class ConfigTest(Config):
 
 class ConfigDev(Config):
     MODE = Constants.MODE_DEVELOPMENT
-    SERVER_NAME = 'localhost:5000'
     # DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD

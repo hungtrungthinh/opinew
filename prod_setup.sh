@@ -94,6 +94,8 @@ server {
         server_name opinew.com;
         charset utf-8;
 
+        client_max_body_size 5M;
+
         access_log  /var/log/nginx/access.log;
         error_log  /var/log/nginx/error.log;
 

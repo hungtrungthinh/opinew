@@ -25,6 +25,11 @@ def verify_initialization():
 # Make json error handlers
 def make_json_error(ex):
     from webapp.flaskopinewext import error_string
+    # don't send email on 404
+    if ex.code == 404 and request.base_url not in ['https://opinew.com', 'https://opinew.com/']:
+        response = jsonify(error=str(ex))
+        response.status_code = 404
+        return response
     current_app.logger.error(error_string(ex))
     status_code = ex.code if isinstance(ex, HTTPException) else 500
     # return pretty rendered templates messages to a client request
