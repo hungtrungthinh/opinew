@@ -31,6 +31,9 @@ HEADERS:
 BODY:
 -----
 {body}
+
+FILES:
+-----
 {files}
 
 TRACEBACK:

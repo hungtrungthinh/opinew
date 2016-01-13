@@ -26,7 +26,7 @@ def verify_initialization():
 def make_json_error(ex):
     from webapp.flaskopinewext import error_string
     # don't send email on 404
-    if ex.code == 404 and request.base_url not in ['https://opinew.com', 'https://opinew.com/']:
+    if hasattr(ex, 'code') and ex.code == 404 and request.base_url not in ['https://opinew.com', 'https://opinew.com/']:
         response = jsonify(error=str(ex))
         response.status_code = 404
         return response

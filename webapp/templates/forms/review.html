@@ -74,15 +74,12 @@
 
 {% if not current_user.is_authenticated() %}
     <br>
-    {%  if not user_name %}
-    <div class="input-group">
+    <div class="input-group" {% if user_name %}style="display:none;"{% endif %}>
         <span class="input-group-addon" id="basic-addon1">Name: </span>
         <input type="text" class="form-control" id="input-user-name" name="name"
                placeholder="Please type your name here" value="{{ user_name }}"/>
     </div>
-    {% endif %}
     <br>
-
     {% if user_email %}
         {% if is_legacy %}
             <div class="input-group">
@@ -111,7 +108,9 @@
         </div>
     {% endif %}
     <br>
-    <div class="g-recaptcha" data-sitekey="6LdafxETAAAAABCLBbhvuRX-qhgJH8SJOCOPf5-C"></div>
+    {% if show_recaptcha %}
+      <div class="g-recaptcha" data-sitekey="6LdafxETAAAAABCLBbhvuRX-qhgJH8SJOCOPf5-C"></div>
+    {% endif %}
     <br>
 {% endif %}
 <div class="row">
