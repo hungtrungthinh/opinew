@@ -66,10 +66,9 @@ class TestModel(TestImporters):
 
     def test_shopify_import_reviews_products_not_imported(self):
         self.refresh_db()
-        before_count = len(Review.query.all())
-        after_count = len(Review.query.all())
-        with self.assertRaises(ProductNotFoundException):
-            self.shopify_importer.import_reviews(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
+        imported = self.shopify_importer.import_reviews(testing_constants.SHOPIFY_REVIEWS_CSV_FILEPATH)
+        self.assertEqual(imported["num_of_reviews"], 3)
+        self.assertEqual(imported["num_imported"], 0)
 
     def test_SHOPIFY_import_reviews(self):
         self.refresh_db()
@@ -191,10 +190,15 @@ class TestModel(TestImporters):
 
     def test_YOTPO_import_reviews_products_not_imported(self):
         self.refresh_db()
-        before_count = len(Review.query.all())
-        after_count = len(Review.query.all())
-        with self.assertRaises(ProductNotFoundException):
-            self.yotpo_importer.import_reviews(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
+        imported = self.yotpo_importer.import_reviews(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
+        self.assertEqual(imported["num_of_reviews"], 2)
+        self.assertEqual(imported["num_imported"], 0)
+
+    def test_YOTPO_import_reviews_products_deleted_after_review_posted(self):
+        self.refresh_db()
+        imported = self.yotpo_importer.import_reviews(testing_constants.YOTPO_REVIEWS_CSV_FILEPATH)
+        self.assertEqual(imported["num_of_reviews"], 2)
+        self.assertEqual(imported["num_imported"], 0)
 
     def test_YOTPO_import_reviews(self):
         self.refresh_db()

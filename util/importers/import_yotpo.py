@@ -35,12 +35,22 @@ class YotpoImpoter(OpinewImporter):
 
     def import_reviews(self, yotpo_csv_filepath=None):
         yotpo_reviews = self.csv_to_dicts_YOTPO(yotpo_csv_filepath)
+        num_of_reviews = len(yotpo_reviews)
+        num_imported = 0
         for row in yotpo_reviews:
             #gets an instance of a user or legacy user
             user = self.create_or_match_user_from_review_data(row["display_name"], row["email"])
-            self.import_review_from_yotpo_data(row["review_content"], row["product_title"],
-                                                 row["review_score"], row["date"],
-                                                 user)
+
+            try:
+                self.import_review_from_yotpo_data(row["review_content"], row["product_title"],
+                                                     row["review_score"], row["date"],
+                                                     user)
+                num_imported += 1
+            except ProductNotFoundException:
+                # log this?
+                continue
+
+        return {"num_of_reviews": num_of_reviews, "num_imported": num_imported}
 
     def import_review_from_yotpo_data(self, review_content, product_title, review_score,
                                         date, user):
