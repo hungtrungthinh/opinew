@@ -15,13 +15,31 @@ $('#image-button').on('click', function() {
 });
 
 $('#review-img-upload-input').change(function (e) {
-  setImageUrl("/static/img/ajax-loader.gif");
   e.preventDefault(); // Prevent the form from submitting via the browser.
   // select the form and submit
   var form = $(this).parent()[0];
   var $form = $(form);
   var formData = new FormData(form);
+  var progressBar = $('.progress-bar');
   $.ajax({
+    beforeSend: function(){
+      progressBar.parent().show();
+    },
+    xhr: function() {
+    var xhr = new window.XMLHttpRequest();
+    xhr.upload.addEventListener("progress", function(evt) {
+      if (evt.lengthComputable) {
+        var percentComplete = evt.loaded / evt.total;
+        percentComplete = parseInt(percentComplete * 100);
+        var percent = percentComplete.toString() + '%';
+        progressBar.html(percent);
+        progressBar.css('width', percent);
+
+      }
+    }, false);
+
+    return xhr;
+    },
     type: $form.attr('method'),
     url: $form.attr('action'),
     data: formData,
@@ -29,6 +47,8 @@ $('#review-img-upload-input').change(function (e) {
     contentType: false,
     processData: false
   }).done(function (r) {
+    progressBar.parent().hide();
+    progressBar.css('width', '5%');
     var image_url = r.image_url;
     setImageUrl(image_url);
   }).fail(function () {
