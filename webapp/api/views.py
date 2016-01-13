@@ -180,11 +180,15 @@ def del_user_id(data, *args, **kwargs):
 
 def check_recaptcha(data, *args, **kwargs):
     if current_user.is_authenticated():
+        if 'g-recaptcha-response' in data:
+            del data['g-recaptcha-response']
         return
     # TODO: return if the user comes from a verified source
     if 'review_request_id' in data and 'review_request_token' in data:
         review_request = models.ReviewRequest.query.filter_by(id=data.get('review_request_id')).first()
         if review_request and review_request.token == data.get('review_request_token'):
+            if 'g-recaptcha-response' in data:
+                del data['g-recaptcha-response']
             return
     recaptcha = data.get('g-recaptcha-response')
     if not recaptcha:
