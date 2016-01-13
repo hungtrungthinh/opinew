@@ -64,6 +64,10 @@ def create_shopify_shop(shopify_api, shop_id):
         product_url = models.ProductUrl(url=product_url)
         product.urls.append(product_url)
         db.session.add(product)
+        for variant_j in product_j.get('variants', []):
+            var = models.ProductVariant(product=product,
+                                        platform_variant_id=str(variant_j.get('id', '')))
+            db.session.add(var)
     db.session.commit()
 
     # Get shopify orders
