@@ -690,6 +690,8 @@ class ReviewRequest(db.Model):
     received = db.Column(db.Boolean, default=False)
     completed = db.Column(db.Boolean, default=False)
 
+    opened_timestamp = db.Column(db.DateTime)
+
     @classmethod
     def create(cls, to_user, from_customer, for_product=None, for_shop=None, for_order=None):
         while True:
@@ -1014,6 +1016,63 @@ class Shop(db.Model, Repopulatable):
             raise DbException(message="User is not an owner of this shop", status_code=403)
         return True
 
+    def last_order_ts(self):
+        return Order.query.filter_by(shop_id=self.id).order_by(Order.purchase_timestamp.desc()).first()
+
+    def product_review_requests(self):
+        all_rr = []
+        for p in self.products:
+            rr = p.review_requests
+            all_rr += rr
+        return all_rr
+
+    def product_reviews(self):
+        all_r = []
+        for p in self.products:
+            r = p.reviews
+            all_r += r
+        return all_r
+
+    def product_reviews_summary(self):
+        stats = {}
+        for p in self.products:
+            product_reviews = len(p.reviews)
+            if product_reviews in stats:
+                stats[product_reviews] += 1
+            else:
+                stats[product_reviews] = 1
+        return sorted(stats.items(), key=lambda t: t[0], reverse=True)
+
+    def emails_opened(self):
+        return [e.opened_timestamp for e in self.emails_sent if e.opened_timestamp]
+
+    def rr_opened(self):
+        rro = []
+        for p in self.products:
+            rrs = p.review_requests
+            for rr in rrs:
+                if rr.opened_timestamp:
+                    rro.append(rr)
+        return rro
+
+    def orders_before_opinew(self):
+        owner_confirmed_at = self.owner.confirmed_at if self.owner and self.owner.confirmed_at else datetime.datetime.utcnow()
+        return Order.query.filter(and_(Order.shop_id == self.id, Order.purchase_timestamp < owner_confirmed_at)).all()
+
+    def orders_since_opinew(self):
+        owner_confirmed_at = self.owner.confirmed_at if self.owner and self.owner.confirmed_at else datetime.datetime.utcnow()
+        return Order.query.filter(and_(Order.shop_id == self.id, Order.purchase_timestamp >= owner_confirmed_at)).all()
+
+    def reviews_since_opinew(self):
+        opinew_source = Source.query.filter_by(name='opinew').first()
+        opr = []
+        for p in self.products:
+            rs = p.reviews
+            for r in rs:
+                if r.source_id == opinew_source.id:
+                    opr.append(r)
+        return opr
+
     def __repr__(self):
         return '<Shop %r>' % self.name
 
@@ -1136,7 +1195,12 @@ class SentEmail(db.Model):
     template = db.Column(db.String)
     template_ctx = db.Column(db.String)
     body = db.Column(db.String)
-    traceback = db.Column(db.String)
+
+    tracking_pixel_id = db.Column(db.String)
+    opened_timestamp = db.Column(db.DateTime)
+
+    for_shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    for_shop = db.relationship("Shop", backref=db.backref("emails_sent"))
 
 
 # Create customized model view class
@@ -1186,3 +1250,4 @@ admin.add_view(AdminModelView(Question, db.session))
 admin.add_view(AdminModelView(Answer, db.session))
 admin.add_view(AdminModelView(Task, db.session))
 admin.add_view(AdminModelView(SentEmail, db.session))
+admin.add_view(AdminModelView(Source, db.session))

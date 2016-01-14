@@ -16,10 +16,11 @@ class API(object):
     }
 
     def __init__(self, domain=None, username=None, password=None, port=80):
-        from tests.virtual_webapp.vmagento.fake_api import FakeMagentoAPI
-
-        self.magento = FakeMagentoAPI() if current_app.config.get('TESTING') else MagentoAPI(domain, port, username,
-                                                                                             password)
+        if current_app.config.get('TESTING'):
+            from tests.virtual_webapp.vmagento.fake_api import FakeMagentoAPI
+            self.magento = FakeMagentoAPI()
+        else:
+            self.magento = MagentoAPI(domain, port, username, password)
 
     def create_new_order(self, morder):
         """

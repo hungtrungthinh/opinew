@@ -1,42 +1,101 @@
 {% extends 'admin/master.html' %}
 
 {% block body %}
-    <h1>Welcome to admin panel <a class="btn btn-danger" href="/logout">Log out</a></h1>
+  <h1>Welcome to admin panel <a class="btn btn-danger" href="/logout">Log out</a></h1>
 
-    <h2>View as</h2>
-    <form method="get" action="/admin-view-as">
-        <div class="col-xs-6">
-            <select class="form-control form-serialize" name="user_id">
-              {% for user in users %}
-                  <option value="{{ user.id }}">
-                    {{ user.name }} | {{ user.email }} | {{ user.roles }}
-                  </option>
-              {% endfor %}
-            </select>
-        </div>
-        <div class="col-xs-6">
-            <button type="submit" class="btn btn-success">View as</button>
-        </div>
-    </form>
+  <h2>View as</h2>
+  <form method="get" action="/admin-view-as">
+    <div class="col-xs-6">
+      <select class="form-control form-serialize" name="user_id">
+        {% for user in users %}
+          <option value="{{ user.id }}">
+            {{ user.name }} | {{ user.email }} | {{ user.roles }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-xs-6">
+      <button type="submit" class="btn btn-success">View as</button>
+    </div>
+  </form>
 
-    <br><br>
-    <h2>Scheduled tasks</h2>
-    <table class="table">
+  <br><br>
+  <h2>Analytics</h2>
+  <table class="table">
     <tr>
-        <th>Task id</th>
-        <th>Task ETA</th>
-        <th>Kwargs</th>
-        <th>Actions</th>
+      <th></th>
+      <th colspan="2" style="background-color: #ff8888">BEFORE OPINEW</th>
+      <th colspan="4" style="background-color: #8888ff">THE PIPELINE</th>
+      <th colspan="2" style="background-color: #88ff88">AFTER OPINEW</th>
     </tr>
-  {% for task in tasks %}
+    <tr>
+      <th>Shop</th>
+      <th>Orders</th>
+      <th>Reviews</th>
+      <th>Rev Reqs</th>
+      <th>Emails <br>Sent</th>
+      <th>Emails <br>Opened</th>
+      <th>Rev Reqs<br>Opened</th>
+      <th>Orders</th>
+      <th>Reviews</th>
+    </tr>
+    {% for shop in shops %}
       <tr>
-          <td>{{ task.request.id }}</td>
-          <td>({{ task.eta }})</td>
-          <td>{{ task.request.kwargs }}</td>
-          <td><a href="/admin-revoke-task?task_id={{ task.request.id }}" class="btn btn-danger">Revoke task</a></td>
+        <td>
+          <h3>{{ shop.name }}</h3>
+          <small>id: {{ shop.id }} | uid: {{ shop.owner.id if shop.owner else 0}} - cid: {{ shop.owner.customer[0].id if shop.owner and shop.owner.customer else 0 }}</small><br>
+          <small>Since: {{ shop.owner.confirmed_at if shop.owner else 0}}</small><br>
+          <small>Products: {{ shop.products|length }}</small>
+        </td>
+        <td>
+          <h3>{{ shop.orders_before_opinew()|length }}</h3>
+        </td>
+        <td>
+          <h3>{{ shop.product_reviews()|length }}</h3>
+          <small>
+            {% for s in shop.product_reviews_summary() %}
+              {{ s[1] }} w {{ s[0] }} rvs<br>
+            {% endfor %}
+          </small>
+        </td>
+        <td>
+          <h3>{{ shop.product_review_requests()|length }}</h3>
+        </td>
+        <td>
+          <h3>{{ shop.emails_sent|length }}</h3>
+        </td>
+        <td>
+          <h3>{{ shop.emails_opened()|length }}</h3>
+        </td>
+        <td>
+          <h3>{{ shop.rr_opened()|length }}</h3>
+        </td>
+        <td>
+          <h3>+{{ shop.orders_since_opinew()|length}}</h3>
+          {% set last_order_ts = shop.last_order_ts().purchase_timestamp %}
+          <small>last: {{ last_order_ts|timesince }}</small>
+        </td>
+        <td>
+          <h3>+{{ shop.reviews_since_opinew()|length}}</h3>
+        </td>
       </tr>
-  {% endfor %}
-    </table>
-    <h2>Celery tasks (Flower)</h2>
-    <iframe src="http://localhost:5555" style="width: 100%; height: 500px;"></iframe>
+    {% endfor %}
+  </table>
+  <h2>Scheduled tasks</h2>
+  <table class="table">
+    <tr>
+      <th>Task id</th>
+      <th>Task ETA</th>
+      <th>Kwargs</th>
+      <th>Actions</th>
+    </tr>
+    {% for task in tasks %}
+      <tr>
+        <td>{{ task.request.id }}</td>
+        <td>({{ task.eta }})</td>
+        <td>{{ task.request.kwargs }}</td>
+        <td><a href="/admin-revoke-task?task_id={{ task.request.id }}" class="btn btn-danger">Revoke task</a></td>
+      </tr>
+    {% endfor %}
+  </table>
 {% endblock %}
