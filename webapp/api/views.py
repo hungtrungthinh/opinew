@@ -248,6 +248,7 @@ def is_verified_review(data, *args, **kwargs):
         del data['review_request_id']
         del data['review_request_token']
 
+
 def add_source(data, *args, **kwargs):
     # Coming from opinew
     source_opinew = models.Source.query.filter_by(name='opinew').first()

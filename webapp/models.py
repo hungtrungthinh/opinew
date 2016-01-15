@@ -1047,13 +1047,15 @@ class Shop(db.Model, Repopulatable):
         return [e.opened_timestamp for e in self.emails_sent if e.opened_timestamp]
 
     def rr_opened(self):
-        rro = []
+        rro = {}
+        rro_total = []
         for p in self.products:
             rrs = p.review_requests
             for rr in rrs:
                 if rr.opened_timestamp:
-                    rro.append(rr)
-        return rro
+                    rro[rr.for_order_id] = 0
+                    rro_total.append(rr)
+        return rro, rro_total
 
     def orders_before_opinew(self):
         owner_confirmed_at = self.owner.confirmed_at if self.owner and self.owner.confirmed_at else datetime.datetime.utcnow()
@@ -1065,13 +1067,16 @@ class Shop(db.Model, Repopulatable):
 
     def reviews_since_opinew(self):
         opinew_source = Source.query.filter_by(name='opinew').first()
+        vopr = []
         opr = []
         for p in self.products:
             rs = p.reviews
             for r in rs:
                 if r.source_id == opinew_source.id:
+                    if r.verified_review:
+                        vopr.append(r)
                     opr.append(r)
-        return opr
+        return vopr, opr
 
     def __repr__(self):
         return '<Shop %r>' % self.name

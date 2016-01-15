@@ -35,9 +35,9 @@
       <th>Rev Reqs</th>
       <th>Emails <br>Sent</th>
       <th>Emails <br>Opened</th>
-      <th>Rev Reqs<br>Opened</th>
+      <th>Unq Ord/Total<br> Rev Reqs<br>Opened</th>
+      <th>Ver/Total<br>Reviews</th>
       <th>Orders</th>
-      <th>Reviews</th>
     </tr>
     {% for shop in shops %}
       <tr>
@@ -62,21 +62,31 @@
           <h3>{{ shop.product_review_requests()|length }}</h3>
         </td>
         <td>
-          <h3>{{ shop.emails_sent|length }}</h3>
+          {% set emails_sent = shop.emails_sent|length  %}
+          <h3>{{ emails_sent }}</h3>
         </td>
         <td>
-          <h3>{{ shop.emails_opened()|length }}</h3>
+          {% set emails_opened = shop.emails_opened()|length %}
+          <h3>{{ emails_opened }}</h3>
+          <small>{{ ((emails_opened/emails_sent)*100)|round if emails_sent else "-" }}%</small>
         </td>
         <td>
-          <h3>{{ shop.rr_opened()|length }}</h3>
+          {% set rro = shop.rr_opened() %}
+          <h3>{{ rro[0]|length }} <small>({{ rro[1]|length }})</small></h3>
+          <small>{{ ((rro[0]|length/emails_opened)*100)|round if emails_opened else "-" }}%</small><br>
+          <small>{{ ((rro[0]|length/emails_sent)*100)|round if emails_sent else "-" }}%</small>
+        </td>
+        <td>
+          {% set rso = shop.reviews_since_opinew() %}
+          <h3>{{ rso[0]|length}} <small>({{ rso[1]|length}})</small></h3>
+          <small>{{ ((rso[0]|length/rro[1]|length)*100)|round if rro[1]|length else "-" }}%</small><br>
+          <small>{{ (((rso[0]|length/rro[1]|length)*(rro[0]|length/emails_opened))*100)|round if rro[1]|length and emails_opened else "-" }}%</small><br>
+          <small>{{ (((rso[0]|length/rro[1]|length)*(rro[0]|length/emails_sent))*100)|round if rro[1]|length and emails_sent else "-" }}%</small><br>
         </td>
         <td>
           <h3>+{{ shop.orders_since_opinew()|length}}</h3>
           {% set last_order_ts = shop.last_order_ts().purchase_timestamp %}
           <small>last: {{ last_order_ts|timesince }}</small>
-        </td>
-        <td>
-          <h3>+{{ shop.reviews_since_opinew()|length}}</h3>
         </td>
       </tr>
     {% endfor %}
