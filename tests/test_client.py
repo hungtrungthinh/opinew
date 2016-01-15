@@ -426,6 +426,7 @@ class TestClient(TestFlaskApplication):
         db.session.commit()
         data = json.dumps({
             'id': testing_constants.NEW_ORDER_PLATFORM_ID,
+            'browser_ip': testing_constants.NEW_ORDER_BROWSER_IP,
             'customer': {
                 'email': testing_constants.ORDER_USER_EMAIL
             },
@@ -447,6 +448,7 @@ class TestClient(TestFlaskApplication):
         order = Order.query.filter_by(platform_order_id=testing_constants.NEW_ORDER_PLATFORM_ID,
                                       shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
         self.assertEquals(order.user_legacy.email, testing_constants.ORDER_USER_EMAIL)
+        self.assertEquals(order.browser_ip, testing_constants.NEW_ORDER_BROWSER_IP)
         self.assertIn(product, order.products)
         db.session.delete(order)
         db.session.delete(product)

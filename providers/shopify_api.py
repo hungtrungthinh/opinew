@@ -133,7 +133,17 @@ def create_order(shop, payload):
         created_at_dt = date_parser.parse(payload.get('created_at')).astimezone(pytz.utc).replace(tzinfo=None)
     except:
         created_at_dt = datetime.datetime.utcnow()
-    order = models.Order(platform_order_id=platform_order_id, shop=shop, purchase_timestamp=created_at_dt)
+    browser_ip = str(payload.get('browser_ip', ''))
+    order = models.Order(platform_order_id=platform_order_id, shop=shop, purchase_timestamp=created_at_dt,
+                         browser_ip=browser_ip)
+
+    # try to speculatively find a FunnelStream to match for this order - from this browser IP, latest
+    funnel_stream = None
+    if browser_ip:
+        funnel_stream = models.FunnelStream.query.filter_by(plugin_loaded_from_ip=browser_ip).order_by(models.FunnelStream.plugin_load_ts.desc()).first()
+        if funnel_stream:
+            funnel_stream.order = order
+            db.session.add(funnel_stream)
 
     customer_email = payload.get('customer', {}).get('email')
     customer_name = "%s %s" % (payload.get('customer', {}).get('first_name', ''),  payload.get('customer', {}).get('last_name', ''))

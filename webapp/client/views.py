@@ -9,7 +9,7 @@ from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
-    Task, SentEmail
+    Task, SentEmail, FunnelStream
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -386,14 +386,56 @@ def get_plugin():
         featured_reviews = [fr for fr in all_reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
         rest_reviews = [r for r in all_reviews if r not in featured_reviews and not r == own_review]
         next_arg = request.url
+        # TODO: deprecate plugin_views
         product.plugin_views += 1
+        funnel_stream = FunnelStream(shop=shop,
+                                     product=product,
+                                     plugin_load_ts=datetime.datetime.utcnow(),
+                                     plugin_loaded_from_ip=request.remote_addr)
+        db.session.add(funnel_stream)
         db.session.commit()
+        funnel_stream_id = funnel_stream.id
     except (ParamException, DbException, AssertionError, AttributeError) as e:
         return '', 404
     return render_template('plugin/plugin.html', product=product, rest_reviews=rest_reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
                            review_image_form=review_image_form, next_arg=next_arg,
-                           own_review=own_review, featured_reviews=featured_reviews, in_plugin=True)
+                           own_review=own_review, featured_reviews=featured_reviews, in_plugin=True,
+                           funnel_stream_id=funnel_stream_id)
+
+
+@client.route('/plugin-test')
+def plugin_test():
+    if not current_app.debug:
+        abort(404)
+    return render_template("plugin_test.html")
+
+
+@client.route('/update-funnel')
+def update_funnel():
+    funnel_stream_id = request.args.get('funnel_stream_id')
+    if not (funnel_stream_id and funnel_stream_id.isdigit()):
+        return jsonify({"message": "funnel_stream_id parameter required"}), 400
+    funnel_stream = FunnelStream.query.filter_by(id=funnel_stream_id).first()
+    if not funnel_stream:
+        return jsonify({"message": "funnel_stream with this id does not exist"}), 400
+    action = request.args.get('action')
+    if not (action and action in Constants.FUNNEL_STREAM_ACTIONS):
+        return jsonify({"message": "action values are %s" % Constants.FUNNEL_STREAM_ACTIONS}), 400
+    # disambiguate the action
+    if action == 'glimpse':
+        funnel_stream.plugin_glimpsed_ts = datetime.datetime.utcnow()
+    elif action == 'fully_seen':
+        funnel_stream.plugin_fully_seen_ts = datetime.datetime.utcnow()
+    elif action == 'mouse_hover':
+        funnel_stream.plugin_mouse_hover_ts = datetime.datetime.utcnow()
+    elif action == 'mouse_scroll':
+        funnel_stream.plugin_mouse_scroll_ts = datetime.datetime.utcnow()
+    elif action ==  'mouse_click':
+        funnel_stream.plugin_mouse_click_ts = datetime.datetime.utcnow()
+    db.session.add(funnel_stream)
+    db.session.commit()
+    return jsonify({})
 
 
 @client.route('/product', defaults={'product_id': 0})

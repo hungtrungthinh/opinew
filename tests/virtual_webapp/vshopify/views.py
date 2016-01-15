@@ -13,6 +13,7 @@ def orders():
         'fulfillment_status': None,
         'created_at': '2015-11-28T14:45:50+00:00',
         'cancelled_at': None,
+        'browser_ip': testing_constants.NEW_ORDER_BROWSER_IP,
         'line_items': [{
             'id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
             'product_id': testing_constants.NEW_PRODUCT_PLATFORM_ID,
