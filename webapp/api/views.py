@@ -249,6 +249,13 @@ def is_verified_review(data, *args, **kwargs):
         del data['review_request_token']
 
 
+def add_source(data, *args, **kwargs):
+    # Coming from opinew
+    source_opinew = models.Source.query.filter_by(name='opinew').first()
+    if source_opinew:
+        data['source_id'] = source_opinew.id
+
+
 def login_user_if_possible(data, *args, **kwargs):
     if "user_email" in data and "user_password" in data:
         email = data["user_email"]
@@ -302,7 +309,7 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [del_csrf, check_recaptcha, login_user_if_possible, check_if_user_exists, is_verified_review],
+                           'POST': [del_csrf, check_recaptcha, login_user_if_possible, check_if_user_exists, is_verified_review, add_source],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.Review.exclude_fields(),

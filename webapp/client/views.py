@@ -2,14 +2,14 @@ import datetime
 import os
 from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, jsonify
+    current_app, make_response, abort, jsonify, send_file
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
-    Task, UserLegacy
+    Task, SentEmail
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -180,6 +180,10 @@ def get_by_review_request_token(review_request_token):
             user_email = review_request.to_user_legacy.email  # set the email to the user that got the email.
             if current_user.is_authenticated():
                 logout_user()
+        # update rr opened ts
+        review_request.opened_timestamp = datetime.datetime.utcnow()
+        db.session.add(review_request)
+        db.session.commit()
 
         return redirect(url_for('client.add_review', review_request_id=review_request.id,
                                 review_request_token=review_request.token,
@@ -715,3 +719,14 @@ def welcome():
             login_user(user)
             return redirect('/change')
     return redirect('/login')
+
+
+@client.route('/tracking_pixel')
+def tracking_pixel():
+    tracking_pixel_id = request.args.get('id')
+    sent_email = SentEmail.query.filter_by(tracking_pixel_id=tracking_pixel_id).first()
+    if sent_email:
+        sent_email.opened_timestamp = datetime.datetime.utcnow()
+        db.session.add(sent_email)
+        db.session.commit()
+    return send_file('static/img/tp.png', mimetype='image/png')

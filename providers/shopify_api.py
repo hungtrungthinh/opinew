@@ -3,7 +3,7 @@ import hmac
 import hashlib
 from flask import request, current_app
 from webapp.exceptions import ApiException, ParamException
-from tests import testing_constants
+from config import Constants
 
 
 class API(object):
@@ -169,5 +169,6 @@ def fulfill_order(shop, payload):
     if order:
         created_at = payload.get('created_at')
         st = date_parser.parse(created_at).astimezone(pytz.utc).replace(tzinfo=None)
-        order.ship(delivery_tracking_number, shipment_timestamp=st)
-        order.set_notifications()
+        if not order.status == Constants.ORDER_STATUS_SHIPPED:
+            order.ship(delivery_tracking_number, shipment_timestamp=st)
+            order.set_notifications()

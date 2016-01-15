@@ -193,7 +193,7 @@ class ConfigProd(Config):
     SESSION_COOKIE_HTTPONLY = False
     SESSION_COOKIE_SECURE = True
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
-    STRIPE_PUBLISHABLE_API_KEY = 'pk_test_YFZO6qldIQDkOcOQz88TudE3'  # TODO: 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'
+    STRIPE_PUBLISHABLE_API_KEY = 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'  # test key: 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
     SERVER_NAME = 'opinew.com'
 
