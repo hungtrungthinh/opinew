@@ -2,7 +2,7 @@ import datetime
 import os
 from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, jsonify, send_file
+    current_app, make_response, abort, jsonify, send_file, Response
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import API
@@ -353,6 +353,23 @@ def add_payment_card():
     return redirect(request.referrer)
 
 
+@client.route('/get-next-funnel-stream')
+def get_next_funnel_stream():
+    shops = Shop.query.all()
+    domains_allowed = [s.domain for s in shops]
+    origins_allowed = ['http://' + do for do in domains_allowed] + ['https://' + do for do in domains_allowed]
+    origin = request.headers.get('Origin')
+    if not current_app.debug and origin not in origins_allowed:
+        abort(400)
+    funnel_stream = FunnelStream()
+    db.session.add(funnel_stream)
+    db.session.commit()
+    funnel_stream_id = funnel_stream.id
+    resp = Response("%s" % funnel_stream_id)
+    resp.headers['Access-Control-Allow-Origin'] = origin
+    return resp
+
+
 @client.route('/plugin')
 def get_plugin():
     try:
@@ -388,13 +405,16 @@ def get_plugin():
         next_arg = request.url
         # TODO: deprecate plugin_views
         product.plugin_views += 1
-        funnel_stream = FunnelStream(shop=shop,
-                                     product=product,
-                                     plugin_load_ts=datetime.datetime.utcnow(),
-                                     plugin_loaded_from_ip=request.remote_addr)
-        db.session.add(funnel_stream)
-        db.session.commit()
-        funnel_stream_id = funnel_stream.id
+        funnel_stream_id = request.args.get('funnel_stream_id')
+        if funnel_stream_id:
+            funnel_stream = FunnelStream.query.filter_by(id=funnel_stream_id).first()
+            if funnel_stream:
+                funnel_stream.shop = shop
+                funnel_stream.product = product
+                funnel_stream.plugin_load_ts = datetime.datetime.utcnow()
+                funnel_stream.plugin_loaded_from_ip = request.remote_addr
+                db.session.add(funnel_stream)
+                db.session.commit()
     except (ParamException, DbException, AssertionError, AttributeError) as e:
         return '', 404
     return render_template('plugin/plugin.html', product=product, rest_reviews=rest_reviews,
@@ -413,6 +433,12 @@ def plugin_test():
 
 @client.route('/update-funnel')
 def update_funnel():
+    shops = Shop.query.all()
+    domains_allowed = [s.domain for s in shops]
+    origins_allowed = ['http://' + do for do in domains_allowed] + ['https://' + do for do in domains_allowed]
+    origin = request.headers.get('Origin')
+    if not current_app.debug and origin not in origins_allowed:
+        abort(400)
     funnel_stream_id = request.args.get('funnel_stream_id')
     if not (funnel_stream_id and funnel_stream_id.isdigit()):
         return jsonify({"message": "funnel_stream_id parameter required"}), 400
@@ -435,6 +461,8 @@ def update_funnel():
         funnel_stream.plugin_mouse_click_ts = datetime.datetime.utcnow()
     db.session.add(funnel_stream)
     db.session.commit()
+    resp = Response("")
+    resp.headers['Access-Control-Allow-Origin'] = origin
     return jsonify({})
 
 
