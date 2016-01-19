@@ -1,35 +1,36 @@
 from webapp import create_app, models, db
 from pprint import pprint
-import ast
+
+SHOP_ID = 5
+PRODUCT_ID = 161
 
 app = create_app('production')
 app.app_context().push()
 
-rr_tokens = []
-for es in models.SentEmail.query.all():
-    tctx = ast.literal_eval(es.template_ctx)
-    for rr in tctx['review_requests']:
-        rr_tokens.append(rr['token'])
+shop = models.Shop.query.filter_by(id=SHOP_ID).first()
+products = models.Product.query.filter_by(shop=shop).all()
 
-orders = {}
-for rr in models.ReviewRequest.query.all():
-    d = {'rid': rr.id, 'rpid': rr.for_product_id, 's': 1 if rr.token in rr_tokens else 0}
-    if rr.for_order_id in orders:
-        orders[rr.for_order_id]['rr'].append(d)
-    else:
-        orders[rr.for_order_id] = {'rr': [d], 'p': [p.id for p in rr.for_order.products]}
+product_orders = [(p.id, len(p.orders.all())) for p in products]
+pprint(sorted(product_orders, key=lambda k: k[1]))
+# product 55 has most orders - 82
 
-ilo = {}
-for oid, od in orders.iteritems():
-    if not len(od['p']) == len(od['rr']):
-        ilo[oid] = od
+product55 = models.Product.query.filter_by(id=PRODUCT_ID).first()
+orders55ts = sorted([o.purchase_timestamp for o in product55.orders.all()])
+data_x = []
+data_y = []
+s = 0
 
-pprint(ilo)
+for o in orders55ts:
+    s += 1
+    data_x.append(o)
+    data_y.append(s)
 
 
-# TODO: delete rid 1181, 1196, 1198, 1199, 1197, 1207, 1209
-# for rid in [1181, 1196, 1198, 1199, 1197, 1207, 1209]:
-#     rr = models.ReviewRequest.query.filter_by(id=rid).first()
-#     db.session.delete(rr)
-#
-# db.session.commit()
+import matplotlib.pyplot as plt
+
+pprint(data_x)
+pprint(data_y)
+
+plt.plot(data_x, data_y)
+plt.gcf().autofmt_xdate()
+plt.savefig('figs/%s_%s' % (SHOP_ID, PRODUCT_ID))

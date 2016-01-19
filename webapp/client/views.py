@@ -355,18 +355,12 @@ def add_payment_card():
 
 @client.route('/get-next-funnel-stream')
 def get_next_funnel_stream():
-    shops = Shop.query.all()
-    domains_allowed = [s.domain for s in shops]
-    origins_allowed = ['http://' + do for do in domains_allowed] + ['https://' + do for do in domains_allowed]
-    origin = request.headers.get('Origin')
-    if not current_app.debug and origin not in origins_allowed:
-        abort(400)
     funnel_stream = FunnelStream()
     db.session.add(funnel_stream)
     db.session.commit()
     funnel_stream_id = funnel_stream.id
     resp = Response("%s" % funnel_stream_id)
-    resp.headers['Access-Control-Allow-Origin'] = origin
+    resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 
@@ -433,12 +427,6 @@ def plugin_test():
 
 @client.route('/update-funnel')
 def update_funnel():
-    shops = Shop.query.all()
-    domains_allowed = [s.domain for s in shops]
-    origins_allowed = ['http://' + do for do in domains_allowed] + ['https://' + do for do in domains_allowed]
-    origin = request.headers.get('Origin')
-    if not current_app.debug and origin not in origins_allowed:
-        abort(400)
     funnel_stream_id = request.args.get('funnel_stream_id')
     if not (funnel_stream_id and funnel_stream_id.isdigit()):
         return jsonify({"message": "funnel_stream_id parameter required"}), 400
@@ -457,13 +445,13 @@ def update_funnel():
         funnel_stream.plugin_mouse_hover_ts = datetime.datetime.utcnow()
     elif action == 'mouse_scroll':
         funnel_stream.plugin_mouse_scroll_ts = datetime.datetime.utcnow()
-    elif action ==  'mouse_click':
+    elif action == 'mouse_click':
         funnel_stream.plugin_mouse_click_ts = datetime.datetime.utcnow()
     db.session.add(funnel_stream)
     db.session.commit()
     resp = Response("")
-    resp.headers['Access-Control-Allow-Origin'] = origin
-    return jsonify({})
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
 
 
 @client.route('/product', defaults={'product_id': 0})
