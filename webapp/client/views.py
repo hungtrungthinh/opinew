@@ -145,7 +145,8 @@ def index():
             if current_user.has_role(Constants.REVIEWER_ROLE):
                 return redirect(url_for('client.user_profile', user_id=current_user.id))
         else:
-            return redirect(url_for('client.reviews'))
+            return render_template('index.html')
+            #return redirect(url_for('client.reviews'))
 
     if current_user.is_authenticated():
         if current_user.temp_password:
@@ -556,6 +557,10 @@ def render_order_review_email():
         return redirect(url_for('client.shop_dashboard'))
     template_ctx = order.build_review_email_context()
     return render_template('email/review_order.html', **template_ctx)
+
+@client.route('/render-marketing-email')
+def render_marketing_email():
+    return render_template('email/marketing_email.html')
 
 
 @client.route('/fake-shopify-api', defaults={'shop': None})
