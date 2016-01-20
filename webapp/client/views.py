@@ -9,7 +9,7 @@ from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
-    Task, SentEmail, FunnelStream
+    Task, SentEmail, FunnelStream, Subscription, ProductUrl
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -102,7 +102,8 @@ def shopify_plugin_callback():
     shop_owner_name = shopify_shop.get('shop_owner', '')
     shop_owner, is_new = User.get_or_create_by_email(shop_owner_email,
                                                      role_name=Constants.SHOP_OWNER_ROLE,
-                                                     name=shop_owner_name)
+                                                     name=shop_owner_name,
+                                                     plan_name=Constants.PLAN_NAME_BASIC)
     if is_new:
         db.session.add(shop_owner)
         db.session.commit()
@@ -277,11 +278,43 @@ def shop_dashboard_id(shop_id):
     review_request_form = ReviewRequestForm()
     platforms = Platform.query.all()
     plans = Plan.query.all()
+    current_plan = shop.owner.customer[0].subscription[0].plan
     expiry_days = (
     current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
                            review_request_form=review_request_form, platforms=platforms,
-                           plans=plans, expiry_days=expiry_days)
+                           plans=plans, expiry_days=expiry_days, current_plan=current_plan)
+
+
+@client.route('/change-subscription', methods=['POST'])
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def change_subscription():
+    shop_id = request.form.get('shop_id')
+    if not shop_id:
+        flash('Shop_id required')
+        return redirect(url_for('client.shop_dashboard'))
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    plan_id = request.form.get('plan_id')
+    if not plan_id:
+        flash('Plan_id required')
+        return redirect(url_for('client.shop_dashboard'))
+    plan = Plan.query.filter_by(id=plan_id).first()
+    if not plan:
+        flash('Plan does not exist')
+        return redirect(url_for('client.shop_dashboard'))
+    subscription = current_user.customer[0].subscription[0]
+    if not subscription:
+        flash('Subscription does not exist')
+        return redirect(url_for('client.shop_dashboard'))
+    subscription = Subscription.update(subscription, plan)
+    db.session.add(subscription)
+    db.session.commit()
+    flash('Subscription changed successfully')
+    return redirect(request.referrer or url_for('client.shop_dashboard'))
 
 
 @client.route('/dashboard', defaults={'shop_id': 0})
@@ -296,6 +329,44 @@ def shop_dashboard_orders(shop_id):
         return redirect(url_for('client.shop_dashboard'))
     orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
     return render_template("shop_admin/orders.html", orders=orders, now=now)
+
+
+@client.route('/dashboard', defaults={'shop_id': 0})
+@client.route('/dashboard/<int:shop_id>/products')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def shop_dashboard_products(shop_id):
+    now = datetime.datetime.utcnow()
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    products = Product.query.filter_by(shop_id=shop_id).all()
+    return render_template("shop_admin/products.html", products=products, now=now, shop=shop)
+
+
+@client.route('/add-product', methods=['POST'])
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def add_product():
+    shop_id = request.form.get('shop_id')
+    if not shop_id:
+        flash('Shop_id required')
+        return redirect(url_for('client.shop_dashboard'))
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    name = request.form.get('name')
+    url = request.form.get('url')
+    short_description = request.form.get('short_description')
+    product = Product(shop=shop, name=name, short_description=short_description)
+    product_url = ProductUrl(url=url, is_regex=False)
+    product_url.product = product
+    db.session.add(product)
+    db.session.add(product_url)
+    db.session.commit()
+    return redirect(request.referrer or url_for('client.shop_dashboard'))
 
 
 @client.route('/dashboard', defaults={'shop_id': 0})

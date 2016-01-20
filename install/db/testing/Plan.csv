@@ -1,2 +1,3 @@
 id,name,description,amount,interval,trial_period_days,active,stripe_plan_id
-1,basic,Basic (Early bird),5900,month,30,1,Basic
+1,basic,Basic,5900,month,30,1,Basic
+2,simple,Simple,2900,month,30,1,Simple

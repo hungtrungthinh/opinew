@@ -1,0 +1,13 @@
+<form action="/change-subscription" method="post">
+  <input name="_csrf_token" type=hidden class="form-serialize" value="{{ csrf_token() }}">
+  <input name="shop_id" type=hidden class="form-serialize" value="{{ shop.id }}">
+  <select class="form-control form-serialize" name="plan_id">
+    {% for plan in plans %}
+      <option {% if current_plan == plan %}selected{% endif %} value="{{ plan.id }}">
+        {{ plan.name }}
+      </option>
+    {% endfor %}
+  </select>
+  <br>
+  <button class="btn btn-primary" type="submit">Update</button>
+</form>

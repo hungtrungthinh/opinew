@@ -130,7 +130,8 @@ class User(db.Model, UserMixin, Repopulatable):
             if gravatar_image_url:
                 user.image_url = gravatar_image_url
             # create a customer account
-            plan = Plan.query.filter_by(name=Constants.PLAN_NAME_BASIC).first()
+            plan_name = kwargs.get('plan_name', Constants.PLAN_NAME_SIMPLE)
+            plan = Plan.query.filter_by(name=plan_name).first()
             customer = Customer(user=user).create()
             subscription = Subscription(customer=customer, plan=plan).create()
             db.session.add(subscription)
@@ -159,7 +160,8 @@ class User(db.Model, UserMixin, Repopulatable):
         db.session.commit()
 
     @classmethod
-    def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, user_legacy_email=None, **kwargs):
+    def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, user_legacy_email=None,
+                               plan_name=None, **kwargs):
         is_new = False
         instance = cls.query.filter_by(email=email).first()
         if not instance:
@@ -193,7 +195,7 @@ class User(db.Model, UserMixin, Repopulatable):
                 cls.reassign_legacy_user_data_and_delete(user_legacy, instance)
 
             # Handle creation of customer and roles
-            User.post_registration_handler(user=instance)
+            User.post_registration_handler(user=instance, plan_name=plan_name)
         return instance, is_new
 
     @classmethod
@@ -216,7 +218,6 @@ class User(db.Model, UserMixin, Repopulatable):
 
         # delete legacy user
         db.session.delete(user_legacy)
-
 
     def unread_notifications(self):
         notifications = Notification.query.filter(and_(Notification.user_id == self.id,
@@ -318,6 +319,7 @@ class Subscription(db.Model, Repopulatable):
         assert instance is not None
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
         instance = stripe_opinew_adapter.update_subscription(instance, plan)
+        instance.plan = plan
         return instance
 
     def __repr__(self):

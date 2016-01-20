@@ -1,4 +1,7 @@
 <h2>Account</h2>
+<h3>Subscription</h3>
+{% include "forms/change_subscription.html" %}
+<h3>Payment</h3>
 {% if current_user.customer[0].last4 %}
     <div class="alert alert-info">
         <p class="lead">

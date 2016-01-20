@@ -30,7 +30,6 @@ function hookAnswerForm() {
 
 
 var shop_id = document.location.pathname.split('/')[2];
-var pages = ["orders", "reviews", "questions"];
 var callbacks = [null, null, hookAnswerForm];
 
 function getPage(page, callback) {

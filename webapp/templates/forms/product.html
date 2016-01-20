@@ -1,0 +1,12 @@
+<form action="/add-product" method="post" xmlns="http://www.w3.org/1999/html">
+  <input name="_csrf_token" type=hidden class="form-serialize" value="{{ csrf_token() }}">
+  <input name="shop_id" type=hidden class="form-serialize" value="{{ shop.id }}">
+  <label for="product-name">Product Name:</label>
+  <input type="text" name="name" class="form-control" placeholder="Name" id="product-name"/>
+  <label for="product-name">Product URL:</label>
+  <input type="text" name="url" class="form-control" placeholder="Product url" id="product-url"/>
+  <label for="product-name">Short description:</label>
+  <textarea name="short_description" class="form-control" placeholder="Short description" id="product-short-description"></textarea>
+  <br>
+  <button class="btn btn-primary" type="submit">Create</button>
+</form>
