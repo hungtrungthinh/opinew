@@ -1081,6 +1081,24 @@ class Shop(db.Model, Repopulatable):
             else:
                 reviews_cnt_by_product[reviews_cnt] = 1
 
+        funnel_streams_glimpsed = []
+        funnel_streams_fully_seen = []
+        funnel_streams_hovered = []
+        funnel_streams_scrolled = []
+        funnel_streams_clicked = []
+        for fs in self.funnel_streams:
+            if fs.plugin_glimpsed_ts:
+                funnel_streams_glimpsed.append(fs.plugin_glimpsed_ts)
+            if fs.plugin_fully_seen_ts:
+                funnel_streams_fully_seen.append(fs.plugin_fully_seen_ts)
+            if fs.plugin_mouse_hover_ts:
+                funnel_streams_hovered.append(fs.plugin_mouse_hover_ts)
+            if fs.plugin_mouse_scroll_ts:
+                funnel_streams_scrolled.append(fs.plugin_mouse_scroll_ts)
+            if fs.plugin_mouse_click_ts:
+                funnel_streams_clicked.append(fs.plugin_mouse_click_ts)
+
+
         stats['since'] = self.owner.confirmed_at if self.owner else 0
 
         stats['orders_with_review_requests'] = orders_with_review_requests
@@ -1092,6 +1110,15 @@ class Shop(db.Model, Repopulatable):
         stats['reviews'] = reviews
         stats['reviews_cnt'] = len(stats['reviews'])
         stats['reviews_cnt_by_product'] = sorted(reviews_cnt_by_product.items(), key=lambda t: t[0], reverse=True)
+
+        stats['funnel_streams'] = self.funnel_streams
+        stats['funnel_streams_cnt'] = len(self.funnel_streams)
+        stats['funnel_streams_glimpsed_cnt'] = len(funnel_streams_glimpsed)
+        stats['funnel_streams_fully_seen_cnt'] = len(funnel_streams_fully_seen)
+        stats['funnel_streams_hovered_cnt'] = len(funnel_streams_hovered)
+        stats['funnel_streams_scrolled_cnt'] = len(funnel_streams_scrolled)
+        stats['funnel_streams_clicked_cnt'] = len(funnel_streams_clicked)
+
 
         stats['emails_sent'] = self.emails_sent
         stats['emails_sent_cnt'] = len(stats['emails_sent'])

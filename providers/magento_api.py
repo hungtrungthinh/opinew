@@ -34,11 +34,13 @@ class API(object):
         morder_customer_email = morder.get('customer_email')
         morder_billing_name = morder.get('billing_name')
         morder_status = self.order_statuses.get(morder.get('status'), Constants.ORDER_STATUS_PURCHASED)
+        morder_browser_ip = morder.get('remote_ip')
 
         order = models.Order(
             platform_order_id=platform_order_id,
             status=morder_status,
             purchase_timestamp=morder_created_at,
+            browser_ip=morder_browser_ip
         )
         # create user or get one from our db
         existing_user = models.User.get_by_email_no_exception(morder_customer_email)
