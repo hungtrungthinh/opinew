@@ -19,7 +19,9 @@ def verify_initialization():
     from webapp import models
     # Check that the free plan exists in the database
     basic_plan = models.Plan.query.filter_by(name=Constants.PLAN_NAME_BASIC).first()
+    simple_plan = models.Plan.query.filter_by(name=Constants.PLAN_NAME_SIMPLE).first()
     assert basic_plan is not None
+    assert simple_plan is not None
 
 
 # Make json error handlers

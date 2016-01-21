@@ -1,3 +1,4 @@
+from __future__ import division
 import datetime
 import re
 
@@ -129,7 +130,8 @@ class User(db.Model, UserMixin, Repopulatable):
             if gravatar_image_url:
                 user.image_url = gravatar_image_url
             # create a customer account
-            plan = Plan.query.filter_by(name=Constants.PLAN_NAME_BASIC).first()
+            plan_name = kwargs.get('plan_name', Constants.PLAN_NAME_SIMPLE)
+            plan = Plan.query.filter_by(name=plan_name).first()
             customer = Customer(user=user).create()
             subscription = Subscription(customer=customer, plan=plan).create()
             db.session.add(subscription)
@@ -158,7 +160,8 @@ class User(db.Model, UserMixin, Repopulatable):
         db.session.commit()
 
     @classmethod
-    def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, user_legacy_email=None, **kwargs):
+    def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, user_legacy_email=None,
+                               plan_name=None, **kwargs):
         is_new = False
         instance = cls.query.filter_by(email=email).first()
         if not instance:
@@ -192,7 +195,7 @@ class User(db.Model, UserMixin, Repopulatable):
                 cls.reassign_legacy_user_data_and_delete(user_legacy, instance)
 
             # Handle creation of customer and roles
-            User.post_registration_handler(user=instance)
+            User.post_registration_handler(user=instance, plan_name=plan_name)
         return instance, is_new
 
     @classmethod
@@ -215,7 +218,6 @@ class User(db.Model, UserMixin, Repopulatable):
 
         # delete legacy user
         db.session.delete(user_legacy)
-
 
     def unread_notifications(self):
         notifications = Notification.query.filter(and_(Notification.user_id == self.id,
@@ -317,6 +319,7 @@ class Subscription(db.Model, Repopulatable):
         assert instance is not None
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
         instance = stripe_opinew_adapter.update_subscription(instance, plan)
+        instance.plan = plan
         return instance
 
     def __repr__(self):
@@ -423,10 +426,13 @@ class Task(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
     order = db.relationship("Order", backref=db.backref("tasks"))
 
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("tasks"))
+
     @classmethod
-    def create(cls, method, args, eta=None):
+    def create(cls, method, args, funnel_stream_id=None, eta=None):
         from async import celery_async
-        task_instance = Task(method=method.__name__, eta=eta, kwargs=str(args))
+        task_instance = Task(method=method.__name__, eta=eta, kwargs=str(args), funnel_stream_id=funnel_stream_id)
         db.session.add(task_instance)
         db.session.commit()
         task_instance_id = task_instance.id
@@ -465,6 +471,7 @@ class Order(db.Model, Repopulatable):
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship("Shop", backref=db.backref("orders"))
 
+    browser_ip = db.Column(db.String)
     delivery_tracking_number = db.Column(db.String)
     discount = db.Column(db.String)
 
@@ -476,6 +483,9 @@ class Order(db.Model, Repopulatable):
 
     to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
+
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("order", uselist=False))
 
     def is_for_user(self, user):
         if not self.shop.user == user:
@@ -578,8 +588,9 @@ class Order(db.Model, Repopulatable):
         args = dict(recipients=recipients,
                     template=template,
                     template_ctx=template_ctx,
-                    subject=subject)
-        return Task.create(method=tasks.send_email, args=args, eta=notify_dt)
+                    subject=subject,
+                    funnel_stream_id=order.funnel_stream_id)
+        return Task.create(method=tasks.send_email, args=args, eta=notify_dt, funnel_stream_id=order.funnel_stream_id)
 
     def set_notifications(self):
         if self.status == Constants.ORDER_STATUS_NOTIFIED:
@@ -692,6 +703,9 @@ class ReviewRequest(db.Model):
 
     opened_timestamp = db.Column(db.DateTime)
 
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("review_requests"))
+
     @classmethod
     def create(cls, to_user, from_customer, for_product=None, for_shop=None, for_order=None):
         while True:
@@ -756,6 +770,9 @@ class Review(db.Model, Repopulatable):
                                       backref=db.backref('amended_review', uselist=False))
 
     youtube_video = db.Column(db.String)
+
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("reviews"))
 
     def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None,
                  user_id=None, **kwargs):
@@ -1019,44 +1036,6 @@ class Shop(db.Model, Repopulatable):
     def last_order_ts(self):
         return Order.query.filter_by(shop_id=self.id).order_by(Order.purchase_timestamp.desc()).first()
 
-    def product_review_requests(self):
-        all_rr = []
-        for p in self.products:
-            rr = p.review_requests
-            all_rr += rr
-        return all_rr
-
-    def product_reviews(self):
-        all_r = []
-        for p in self.products:
-            r = p.reviews
-            all_r += r
-        return all_r
-
-    def product_reviews_summary(self):
-        stats = {}
-        for p in self.products:
-            product_reviews = len(p.reviews)
-            if product_reviews in stats:
-                stats[product_reviews] += 1
-            else:
-                stats[product_reviews] = 1
-        return sorted(stats.items(), key=lambda t: t[0], reverse=True)
-
-    def emails_opened(self):
-        return [e.opened_timestamp for e in self.emails_sent if e.opened_timestamp]
-
-    def rr_opened(self):
-        rro = {}
-        rro_total = []
-        for p in self.products:
-            rrs = p.review_requests
-            for rr in rrs:
-                if rr.opened_timestamp:
-                    rro[rr.for_order_id] = 0
-                    rro_total.append(rr)
-        return rro, rro_total
-
     def orders_before_opinew(self):
         owner_confirmed_at = self.owner.confirmed_at if self.owner and self.owner.confirmed_at else datetime.datetime.utcnow()
         return Order.query.filter(and_(Order.shop_id == self.id, Order.purchase_timestamp < owner_confirmed_at)).all()
@@ -1065,18 +1044,107 @@ class Shop(db.Model, Repopulatable):
         owner_confirmed_at = self.owner.confirmed_at if self.owner and self.owner.confirmed_at else datetime.datetime.utcnow()
         return Order.query.filter(and_(Order.shop_id == self.id, Order.purchase_timestamp >= owner_confirmed_at)).all()
 
-    def reviews_since_opinew(self):
+    def get_stats(self):
         opinew_source = Source.query.filter_by(name='opinew').first()
-        vopr = []
-        opr = []
+        stats = {}
+
+        orders_with_review_requests = []
+        review_requests = []
+        reviews = []
+        reviews_cnt_by_product = {}
+
+        verified_opinew_reviews = []
+        opinew_total_reviews = []
+
+        emails_converted = {}  # emails_with_at_least_one_rr_opened
+        review_requests_opened_total = []
+
+        for o in self.orders:
+            if o.review_requests:
+                orders_with_review_requests.append(o)
+
         for p in self.products:
             rs = p.reviews
+            reviews += rs
+            reviews_cnt = len(p.reviews)
             for r in rs:
                 if r.source_id == opinew_source.id:
                     if r.verified_review:
-                        vopr.append(r)
-                    opr.append(r)
-        return vopr, opr
+                        verified_opinew_reviews.append(r)
+                    opinew_total_reviews.append(r)
+            rrs = p.review_requests
+            review_requests += rrs
+            for rr in rrs:
+                if rr.opened_timestamp:
+                    emails_converted[rr.for_order_id] = 1
+                    review_requests_opened_total.append(rr)
+            if reviews_cnt in reviews_cnt_by_product:
+                reviews_cnt_by_product[reviews_cnt] += 1
+            else:
+                reviews_cnt_by_product[reviews_cnt] = 1
+
+        funnel_streams_glimpsed = []
+        funnel_streams_fully_seen = []
+        funnel_streams_hovered = []
+        funnel_streams_scrolled = []
+        funnel_streams_clicked = []
+        for fs in self.funnel_streams:
+            if fs.plugin_glimpsed_ts:
+                funnel_streams_glimpsed.append(fs.plugin_glimpsed_ts)
+            if fs.plugin_fully_seen_ts:
+                funnel_streams_fully_seen.append(fs.plugin_fully_seen_ts)
+            if fs.plugin_mouse_hover_ts:
+                funnel_streams_hovered.append(fs.plugin_mouse_hover_ts)
+            if fs.plugin_mouse_scroll_ts:
+                funnel_streams_scrolled.append(fs.plugin_mouse_scroll_ts)
+            if fs.plugin_mouse_click_ts:
+                funnel_streams_clicked.append(fs.plugin_mouse_click_ts)
+
+
+        stats['since'] = self.owner.confirmed_at if self.owner else 0
+
+        stats['orders_with_review_requests'] = orders_with_review_requests
+        stats['orders_with_review_requests_cnt'] = len(stats['orders_with_review_requests'])
+
+        stats['review_requests'] = review_requests
+        stats['review_requests_cnt'] = len(stats['review_requests'])
+
+        stats['reviews'] = reviews
+        stats['reviews_cnt'] = len(stats['reviews'])
+        stats['reviews_cnt_by_product'] = sorted(reviews_cnt_by_product.items(), key=lambda t: t[0], reverse=True)
+
+        stats['funnel_streams'] = self.funnel_streams
+        stats['funnel_streams_cnt'] = len(self.funnel_streams)
+        stats['funnel_streams_glimpsed_cnt'] = len(funnel_streams_glimpsed)
+        stats['funnel_streams_fully_seen_cnt'] = len(funnel_streams_fully_seen)
+        stats['funnel_streams_hovered_cnt'] = len(funnel_streams_hovered)
+        stats['funnel_streams_scrolled_cnt'] = len(funnel_streams_scrolled)
+        stats['funnel_streams_clicked_cnt'] = len(funnel_streams_clicked)
+
+
+        stats['emails_sent'] = self.emails_sent
+        stats['emails_sent_cnt'] = len(stats['emails_sent'])
+
+        stats['emails_opened'] = [e.opened_timestamp for e in self.emails_sent if e.opened_timestamp]
+        stats['emails_opened_cnt'] = len(stats['emails_opened'])
+
+        stats['emails_opened_over_sent_pctg'] = (stats['emails_opened_cnt'] / stats['emails_sent_cnt'])*100 if stats['emails_sent_cnt'] else '-'
+
+        stats['emails_converted'] = emails_converted
+        stats['emails_converted_cnt'] =  len(stats['emails_converted'])
+        stats['emails_converted_over_emails_opened_pctg'] = (stats['emails_converted_cnt'] / stats['emails_opened_cnt'])*100 if stats['emails_opened_cnt'] else '-'
+
+        stats['verified_opinew_reviews'] =  verified_opinew_reviews
+        stats['verified_opinew_reviews_cnt'] =  len(stats['verified_opinew_reviews'])
+        stats['verified_opinew_reviews_over_email_converted_pctg'] =  (stats['verified_opinew_reviews_cnt'] / stats['emails_converted_cnt'])*100 if stats['emails_converted_cnt'] else '-'
+
+        stats['review_requests_opened_total'] =  review_requests_opened_total
+        stats['review_requests_opened_total_cnt'] =  len(stats['review_requests_opened_total'])
+
+        stats['opinew_total_reviews'] =  opinew_total_reviews
+        stats['opinew_total_reviews_cnt'] =  len(stats['opinew_total_reviews'])
+        return stats
+
 
     def __repr__(self):
         return '<Shop %r>' % self.name
@@ -1207,6 +1275,35 @@ class SentEmail(db.Model):
     for_shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     for_shop = db.relationship("Shop", backref=db.backref("emails_sent"))
 
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("sent_email", uselist=False))
+
+
+class FunnelStream(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    shop = db.relationship("Shop", backref=db.backref("funnel_streams"))
+
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("funnel_streams"))
+
+    # 1. First part of the funnel - page visits
+    plugin_load_ts = db.Column(db.DateTime)
+    plugin_loaded_from_ip = db.Column(db.String)
+
+    # 2. How much interaction with our plugin
+    plugin_glimpsed_ts = db.Column(db.DateTime)  # just part of the plugin is visible
+    plugin_fully_seen_ts = db.Column(db.DateTime)  # the full plugin is visible
+    plugin_mouse_hover_ts = db.Column(db.DateTime)
+    plugin_mouse_scroll_ts = db.Column(db.DateTime)
+    plugin_mouse_click_ts = db.Column(db.DateTime)
+
+    # 3. Is there an order connected with this stream? Guess by timestamp and browser IP
+    # 4. Task - on the backref of Task
+    # 5. SentEmail - on the backref of SentEmail
+    # 6. ReviewRequests - on the backref of ReviewRequest
+    # 7. Reviews left - on the backref of review
 
 # Create customized model view class
 class AdminModelView(ModelView):
@@ -1230,6 +1327,7 @@ class AdminModelView(ModelView):
             else:
                 # login
                 return redirect(url_for('security.login', next=request.url))
+
 
 # Setup Flask-Admin
 admin.add_view(AdminModelView(Role, db.session))
@@ -1256,3 +1354,4 @@ admin.add_view(AdminModelView(Answer, db.session))
 admin.add_view(AdminModelView(Task, db.session))
 admin.add_view(AdminModelView(SentEmail, db.session))
 admin.add_view(AdminModelView(Source, db.session))
+admin.add_view(AdminModelView(FunnelStream, db.session))

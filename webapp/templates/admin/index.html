@@ -24,69 +24,66 @@
   <table class="table">
     <tr>
       <th></th>
-      <th colspan="2" style="background-color: #ff8888">BEFORE OPINEW</th>
-      <th colspan="4" style="background-color: #8888ff">THE PIPELINE</th>
-      <th colspan="2" style="background-color: #88ff88">AFTER OPINEW</th>
+      <th></th>
+      <th colspan="5" style="background-color: #8888ff">THE PIPELINE</th>
+      <th colspan="3" style="background-color: #88ff88">AFTER OPINEW</th>
     </tr>
     <tr>
       <th>Shop</th>
-      <th>Orders</th>
-      <th>Reviews</th>
-      <th>Rev Reqs</th>
+      <th>Total Reviews</th>
+      <th>Plugin Views</th>
+      <th>Orders <br> with RR</th>
       <th>Emails <br>Sent</th>
       <th>Emails <br>Opened</th>
-      <th>Unq Ord/Total<br> Rev Reqs<br>Opened</th>
+      <th>Emails <br>Converted</th>
       <th>Ver/Total<br>Reviews</th>
-      <th>Orders</th>
+      <th>Opened/Total<br> Rev Reqs</th>
     </tr>
     {% for shop in shops %}
+      {% set stats = shop.get_stats() %}
       <tr>
         <td>
           <h3>{{ shop.name }}</h3>
           <small>id: {{ shop.id }} | uid: {{ shop.owner.id if shop.owner else 0}} - cid: {{ shop.owner.customer[0].id if shop.owner and shop.owner.customer else 0 }}</small><br>
-          <small>Since: {{ shop.owner.confirmed_at if shop.owner else 0}}</small><br>
+          <small>Since: {{ stats.since }}</small><br>
           <small>Products: {{ shop.products|length }}</small>
         </td>
         <td>
-          <h3>{{ shop.orders_before_opinew()|length }}</h3>
-        </td>
-        <td>
-          <h3>{{ shop.product_reviews()|length }}</h3>
+          <h3>{{ stats.reviews|length }}</h3>
           <small>
-            {% for s in shop.product_reviews_summary() %}
+            {% for s in stats.reviews_cnt_by_product %}
               {{ s[1] }} w {{ s[0] }} rvs<br>
             {% endfor %}
           </small>
         </td>
         <td>
-          <h3>{{ shop.product_review_requests()|length }}</h3>
+          <h3>{{ stats.funnel_streams_cnt }}</h3>
+          <small>Glimpsed: {{ stats.funnel_streams_glimpsed_cnt }}</small><br>
+        <small>Fully seen: {{ stats.funnel_streams_fully_seen_cnt }}</small><br>
+        <small>Hovered: {{ stats.funnel_streams_hovered_cnt }}</small><br>
+        <small>Scrolled: {{ stats.funnel_streams_scrolled_cnt }}</small><br>
+        <small>Clicked: {{ stats.funnel_streams_clicked_cnt }}</small><br>
         </td>
         <td>
-          {% set emails_sent = shop.emails_sent|length  %}
-          <h3>{{ emails_sent }}</h3>
+          <h3>{{ stats.orders_with_review_requests_cnt}}</h3>
         </td>
         <td>
-          {% set emails_opened = shop.emails_opened()|length %}
-          <h3>{{ emails_opened }}</h3>
-          <small>{{ ((emails_opened/emails_sent)*100)|round if emails_sent else "-" }}%</small>
+          <h3>{{ stats.emails_sent_cnt }}</h3>
         </td>
         <td>
-          {% set rro = shop.rr_opened() %}
-          <h3>{{ rro[0]|length }} <small>({{ rro[1]|length }})</small></h3>
-          <small>{{ ((rro[0]|length/emails_opened)*100)|round if emails_opened else "-" }}%</small><br>
-          <small>{{ ((rro[0]|length/emails_sent)*100)|round if emails_sent else "-" }}%</small>
+          <h3>{{ stats.emails_opened_cnt }}</h3>
+          <small>{{ stats.emails_opened_over_sent_pctg }}%</small>
         </td>
         <td>
-          {% set rso = shop.reviews_since_opinew() %}
-          <h3>{{ rso[0]|length}} <small>({{ rso[1]|length}})</small></h3>
-          <small>{{ ((rso[0]|length/rro[1]|length)*100)|round if rro[1]|length else "-" }}%</small><br>
-          <small>{{ (((rso[0]|length/rro[1]|length)*(rro[0]|length/emails_opened))*100)|round if rro[1]|length and emails_opened else "-" }}%</small><br>
-          <small>{{ (((rso[0]|length/rro[1]|length)*(rro[0]|length/emails_sent))*100)|round if rro[1]|length and emails_sent else "-" }}%</small><br>
+          <h3>{{ stats.emails_converted_cnt }}</h3>
+          <small>{{ stats.emails_converted_over_emails_opened_pctg }}%</small>
         </td>
         <td>
-          <h3>+{{ shop.orders_since_opinew()|length}}</h3>
-          {% set last_order_ts = shop.last_order_ts().purchase_timestamp %}
-          <small>last: {{ last_order_ts|timesince }}</small>
+          <h3>{{ stats.verified_opinew_reviews_cnt }} / {{ stats.opinew_total_reviews_cnt }}</h3>
+          <small>{{ stats.verified_opinew_reviews_over_email_converted_pctg }}%</small><br>
+        </td>
+        <td>
+          <h3>{{ stats.review_requests_opened_total_cnt }} / {{ stats.review_requests_cnt }}</h3>
         </td>
       </tr>
     {% endfor %}

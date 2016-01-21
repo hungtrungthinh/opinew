@@ -84,6 +84,9 @@ class Constants(object):
     MAGENTO_STATUS_CSV_FAILED_HOSTED_PAYMENT = 'csv_failed_hosted_payment'
 
     PLAN_NAME_BASIC = 'basic'
+    PLAN_NAME_SIMPLE = 'simple'
+
+    FUNNEL_STREAM_ACTIONS = ['glimpse', 'fully_seen', 'mouse_hover', 'mouse_click', 'mouse_scroll']
 
 
 class Config(object):

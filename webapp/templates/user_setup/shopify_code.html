@@ -1,3 +1,4 @@
-<iframe style="border:0; width:100%; height:400px;"
-  src="https://opinew.com/plugin?shop_id={{ shop.id }}&get_by=platform_id&platform_product_id={{'{{product.id}}'}}">
-</iframe>
+<div id="opinew-plugin" data-opinew-shop-id="{{ shop.id }}" data-platform-product-id="{{ '{{product.id}}' }}" style="width:100%;">
+  <p>Opinew Product Reviews is loading from <a href="https://opinew.com/">Opinew plugin</a>...</p>
+</div>
+<script type="text/javascript" src="{{ g.config.OPINEW_API_SERVER }}/static/js/widget.js"></script>

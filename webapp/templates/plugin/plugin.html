@@ -1,6 +1,6 @@
 {% import "_macros.html" as macros %}
 <!DOCTYPE html>
-<html>
+<html id="opinew-plugin-html">
 <head lang="en">
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global-plugin-base.css') }}"/>
@@ -85,8 +85,12 @@
         }
     });
 </script>
+<script>
+  var FUNNEL_STREAM_ID = "{{ funnel_stream_id }}";
+</script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
+<script src="{{ url_for('static', filename='js/funnel.js') }}"></script>
 {#<script src="{{ url_for('static', filename='js/messages.js') }}"></script>#}
 <script src='https://www.google.com/recaptcha/api.js'></script>
 {# Include Google analytics if in production mode #}

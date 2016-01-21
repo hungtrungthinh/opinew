@@ -6,7 +6,7 @@ from webapp import mail, models, db
 from webapp.common import random_pwd
 
 
-def send_email(recipients, template, template_ctx, subject=None):
+def send_email(recipients, template, template_ctx, subject=None, funnel_stream_id=None):
     msg = Message()
 
     # generate tracking pixel
@@ -39,7 +39,8 @@ def send_email(recipients, template, template_ctx, subject=None):
                                   template_ctx=str(template_ctx),
                                   body=msg.body,
                                   tracking_pixel_id=tracking_pixel_id,
-                                  for_shop_id=shop_id)
+                                  for_shop_id=shop_id,
+                                  funnel_stream_id=funnel_stream_id)
 
     db.session.add(sent_email)
     db.session.commit()

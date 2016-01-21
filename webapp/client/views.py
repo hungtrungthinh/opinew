@@ -2,14 +2,14 @@ import datetime
 import os
 from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, jsonify, send_file
+    current_app, make_response, abort, jsonify, send_file, Response
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
-    Task, SentEmail
+    Task, SentEmail, FunnelStream, Subscription, ProductUrl
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -102,7 +102,8 @@ def shopify_plugin_callback():
     shop_owner_name = shopify_shop.get('shop_owner', '')
     shop_owner, is_new = User.get_or_create_by_email(shop_owner_email,
                                                      role_name=Constants.SHOP_OWNER_ROLE,
-                                                     name=shop_owner_name)
+                                                     name=shop_owner_name,
+                                                     plan_name=Constants.PLAN_NAME_BASIC)
     if is_new:
         db.session.add(shop_owner)
         db.session.commit()
@@ -278,11 +279,43 @@ def shop_dashboard_id(shop_id):
     review_request_form = ReviewRequestForm()
     platforms = Platform.query.all()
     plans = Plan.query.all()
+    current_plan = shop.owner.customer[0].subscription[0].plan
     expiry_days = (
     current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
                            review_request_form=review_request_form, platforms=platforms,
-                           plans=plans, expiry_days=expiry_days)
+                           plans=plans, expiry_days=expiry_days, current_plan=current_plan)
+
+
+@client.route('/change-subscription', methods=['POST'])
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def change_subscription():
+    shop_id = request.form.get('shop_id')
+    if not shop_id:
+        flash('Shop_id required')
+        return redirect(url_for('client.shop_dashboard'))
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    plan_id = request.form.get('plan_id')
+    if not plan_id:
+        flash('Plan_id required')
+        return redirect(url_for('client.shop_dashboard'))
+    plan = Plan.query.filter_by(id=plan_id).first()
+    if not plan:
+        flash('Plan does not exist')
+        return redirect(url_for('client.shop_dashboard'))
+    subscription = current_user.customer[0].subscription[0]
+    if not subscription:
+        flash('Subscription does not exist')
+        return redirect(url_for('client.shop_dashboard'))
+    subscription = Subscription.update(subscription, plan)
+    db.session.add(subscription)
+    db.session.commit()
+    flash('Subscription changed successfully')
+    return redirect(request.referrer or url_for('client.shop_dashboard'))
 
 
 @client.route('/dashboard', defaults={'shop_id': 0})
@@ -297,6 +330,30 @@ def shop_dashboard_orders(shop_id):
         return redirect(url_for('client.shop_dashboard'))
     orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
     return render_template("shop_admin/orders.html", orders=orders, now=now)
+
+
+@client.route('/add-product', methods=['POST'])
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def add_product():
+    shop_id = request.form.get('shop_id')
+    if not shop_id:
+        flash('Shop_id required')
+        return redirect(url_for('client.shop_dashboard'))
+    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+    if not shop:
+        flash('Not your shop')
+        return redirect(url_for('client.shop_dashboard'))
+    name = request.form.get('name')
+    url = request.form.get('url')
+    short_description = request.form.get('short_description')
+    product = Product(shop=shop, name=name, short_description=short_description)
+    product_url = ProductUrl(url=url, is_regex=False)
+    product_url.product = product
+    db.session.add(product)
+    db.session.add(product_url)
+    db.session.commit()
+    return redirect(request.referrer or url_for('client.shop_dashboard'))
 
 
 @client.route('/dashboard', defaults={'shop_id': 0})
@@ -354,6 +411,17 @@ def add_payment_card():
     return redirect(request.referrer)
 
 
+@client.route('/get-next-funnel-stream')
+def get_next_funnel_stream():
+    funnel_stream = FunnelStream()
+    db.session.add(funnel_stream)
+    db.session.commit()
+    funnel_stream_id = funnel_stream.id
+    resp = Response("%s" % funnel_stream_id)
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
+
 @client.route('/plugin')
 def get_plugin():
     try:
@@ -387,14 +455,61 @@ def get_plugin():
         featured_reviews = [fr for fr in all_reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
         rest_reviews = [r for r in all_reviews if r not in featured_reviews and not r == own_review]
         next_arg = request.url
+        # TODO: deprecate plugin_views
         product.plugin_views += 1
-        db.session.commit()
+        funnel_stream_id = request.args.get('funnel_stream_id')
+        if funnel_stream_id:
+            funnel_stream = FunnelStream.query.filter_by(id=funnel_stream_id).first()
+            if funnel_stream:
+                funnel_stream.shop = shop
+                funnel_stream.product = product
+                funnel_stream.plugin_load_ts = datetime.datetime.utcnow()
+                funnel_stream.plugin_loaded_from_ip = request.remote_addr
+                db.session.add(funnel_stream)
+                db.session.commit()
     except (ParamException, DbException, AssertionError, AttributeError) as e:
         return '', 404
     return render_template('plugin/plugin.html', product=product, rest_reviews=rest_reviews,
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
                            review_image_form=review_image_form, next_arg=next_arg,
-                           own_review=own_review, featured_reviews=featured_reviews, in_plugin=True)
+                           own_review=own_review, featured_reviews=featured_reviews, in_plugin=True,
+                           funnel_stream_id=funnel_stream_id)
+
+
+@client.route('/plugin-test')
+def plugin_test():
+    if not current_app.debug:
+        abort(404)
+    return render_template("plugin_test.html")
+
+
+@client.route('/update-funnel')
+def update_funnel():
+    funnel_stream_id = request.args.get('funnel_stream_id')
+    if not (funnel_stream_id and funnel_stream_id.isdigit()):
+        return jsonify({"message": "funnel_stream_id parameter required"}), 400
+    funnel_stream = FunnelStream.query.filter_by(id=funnel_stream_id).first()
+    if not funnel_stream:
+        return jsonify({"message": "funnel_stream with this id does not exist"}), 400
+    action = request.args.get('action')
+    if not (action and action in Constants.FUNNEL_STREAM_ACTIONS):
+        return jsonify({"message": "action values are %s" % Constants.FUNNEL_STREAM_ACTIONS}), 400
+    # disambiguate the action
+    if action == 'glimpse':
+        funnel_stream.plugin_glimpsed_ts = datetime.datetime.utcnow()
+    elif action == 'fully_seen':
+        funnel_stream.plugin_fully_seen_ts = datetime.datetime.utcnow()
+    elif action == 'mouse_hover':
+        funnel_stream.plugin_mouse_hover_ts = datetime.datetime.utcnow()
+    elif action == 'mouse_scroll':
+        funnel_stream.plugin_mouse_scroll_ts = datetime.datetime.utcnow()
+    elif action == 'mouse_click':
+        funnel_stream.plugin_mouse_click_ts = datetime.datetime.utcnow()
+    db.session.add(funnel_stream)
+    db.session.commit()
+    resp = Response("")
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
 
 
 @client.route('/product', defaults={'product_id': 0})
@@ -557,6 +672,7 @@ def render_order_review_email():
         return redirect(url_for('client.shop_dashboard'))
     template_ctx = order.build_review_email_context()
     return render_template('email/review_order.html', **template_ctx)
+
 
 @client.route('/render-marketing-email')
 def render_marketing_email():

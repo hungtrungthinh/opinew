@@ -1,26 +1,27 @@
 <h2>Products</h2>
-{% if not products %}
-    <p>No products yet</p>
+{% if not shop.products %}
+  <p>No products yet</p>
 {% else %}
-    <table class="table">
-        <tr>
-            <th>Product name</th>
-            <th>Opinew product page</th>
-            <th>Reviews</th>
-        </tr>
-      {% for product in products %}
-          <tr>
-              <td>{{ product.name }}</td>
-              <td>
-                  <a href="{{ url_for('client.get_product', product_id=product.id) }}"
-                     target="_blank">{{ product.name }}</a>
-                  <a href="http://{{ product.url }}" target="_blank"><span class="glyphicon glyphicon-link"></span></a>
-              </td>
-              <td>
-                {{ product.reviews | length }}
-              </td>
-
-          </tr>
-      {% endfor %}
-    </table>
+  <table class="table">
+    <tr>
+      <th>Product name</th>
+      <th>Opinew product page</th>
+      <th>Reviews</th>
+    </tr>
+    {% for product in shop.products %}
+      <tr>
+        <td>{{ product.name }}</td>
+        <td>
+          <a href="{{ url_for('client.get_product', product_id=product.id) }}"
+             target="_blank">{{ product.name }}</a>
+          <a href="http://{{ product.url }}" target="_blank"><span class="glyphicon glyphicon-link"></span></a>
+        </td>
+        <td>
+          {{ product.reviews | length }}
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
 {% endif %}
+<h3>Add a product</h3>
+{% include "forms/product.html" %}
