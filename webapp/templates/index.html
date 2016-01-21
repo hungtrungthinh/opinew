@@ -2,158 +2,103 @@
 {% import "_macros.html" as macros %}
 
 {% block content %}
-    <section class="container-fluid" id="welcome">
+    <section class="container-fluid" id="welcome" xmlns="http://www.w3.org/1999/html">
         <div class="container">
             <div class="row">
-                <div class="col-sm-4 col-sm-offset-1">
-                    <h1>Opinew - Photo Product Reviews</h1>
 
-                    <p class="lead">Add a product reviews widget to any site in minutes with no coding required.</p>
-                    <a href="{{ url_for('security.register', shop_owner=1) }}" class="btn btn-block btn-primary btn-lg">Get
-                        started</a>
-                    <small class="text-center">30 days free trial</small>
-                </div>
-                <div class="col-sm-6">
-                    <h1 class="text-center v-center">
-                        <a href="{{ url_for('.reviews') }}">
-                            <img class="img-responsive img-thumbnail"
-                                 src="{{ url_for('static', filename='img/marketing/reviews_shot.jpg') }}"
-                                 alt="reviews screenshot"/>
-                        </a>
-                        <a href="{{ url_for('.reviews') }}" class="btn btn-block btn-lg btn-default">View our
-                            reviews</a>
-                    </h1>
-                </div>
+
+                <img class="img-responsive" src="https://opinew.com/static/img/opinew_logo.png" style="display: block;margin-left: auto;margin-right: auto ">
+                <h1 align="center">Take your company’s reviews to the next level.</h1>
+
+
             </div>
 
-            <div class="row">
-                <div class="col-sm-4">
-                    <div class="row">
-                        <div class="col-sm-10 col-sm-offset-2 text-center"><h3>Better Reviews</h3>
-
-                            <p>Get better reviews for your products, driving conversions and increasing sales.</p>
-                            <span class="glyphicon glyphicon-star glyphicon-5x"></span></div>
-                    </div>
-                </div>
-                <div class="col-sm-4 text-center">
-                    <div class="row">
-                        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Based on quick snaps</h3>
-
-                            <p>The reviews are based on pictures which users do anyway these days.</p>
-                            <span class="glyphicon glyphicon-camera glyphicon-5x"></span></div>
-                    </div>
-                </div>
-                <div class="col-sm-4 text-center">
-                    <div class="row">
-                        <div class="col-sm-10 text-center"><h3>Mobile first</h3>
-
-                            <p>Our dedicated review mobile app verifies the reviews.</p>
-                            <span class="glyphicon glyphicon-phone glyphicon-5x"></span></div>
-                    </div>
-                </div>
-            </div>
         </div>
         <!--/row-->
-        <div class="row"><br></div>
-        </div>
+
         <!--/container-->
     </section>
-  {% include "colors_bar.html" %}
-    <section class="container-fluid" id="examples">
-        <h2 class="text-center">Our customers love their photo product reviews</h2>
 
-        <div class="row">
-            <div class="col-sm-8 col-sm-offset-2">
-                <a href="{{ url_for('.reviews') }}">
-                    <div class="col-xs-4">
-                        <img class="img-responsive"
-                             src="{{ url_for('static', filename='img/marketing/opinew_nexus.jpg') }}"
-                             alt="reviews screenshot"/>
-                    </div>
-                    <div class="col-xs-8">
-                        <img class="img-responsive"
-                             src="{{ url_for('static', filename='img/marketing/reviews_shot.jpg') }}"
-                             alt="reviews screenshot"/>
-                    </div>
-                </a>
-                <a href="{{ url_for('.reviews') }}" class="btn btn-block btn-lg btn-info"
-                   style="clear:both; margin-left: 15px;margin-right: 15px;">View our
-                    reviews</a>
-            </div>
-        </div>
-    </section>
-    <section class="container-fluid" id="features">
-        <h1 class="text-center">What do you get</h1>
-        <br>
-
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4" style="text-align: center">
-                    <span class="glyphicon glyphicon-shopping-cart glyphicon-5x"></span>
-
-                    <p class="lead">Increase conversions</p>
-
-                    <p>High quality reviews can increase sales by up to 20 percent</p>
-                </div>
-                <div class="col-md-4" style="text-align: center">
-                    <span class="glyphicon glyphicon-check glyphicon-5x"></span>
-
-                    <p class="lead">Verified reviews</p>
-
-                    <p>Not everyone can post a review - only after we know they've bought the product. Additionally our
-                        picture-based approach from our app only tightens the process.</p>
-                </div>
-                <div class="col-md-4" style="text-align: center">
-                    <span class="glyphicon glyphicon-envelope glyphicon-5x"></span>
-
-                    <p class="lead">Automatic post-purchase email</p>
-
-                    <p>We will take care of reminding the buyers of the great benefits coming with posting a review -
-                        discounts
-                        and helping others.</p>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-4" style="text-align: center">
-                    <span class="glyphicon glyphicon-random glyphicon-5x"></span>
-
-                    <p class="lead">Works everywhere</p>
-
-                    <p>Cross-browser and looks great on Shopify & Magento. WooCommerce & Squarespace are coming
-                        soon!</p>
-                </div>
-                <div class="col-md-4" style="text-align: center">
-                    <span class="glyphicon glyphicon-comment glyphicon-5x"></span>
-
-                    <p class="lead">Automatic moderation</p>
-
-                    <p>Having too much on your head already? We will take care of profanity filters and suggesting which
-                        reviews
-                        will help you and your customers the most.</p>
-                </div>
-                <div class="col-md-4" style="text-align: center">
-                    <span class="glyphicon glyphicon-picture glyphicon-5x"></span>
-
-                    <p class="lead">Rich content</p>
-
-                    <p>Over a billion photos are posted everyday on services like Snapchat, Pinterest and Instagram. Be
-                        part
-                        of
-                        the revolution - pictures and videos over dull text.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-    <section class="container-fluid" id="pricing">
+    {% include "colors_bar.html" %}
+    <section id="section1" class="container-fluid small-section">
         <div class="col-sm-12">
-            <div class="container">
-                <div class="row">
+            <span class="glyphicon glyphicon-envelope glyphicon-5x" style="margin-right: 20px"></span>
+            <span class="glyphicon glyphicon-comment glyphicon-5x"></span>
+        </div>
+        <h2 align="center">Automation</h2>
+
+        <div class="col-sm-6 col-sm-offset-3">
+            <p class="marketing-feature-expl">Having too much on your head already?</br> We will send automated emails to the buyers to prompt
+                them to leave a review and help others in their buying decisions.
+                We will take care of
+                profanity filters and suggesting which reviews
+                will help you and your customers the most.
+                </p>
+        </div>
+
+    </section>
+
+    <section id="section2" class="container-fluid small-section" >
+        <div class="col-sm-12">
+        <span class="glyphicon glyphicon-camera glyphicon-5x" style="margin-right: 20px"></span>
+        <span class="glyphicon glyphicon-facetime-video glyphicon-5x"></span>
+        </div>
+        <h2 align="center">Rich multimedia content</h2>
+
+        <div class="col-sm-6 col-sm-offset-3">
+        <p class="marketing-feature-expl">Bring extra credibility to your reviews with photos and videos.</br>
+            Over a billion of them are posted everyday on services like Snapchat, Pinterest and Instagram.</br>
+            Be part of the revolution - pictures and videos over dull text.</p>
+        </div>
+    </section>
+
+    <section id="section3" class="container-fluid small-section">
+        <div class="col-sm-12">
+        <span class="glyphicon glyphicon-shopping-cart glyphicon-5x"></span>
+        </div>
+        <h2>High quality reviews, higher sales</h2>
+        <div class="col-sm-6 col-sm-offset-3">
+        <p class="marketing-feature-expl">Get better reviews for your products, driving conversions and
+            increasing sales by up to 20 percent.</p>
+        </div>
+    </section>
+
+    <section id="section4" class="container-fluid small-section">
+        <div class="col-sm-12">
+        <span class="glyphicon glyphicon-check glyphicon-5x"></span>
+        </div>
+        <h2>Verified reviews</h2>
+        <div class="col-sm-6 col-sm-offset-3">
+           <p class="marketing-feature-expl">Reviews left by people who purchased them are shown as "Verified Reviews". Our
+                        picture-based approach from our app only tightens the process.</p>
+        </div>
+    </section>
+
+    <section id="section5" class="container-fluid small-section">
+        <div class="col-sm-12">
+        <span class="glyphicon glyphicon-phone glyphicon-5x"></span>
+        </div>
+        <h2 align="center">Mobile first</h2>
+        <div class="col-sm-6 col-sm-offset-3">
+        <p class="marketing-feature-expl">We focus on making the reviewing process on those devices as simple as possible.
+            </p>
+        </div>
+    </section>
+
+    {% include "colors_bar.html" %}
+
+    <section class="container-fluid" id="pricing">
+        <h2 class="text-center">Summary and pricing</h2>
+        <div class="col-sm-6 col-sm-offset-3">
                   {% include "/pricing_plans/pricing_plans.html" %}
-                </div>
-                <!--/row-->
-            </div>
             <!--/container-->
+        </div>
+        <div class="col-sm-6 col-sm-offset-3">
+            <h2 class="text-center">Have your shop built with <img class="img-responsive"
+                             src="{{ url_for('static', filename='img/marketing/shopify.png') }}"
+                             alt="Shopify" style="height: 1.2em; display:inline;"/>?</h2>
+            <p align="center" class="lead">Install our reviews plugin on your online shop in minutes with no coding required.</p>
+            <a target="_blank" href="https://apps.shopify.com/opinew" class="btn btn-block btn-primary btn-lg">Go to Shopify app store</a>
         </div>
     </section>
 {% endblock %}

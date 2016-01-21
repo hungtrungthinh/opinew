@@ -33,6 +33,13 @@ section {
   min-height: calc(100% - 1px);
 }
 
+.small-section {
+  padding-top: 15px;
+  padding-bottom: 30px;
+  min-height: calc(60% - 1px);
+  text-align: center;
+}
+
 .v-center {
   padding-bottom: 5%;
   font-size: 70px;
@@ -46,6 +53,7 @@ a.list-group-item.active, [class*='-info'] {
 #welcome, #examples {
   background-color: #eee;
   color: #444;
+  margin-bottom:40px;
 }
 
 #features, #about_us {
@@ -64,7 +72,7 @@ body {
 }
 
 #content-wrapper {
-  min-height: 600px;
+  min-height: 500px;
 }
 
 /* Opinew colors */
@@ -575,6 +583,10 @@ blockquote p {
   background-color: #ffffff;
   margin: 5px 0 20px 0;
   padding: 20px;
+}
+
+.marketing-feature-expl {
+  font-size: 1.1em;
 }
 
 

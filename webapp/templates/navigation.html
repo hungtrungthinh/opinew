@@ -1,6 +1,6 @@
 {% import "_macros.html" as macros %}
 <nav class="navbar">
-    <div class="container-fluid">
+    <div class="container-fluid" style="padding-right:0px;">
         <!-- Brand and toggle get grouped for better mobile display -->
         <div class="navbar-header">
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
@@ -24,12 +24,6 @@
 
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
             <ul class="nav navbar-nav">
-              {% if not current_user.is_authenticated() %}
-                {% set link = url_for('client.index') %}
-                  <li {% if request.path == link %}class="active"{% endif %}>
-                      <a href="{{ link }}">What is Opinew?</a>
-                  </li>
-              {% endif %}
               {% if current_user.has_role(g.constants.SHOP_OWNER_ROLE) %}
                 {% set link = url_for('client.shop_dashboard') %}
                   <li {% if request.path == link %}class="active"{% endif %}>
@@ -44,9 +38,9 @@
                 <li {% if request.path == link %}class="active"{% endif %}>
                     <a href="{{ link }}">FAQ</a>
                 </li>
-              {% set link = "http://blog.opinew.com/" %}
+              {% set link = "http://opinew.com/about-us" %}
                 <li>
-                    <a href="{{ link }}" target="_blank">Blog</a>
+                    <a href="{{ link }}" target="_blank">About us</a>
                 </li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
