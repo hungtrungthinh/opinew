@@ -560,7 +560,7 @@ def render_order_review_email():
 
 @client.route('/render-marketing-email')
 def render_marketing_email():
-    return render_template('email/marketing_email.html')
+    return render_template('email/marketing_email_opinew_simple.html')
 
 
 @client.route('/fake-shopify-api', defaults={'shop': None})
