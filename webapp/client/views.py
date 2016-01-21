@@ -9,7 +9,7 @@ from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
-    Task, SentEmail, FunnelStream, Subscription, ProductUrl
+    Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -769,10 +769,16 @@ def send_notification(order_id):
         return redirect('client.shop_dashboard')
     post = get_post_payload()
     recipients = []
+    should_send = False
     if review_request.to_user:
         recipients = [review_request.to_user.email]
+        if not review_request.to_user.unsubscribed:
+            should_send = True
     elif review_request.to_user_legacy:
         recipients = [review_request.to_user_legacy.email]
+        if not review_request.to_user_legacy.unsubscribed:
+            should_send = True
+    # even if we don't send, let's create a task so that we log things
     template = 'email/review_order.html'
     template_ctx = order.build_review_email_context()
     subject = post.get('subject')
@@ -785,7 +791,10 @@ def send_notification(order_id):
     task = Task.create(method=tasks.send_email, args=args)
     db.session.add(task)
     db.session.commit()
-    flash('email to %s sent' % recipients[0])
+    if should_send:
+        flash('email to %s sent' % recipients[0])
+    else:
+        flash('Unfortunately, %s has unsubscribed, so we can\'t send email. Sorry!' % recipients[0])
     return redirect(url_for('client.shop_dashboard'))
 
 
@@ -851,3 +860,22 @@ def tracking_pixel():
         db.session.add(sent_email)
         db.session.commit()
     return send_file('static/img/tp.png', mimetype='image/png')
+
+
+@client.route('/unsubscribe')
+def unsubscribe():
+    email = request.args.get('email')
+    unsubscribe_token = request.args.get('unsubscribe_token')
+    if not (email and unsubscribe_token):
+        return jsonify({"error": "email and unsubscribe_token are required as params"}), 400
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        user = UserLegacy.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "user does not exist"}), 400
+    if not user.unsubscribe_token == unsubscribe_token:
+        return jsonify({"error": "unsubscribe tokens do not match"}), 400
+    user.unsubscribed = True
+    db.session.add(user)
+    db.session.commit()
+    return "%s has been successfully unsubscribed." % email

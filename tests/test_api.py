@@ -105,9 +105,10 @@ class TestAPI(TestFlaskApplication):
         for review in response_json_dict["objects"]:
             if review["id"] == 1:
                 review_dict = review
-        self.assertEquals(review_dict["user"],
-                          {'is_shop_owner': False, 'image_url': 'https://opinew.com/media/user/3_rose_castro.jpg',
-                           'email': 'rose.castro@example.com', 'name': 'Rose Castro', 'id': 2})
+        self.assertEquals(dict(review_dict["user"]),
+                          {u'is_shop_owner': False, u'image_url': u'https://opinew.com/media/user/3_rose_castro.jpg',
+                           u'email': u'rose.castro@example.com', u'name': u'Rose Castro', u'id': 2,
+                           u'unsubscribe_token': None, u'unsubscribed': False})
 
     def test_get_reviews_review_id1_image_url(self):
         response_actual = self.desktop_client.get("/api/v1/review")

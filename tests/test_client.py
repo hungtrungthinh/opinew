@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import json
 import base64
 import hmac
@@ -185,7 +186,7 @@ class TestClient(TestFlaskApplication):
     def test_get_index(self):
         response_actual = self.desktop_client.get("/")
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<h1>Opinew - Photo Product Reviews</h1>' in response_actual.data)
+        self.assertTrue("<h1 align=\"center\">Take your company's reviews to the next level.</h1>" in response_actual.data.decode('utf-8'))
 
     def test_get_index_admin(self):
         self.login(self.admin_user.email, self.admin_password)
@@ -213,9 +214,8 @@ class TestClient(TestFlaskApplication):
 
     def test_get_index_mobile(self):
         response_actual = self.mobile_client.get("/")
-        location_expected = url_for('client.reviews')
-        self.assertEquals(response_actual.status_code, 302)
-        self.assertEquals(location_expected, response_actual.location)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue("<h1 align=\"center\">Take your company's reviews to the next level.</h1>" in response_actual.data.decode('utf-8'))
 
     def test_get_index_mobile_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
@@ -718,7 +718,7 @@ class TestClient(TestFlaskApplication):
         response_actual = self.desktop_client.get("/" + review_request_token, follow_redirects=True)
         self.assertEqual(response_actual.status_code, 200)
         self.assertFalse(self.reviewer_user.name in response_actual.data.decode('utf-8'))
-        self.assertTrue('<h1>Opinew - Photo Product Reviews</h1>' in response_actual.data.decode('utf-8'))
+        self.assertTrue("<h1 align=\"center\">Take your company's reviews to the next level.</h1>" in response_actual.data.decode('utf-8'))
         self.assertFalse("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
 
 
@@ -1165,6 +1165,52 @@ class TestClient(TestFlaskApplication):
         self.logout()
         self.refresh_db()
 
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_send_review_notification_email_by_shop_owner_user_unsubscribed(self):
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        self.reviewer_user.unsubscribed = True
+        order.user = self.reviewer_user
+        customer = Customer.query.filter_by(user_id=3).first()
+        shop = Shop.get_by_id(2)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        review_request_token = ReviewRequest.create(to_user=self.reviewer_user, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        reviewer_user_email = self.reviewer_user.email
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        payload = {"subject":Constants.DEFAULT_REVIEW_SUBJECT % (self.reviewer_user.name.split()[0], shop.name)}
+        response_actual = self.desktop_client.post('/send-notification/' + str(order.id), data=payload, follow_redirects=True)
+        self.assertTrue("Unfortunately, %s has unsubscribed," % reviewer_user_email in response_actual.data.decode('utf-8'))
+        self.logout()
+        self.reviewer_user.unsubscribed = False
+        self.refresh_db()
+
+    @expect_mail
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
+    def test_send_review_notification_email_by_shop_owner_to_legacy_user_unsubscribed(self):
+        user_legacy = UserLegacy.query.filter_by(id=1).first()
+        user_legacy.unsubscribed = True
+        order = Order()
+        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
+        order.user_legacy = user_legacy
+        customer = Customer.query.filter_by(user_id=3).first()
+        shop = Shop.get_by_id(2)
+        product.shop = shop
+        order.shop = shop
+        order.products.append(product)
+        review_request_token = ReviewRequest.create(to_user=user_legacy, from_customer=customer,
+                                                    for_product=product, for_shop=shop, for_order=order)
+        reviewer_user_email = user_legacy.email
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        payload = {"subject":Constants.DEFAULT_REVIEW_SUBJECT % (user_legacy.name.split()[0], shop.name)}
+        response_actual = self.desktop_client.post('/send-notification/' + str(order.id), data=payload, follow_redirects=True)
+        self.assertTrue("Unfortunately, %s has unsubscribed," % reviewer_user_email in response_actual.data.decode('utf-8'))
+        self.logout()
+        user_legacy.unsubscribed = False
+        self.refresh_db()
+
     @expect_mail
     @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
     def test_send_review_notification_email_by_shop_owner_to_legacy_user(self):
@@ -1330,4 +1376,40 @@ class TestClient(TestFlaskApplication):
         self.assertFalse("Make a review and we'll help you spread the word!" in response_actual.data.decode('utf-8'))
         self.assertFalse("Hi %s," % self.reviewer_user.name in response_actual.data.decode('utf-8'))
         self.logout()
+        self.refresh_db()
+
+    def test_user_unsubscribe_incorrect_token(self):
+        unsubscribe_token = "BLABLABLA678"
+        self.assertFalse(self.reviewer_user.unsubscribed)
+        self.reviewer_user.unsubscribe_token = unsubscribe_token
+        params = {"email": self.reviewer_user.email, "unsubscribe_token": "INCORRECT"}
+        response_actual = self.desktop_client.get('/unsubscribe', query_string=params, follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 400)
+        self.assertTrue("unsubscribe tokens do not match" in response_actual.data)
+        self.assertFalse(self.reviewer_user.unsubscribed)
+        self.refresh_db()
+
+    def test_user_unsubscribe(self):
+        unsubscribe_token = "BLABLABLA678"
+        self.assertFalse(self.reviewer_user.unsubscribed)
+        self.reviewer_user.unsubscribe_token = unsubscribe_token
+        params = {"email": self.reviewer_user.email, "unsubscribe_token": unsubscribe_token}
+        response_actual = self.desktop_client.get('/unsubscribe', query_string=params, follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue("%s has been successfully unsubscribed." % self.reviewer_user.email in response_actual.data)
+        self.assertTrue(self.reviewer_user.unsubscribed)
+        self.refresh_db()
+
+    def test_legacy_user_unsubscribe(self):
+        unsubscribe_token = "B123123LABLABLA678"
+        legacy_user = UserLegacy(email="new2@newemail.com", name=testing_constants.NEW_USER_NAME)
+        db.session.add(legacy_user)
+        db.session.commit()
+        self.assertFalse(legacy_user.unsubscribed)
+        legacy_user.unsubscribe_token = unsubscribe_token
+        params = {"email": legacy_user.email, "unsubscribe_token": unsubscribe_token}
+        response_actual = self.desktop_client.get('/unsubscribe', query_string=params, follow_redirects=True)
+        self.assertEquals(response_actual.status_code, 200)
+        self.assertTrue("%s has been successfully unsubscribed." % legacy_user.email in response_actual.data)
+        self.assertTrue(legacy_user.unsubscribed)
         self.refresh_db()

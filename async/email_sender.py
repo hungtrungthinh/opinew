@@ -9,6 +9,25 @@ from webapp.common import random_pwd
 def send_email(recipients, template, template_ctx, subject=None, funnel_stream_id=None):
     msg = Message()
 
+    # find recipients and check if they are unsubscribed
+    for recipient in recipients:
+        user = models.User.query.filter_by(email=recipient).first()
+        if not user:
+            user = models.UserLegacy.query.filter_by(email=recipient).first()
+        if user.unsubscribed:
+            # Just log that this email is not sent due to unsubscribed status and return
+            sent_email = models.SentEmail(timestamp=datetime.datetime.utcnow(),
+                                          recipients=str(recipients),
+                                          subject="USER HAS UNSUBSCRIBED")
+            db.session.add(sent_email)
+            db.session.commit()
+            return
+        if not user.unsubscribe_token:
+            user.unsubscribe_token = random_pwd(26)
+            db.session.add(user)
+            db.session.commit()
+        template_ctx['unsubscribe_token'] = user.unsubscribe_token
+
     # generate tracking pixel
     tracking_pixel_id = random_pwd(26)
     template_ctx['tracking_pixel_id'] = tracking_pixel_id

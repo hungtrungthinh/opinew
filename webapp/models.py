@@ -64,6 +64,9 @@ class User(db.Model, UserMixin, Repopulatable):
     name = db.Column(db.String)
     image_url = db.Column(db.String)
 
+    unsubscribed = db.Column(db.Boolean, default=False)
+    unsubscribe_token = db.Column(db.String)
+
     active = db.Column(db.Boolean, default=True)
     confirmed_at = db.Column(db.DateTime)
     last_login_at = db.Column(db.DateTime)
@@ -237,6 +240,9 @@ class UserLegacy(db.Model, Repopulatable):
     is_shop_owner = db.Column(db.Boolean, default=False)
     name = db.Column(db.String)
     image_url = db.Column(db.String)
+
+    unsubscribed = db.Column(db.Boolean, default=False)
+    unsubscribe_token = db.Column(db.String)
 
     @classmethod
     def get_or_create_by_email(cls, email, **kwargs):
