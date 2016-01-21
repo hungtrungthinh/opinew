@@ -23,12 +23,14 @@ def inline(html_filename,css_filename):
         html_doc = html_file.read().decode('utf-8')
         print type(html_doc)
         p = Premailer(html_doc, external_styles=css_styles_path,
-                      cssutils_logging_handler=myhandler, cssutils_logging_level=logging.INFO)
-        inlined_html = p.transform()
+                      cssutils_logging_handler=myhandler, cssutils_logging_level=logging.INFO,
+                      include_star_selectors=True)
+        inlined_html = p.transform().encode('utf8')
         print mylog.getvalue()
 
     with open(os.path.join(basedir, 'webapp', 'templates','email', html_filename), mode='w') as html_file:
         html_file.write(inlined_html)
 
-for filename in HTML_TO_INLINE:
-    inline(filename, "simple.css")
+# for filename in HTML_TO_INLINE:
+#     inline(filename, "simple.css")
+inline("shop_marketing_opinew_simple.html", "simple.css")
