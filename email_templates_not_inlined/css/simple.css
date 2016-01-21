@@ -75,6 +75,7 @@ p, ul, ol {
   margin: 0 auto !important;
   max-width: 640px !important; }
   .container table {
+    background-color: white;
     width: 100% !important;
     border-collapse: collapse; }
   .container .masthead {
@@ -86,7 +87,7 @@ p, ul, ol {
       max-width: 90%;
       text-transform: uppercase; }
   .container .content {
-    background: #EEE;
+    background: white;
     padding: 30px 35px; }
     .container .content.footer {
       background: none; }

@@ -687,9 +687,10 @@ def render_order_review_email():
     template_ctx = order.build_review_email_context()
     return render_template('email/review_order.html', **template_ctx)
 
+
 @client.route('/render-marketing-email')
 def render_marketing_email():
-    return render_template('email/marketing_email_opinew_simple.html')
+    return render_template('email/marketing_email.html')
 
 
 @client.route('/fake-shopify-api', defaults={'shop': None})
