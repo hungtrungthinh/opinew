@@ -116,7 +116,6 @@ p, ul, ol {
 @media screen and (max-width: 640px) {
 		*[class=wrapto100pc]{width:100% !important; height:auto!important;}
 		*[class=nomob]{display:none!important;}
-		*[class=caption] {display:table-caption;!important; width:100%!important;}
 		*[class=head] {display:table-header-group!important; width:100%!important;}
         *[class=foot] {display:table-footer-group!important; width:100%!important;}
 		*[class=block] { display:block!important; width:100%!important;}
