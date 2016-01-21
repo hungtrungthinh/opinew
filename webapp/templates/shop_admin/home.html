@@ -16,9 +16,6 @@
           {% if current_plan.name == g.constants.PLAN_NAME_BASIC %}
             <a href="#orders" aria-controls="tab-orders" role="tab"
                data-toggle="tab">Orders</a>
-          {% elif current_plan.name == g.constants.PLAN_NAME_SIMPLE %}
-            <a href="#products" aria-controls="tab-orders" role="tab"
-               data-toggle="tab">Products</a>
           {% endif %}
         </li>
         <li role="presentation">
@@ -63,12 +60,7 @@
             <div role="tabpanel" class="tab-pane" id="orders">
               <img src="/static/img/ajax-loader.gif" alt="loading"/>
             </div>
-          {% elif current_plan.name == g.constants.PLAN_NAME_SIMPLE %}
-            <div role="tabpanel" class="tab-pane" id="products">
-              <img src="/static/img/ajax-loader.gif" alt="loading"/>
-            </div>
           {% endif %}
-
           <div role="tabpanel" class="tab-pane" id="reviews">
             <img src="/static/img/ajax-loader.gif" alt="loading"/>
           </div>
@@ -86,7 +78,7 @@
 
 {% block script %}
   <script>
-    var pages = [{% if current_plan.name == g.constants.PLAN_NAME_BASIC %}"orders"{% elif current_plan.name == g.constants.PLAN_NAME_SIMPLE %}"products"{% endif %}, "reviews", "questions"];
+    var pages = [{% if current_plan.name == g.constants.PLAN_NAME_BASIC %}"orders"{% endif %}, "reviews", "questions"];
   </script>
   <script defer type="text/javascript" src="https://js.stripe.com/v2/"></script>
   <span id="STRIPE_PUBLISHABLE_API_KEY" data-key="{{ g.config.STRIPE_PUBLISHABLE_API_KEY }}"></span>

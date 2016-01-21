@@ -332,20 +332,6 @@ def shop_dashboard_orders(shop_id):
     return render_template("shop_admin/orders.html", orders=orders, now=now)
 
 
-@client.route('/dashboard', defaults={'shop_id': 0})
-@client.route('/dashboard/<int:shop_id>/products')
-@roles_required(Constants.SHOP_OWNER_ROLE)
-@login_required
-def shop_dashboard_products(shop_id):
-    now = datetime.datetime.utcnow()
-    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
-    if not shop:
-        flash('Not your shop')
-        return redirect(url_for('client.shop_dashboard'))
-    products = Product.query.filter_by(shop_id=shop_id).all()
-    return render_template("shop_admin/products.html", products=products, now=now, shop=shop)
-
-
 @client.route('/add-product', methods=['POST'])
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required

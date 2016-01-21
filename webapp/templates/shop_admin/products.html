@@ -1,5 +1,5 @@
 <h2>Products</h2>
-{% if not products %}
+{% if not shop.products %}
   <p>No products yet</p>
 {% else %}
   <table class="table">
@@ -7,9 +7,8 @@
       <th>Product name</th>
       <th>Opinew product page</th>
       <th>Reviews</th>
-      <th>Actions</th>
     </tr>
-    {% for product in products %}
+    {% for product in shop.products %}
       <tr>
         <td>{{ product.name }}</td>
         <td>
@@ -20,13 +19,9 @@
         <td>
           {{ product.reviews | length }}
         </td>
-        <td>
-          {{ product.reviews | length }}
-        </td>
-
       </tr>
     {% endfor %}
   </table>
 {% endif %}
-<h2>Add a product</h2>
+<h3>Add a product</h3>
 {% include "forms/product.html" %}
