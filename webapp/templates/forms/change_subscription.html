@@ -3,9 +3,15 @@
   <input name="shop_id" type=hidden class="form-serialize" value="{{ shop.id }}">
   <select class="form-control form-serialize" name="plan_id">
     {% for plan in plans %}
-      <option {% if current_plan == plan %}selected{% endif %} value="{{ plan.id }}">
-        {{ plan.name }}
-      </option>
+        {% if plan.name == "simple" %}
+            <option {% if current_plan == plan %}selected{% endif %} value="{{ plan.id }}">
+            {{ plan.name }} -- {{ "£{:.2f}".format((plan.amount|string)[:-2]|float) }} per {{ plan.interval }} (doesn't integrate with Shopify/Magento products)
+            </option>
+        {% else %}
+            <option {% if current_plan == plan %}selected{% endif %} value="{{ plan.id }}">
+            {{ plan.name }} -- {{ "£{:.2f}".format((plan.amount|string)[:-2]|float) }} per {{ plan.interval }}
+          </option>
+        {% endif %}
     {% endfor %}
   </select>
   <br>
