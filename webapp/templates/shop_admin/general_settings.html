@@ -1,4 +1,4 @@
-{% if request.args.get('first') %}
+{% if request.args.get('first') and not current_plan.name == g.constants.PLAN_NAME_SIMPLE %}
   <h3>Plugin code</h3>
 
   {% if shop.platform.name == 'shopify' %}
@@ -24,17 +24,20 @@
 
   {% if current_plan.name == g.constants.PLAN_NAME_SIMPLE %}
     {% include "shop_admin/products.html" %}
+    <h3>2. Copy this plugin code</h3>
+    <p>Copy the following code where you want your plugin to appear</p>
+  {% else %}
+    <h3>Plugin code</h3>
+    <a href="?first=1" class="btn btn-default">View plugin installation instructions</a>
+    <p>Copy the following code below the last line on your product page:</p>
   {% endif %}
-
-  <h3>Plugin code</h3>
-
-  <a href="?first=1" class="btn btn-default">View plugin installation instructions</a>
-  <p>Copy the following code below the last line on your product page:</p>
 
   <textarea disabled style="margin: 0; width: 800px; height: 150px;">{{ code }}</textarea>
 
   <br>
-
+  <hr>
+  <div class="alert alert-success"><strong>That's it.</strong> Settings below are just if you wanna change something about the shop itself</div>
+  <hr>
   <h3>Shop settings</h3>
 
   {% include "forms/shop.html" %}

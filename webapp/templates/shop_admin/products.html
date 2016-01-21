@@ -1,4 +1,9 @@
 <h2>Products</h2>
+<h3>1. Add products/services</h3>
+<p>Name your products or services here and give them the unique link (URL). Each separate product page will have one line below</p>
+{% include "forms/product.html" %}
+<br>
+<p>Here you see the products that you have added:</p>
 {% if not shop.products %}
   <p>No products yet</p>
 {% else %}
@@ -23,5 +28,4 @@
     {% endfor %}
   </table>
 {% endif %}
-<h3>Add a product</h3>
-{% include "forms/product.html" %}
+
