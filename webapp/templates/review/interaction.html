@@ -2,7 +2,7 @@
     <a class="btn pull-right btn-buy" href="http://{{ review.product.url }}">Buy</a>
 {% endif %}
 {% if current_user.is_authenticated() %}
-    <div class="pull-left">
+    <div class="pull-right">
       {% if current_user and current_user.is_authenticated() and review.product.shop.owner == current_user %}
         {% include "forms/feature_review.html" %}
       {% endif %}
@@ -10,7 +10,7 @@
       {% include "forms/like_review.html" %}
     </div>
 {% else %}
-    <a class="btn btn-default pull-left" style="margin-right: 10px;"
+    <a class="btn btn-default pull-right" style="margin-right: 10px;"
         {% if in_plugin %}
        data-toggle="modal" data-target="#modal-signup"
         {% else %}

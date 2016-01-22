@@ -5,7 +5,7 @@
     <input type="hidden" name="review_id" class="form-serialize" value="{{ review.id }}"/>
     <input type="hidden" name="action" class="form-serialize feature-action-input"
            value="{{ review.next_feature_action }}"/>
-    <button title="Feature" class="btn {% if review.featured and review.featured.action %}btn-warning{% else %}btn-default{% endif %}"
+    <button title="Feature" class="btn btn-interaction {% if review.featured and review.featured.action %}btn-warning{% else %}btn-default{% endif %}"
             type="submit">
         <span class="glyphicon glyphicon-star"></span> <span class="feature-text"></span>
     </button>

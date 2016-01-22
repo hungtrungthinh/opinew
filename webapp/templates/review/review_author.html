@@ -18,32 +18,36 @@
 {% endif %}
 {% if user_image_url %}
   {% if review.user_id %}
-      <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
-          <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
-      </a>
-  {% else %}
+    <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
       <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
+    </a>
+  {% else %}
+    <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
   {% endif %}
 {% endif %}
 <div class="review-author-name">
   {% if review.user_id %}
-      <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}"
-         {% if in_plugin %}target="_blank"{% endif %}>
-        {{ user_name }}
-      </a>
+    <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}"
+       {% if in_plugin %}target="_blank"{% endif %}>
+      {{ user_name }}
+    </a>
   {% else %}
     {{ user_name }}
   {% endif %}
   {% if show_product_info %}
-      <span class="small-screen text-muted">
+    <span class="small-screen text-muted">
                 reviewed {% include "review/product_name.html" %}
          </span>
   {% endif %}
 </div>
 
 {% if review.user %}
-    <div><b>Reviews:</b> {{ review.user.reviews_count }} <b>Likes:</b> {{ review.user.likes_count }}
-    </div>
+  <div class="review-author-stats">
+    <small>
+      <b>Reviews:</b> {{ review.user.reviews_count }} <br>
+      <b>Likes:</b> {{ review.user.likes_count }}
+    </small>
+  </div>
 {% else %}
-    <div>&nbsp;</div>
+  <div>&nbsp;</div>
 {% endif %}

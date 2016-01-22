@@ -189,7 +189,7 @@ class ConfigDev(Config):
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
-
+    HOST = '0.0.0.0'
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION

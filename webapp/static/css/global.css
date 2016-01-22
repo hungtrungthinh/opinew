@@ -135,16 +135,18 @@ body {
 }
 
 .review-profile-pic {
-  float: left;
-  max-height: 40px;
-  max-width: 40px;
+  max-height: 70px;
+  max-width: 70px;
+  top: -45px;
+  position: relative;
   margin-right: 5px;
 }
 
 .review-author-name {
   font-size: 1em;
   font-weight: bold;
-  margin: 0 0 0 10px;
+  top: -40px;
+  position: relative;
 }
 
 .review-time-posted {
@@ -225,6 +227,10 @@ footer .nav > li > a:hover {
 
 .star-active:before {
   color: #fb8c2d;
+}
+
+.rating-review-body .star-active:before {
+  color: rgba(251, 140, 45, 0.6);
 }
 
 .navbar {
@@ -589,6 +595,30 @@ blockquote p {
   font-size: 1.1em;
 }
 
+.badge-verified {
+  color: #444;
+  background-color: rgba(92, 184, 92, 0.6);
+  border-radius: 0;
+}
 
+.btn-interaction {
+  border: 0;
+}
 
+.review-badges {
+  padding: 10px;
+}
 
+.review-header {
+  max-height: 100px;
+  text-align: center;
+}
+
+.review-author-stats {
+  top: -40px;
+  position: relative;
+}
+
+.interaction-row {
+  margin-top: 10px;
+}

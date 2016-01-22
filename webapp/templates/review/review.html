@@ -1,57 +1,60 @@
 <div class="review-container">
-    <div class="media">
+  <div class="media">
+    <div class="row review-badges">
+      <div class="col-sm-2"></div>
+      <div class="col-sm-10">
+        {% if review.verified_review %}
+          <span class="label badge-verified"><span class="glyphicon glyphicon-ok"></span> Verified review</span>
+        {% endif %}
+        {% if review.by_shop_owner %}
+          <span class="label label-info"><span class="glyphicon glyphicon-user"></span> By shop owner</span>
+        {% endif %}
+        {% if review.featured and review.featured.action %}
+          <span class="label label-warning"><span class="glyphicon glyphicon-star"></span> Featured</span>
+        {% endif %}
+        <span class="rating-review-body pull-right">
+          <span class="star-rating {% if review.star_rating >= 1 %}star-active{% endif %}">☆</span>
+          <span class="star-rating {% if review.star_rating >= 2 %}star-active{% endif %}">☆</span>
+          <span class="star-rating {% if review.star_rating >= 3 %}star-active{% endif %}">☆</span>
+          <span class="star-rating {% if review.star_rating >= 4 %}star-active{% endif %}">☆</span>
+          <span class="star-rating {% if review.star_rating == 5 %}star-active{% endif %}">☆</span>
+          <span style="color: #fb8c2d">  {{ review.star_rating }}/5</span>
+        </span>
+      </div>
+    </div>
 
-
-        <div class="row row-eq-height">
-        <div class="col-sm-3">
-            <div class="review-header">
-                {% include "review/review_author.html" %}
-            </div>
-
-            <div class="rating-review-body">
-                <span class="star-rating {% if review.star_rating >= 1 %}star-active{% endif %}">☆</span>
-                <span class="star-rating {% if review.star_rating >= 2 %}star-active{% endif %}">☆</span>
-                <span class="star-rating {% if review.star_rating >= 3 %}star-active{% endif %}">☆</span>
-                <span class="star-rating {% if review.star_rating >= 4 %}star-active{% endif %}">☆</span>
-                <span class="star-rating {% if review.star_rating == 5 %}star-active{% endif %}">☆</span>
-                <span style="color: #fb8c2d">  {{ review.star_rating }}/5</span>
-            </div>
-            <div class="badges">
-              {% if review.verified_review %}
-                  <span class="label label-success"><span class="glyphicon glyphicon-ok"></span> Verified review</span>
-              {% endif %}
-              {% if review.by_shop_owner %}
-                  <span class="label label-info"><span class="glyphicon glyphicon-user"></span> By shop owner</span>
-              {% endif %}
-            {% if review.featured and review.featured.action %}
-                  <span class="label label-warning"><span class="glyphicon glyphicon-star"></span> Featured</span>
-              {% endif %}
-            </div>
+    <div class="row row-eq-height">
+      <div class="col-sm-2">
+        <div class="review-header">
+          {% include "review/review_author.html" %}
         </div>
 
-        <div class="col-sm-9">
+
+      </div>
+
+      <div class="col-sm-10">
             <span class="big-screen">{% if show_product_info %}
-                {% include "review/product_name.html" %}
+              {% include "review/product_name.html" %}
             {% endif %}</span>
-
-            {% if review.image_url or review.youtube_video %}
+        <div
+            class="{% if review.image_url or review.youtube_video %}col-sm-12{% else %}col-md-12{% endif %}">
+          {% include "review/review_body.html" %}
+          <em class="pull-right text-muted review-date"> — {{ review.created_ts.strftime('%d %b, %Y') }}</em><br>
+          {% if review.image_url or review.youtube_video %}
             <div class="col-sm-12">
-                {% include "review/review_image.html" %}
+              {% include "review/review_image.html" %}
             </div>
-            {% endif %}
-            <div class="{% if review.image_url or review.youtube_video%}col-sm-12{% else %}col-md-12{% endif %} no-padding">
-                  {% include "review/review_body.html" %}
-                <em class="pull-right text-muted review-date"> — {{ review.created_ts.strftime('%d %b, %Y') }}</em><br>
-                  <div class="row">
-                      <div class="col-sm-12">
-                        {% include "review/interaction.html" %}
-                      </div>
-                  </div>
+          {% endif %}
+          <div class="row interaction-row">
+            <div class="col-sm-12">
+              {% include "review/interaction.html" %}
             </div>
+          </div>
         </div>
-
-        </div>
-
+      </div>
 
     </div>
+
+
+  </div>
 </div>
