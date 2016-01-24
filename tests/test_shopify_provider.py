@@ -8,7 +8,6 @@ from tests import testing_constants
 from tests.framework import TestFlaskApplication,expect_mail
 
 class TestShopifyShopCreation(TestFlaskApplication):
-
     @expect_mail
     def test_oauth_callback_success(self):
         response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinewTesting',

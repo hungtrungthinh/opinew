@@ -93,6 +93,7 @@ def platform_shopify_delete_product():
     db.session.commit()
     return jsonify({}), 200
 
+
 @api.route('/platform/shopify/orders/create', methods=['POST'])
 @catch_exceptions
 @verify_webhook

@@ -120,13 +120,16 @@ class Config(object):
 
     SECURITY_PASSWORD_HASH = 'bcrypt'
     SECURITY_PASSWORD_SALT = sensitive.SECURITY_PASSWORD_SALT
-    SECURITY_SEND_REGISTER_EMAIL = False
+    SECURITY_SEND_REGISTER_EMAIL = True
+    SEND_REGISTER_EMAIL = True
     SECURITY_CONFIRMABLE = True
+    SECURITY_CONFIRM_SALT = sensitive.CONFIRM_SALT
+    SECURITY_LOGIN_WITHOUT_CONFIRMATION = True
+    SECURITY_POST_CONFIRM_VIEW = '/login'
     SECURITY_TRACKABLE = True
     SECURITY_REGISTERABLE = True
     SECURITY_RECOVERABLE = True
     SECURITY_CHANGEABLE = True
-    SECURITY_POST_REGISTER_VIEW = '/confirm'
     SECURITY_POST_CHANGE_VIEW = '/post-change'
 
     CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
@@ -189,7 +192,7 @@ class ConfigDev(Config):
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
-
+    HOST = '0.0.0.0'
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION

@@ -6,11 +6,14 @@ update_requirements() {
 
 tar_self() {
     echo  "*** LOCAL: Creating tar of source ***"
-    tar -czf opinew_ecommerce_api.tar.gz *   --exclude ".git" \
+    tar cf opinew_ecommerce_api.tar *   --exclude ".git" \
                                --exclude ".idea" \
                                --exclude "venv" \
                                --exclude "*.pyc" \
-                               --exclude "*.pgsql"
+                               --exclude "*.pgsql" \
+                               --exclude "media"
+    tar fr opinew_ecommerce_api.tar webapp/media
+    gzip opinew_ecommerce_api.tar
 }
 
 send_tar_prod() {
@@ -39,6 +42,7 @@ pushprod() {
                                       ln -s ../opinew_venv ./venv &&
                                       source venv/bin/activate &&
                                       pip install -r requirements.txt &&
+                                      ln -s ../opinew_media ./media &&
                                       find ./media -type f -exec chmod 664 {} \; &&
                                       find ./webapp/static -type f -exec chmod 664 {} \; &&
                                       sudo chown -R www-data ./media &&

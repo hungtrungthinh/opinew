@@ -124,6 +124,9 @@ class User(db.Model, UserMixin, Repopulatable):
     @classmethod
     def post_registration_handler(cls, *args, **kwargs):
         user = kwargs.get('user')
+        db.session.add(user)
+        db.session.commit()
+        user_id = user.id
         if user.is_shop_owner:
             # append the role of a shop owner
             shop_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
@@ -133,11 +136,11 @@ class User(db.Model, UserMixin, Repopulatable):
             if gravatar_image_url:
                 user.image_url = gravatar_image_url
             # create a customer account
-            plan_name = kwargs.get('plan_name', Constants.PLAN_NAME_SIMPLE)
-            plan = Plan.query.filter_by(name=plan_name).first()
-            customer = Customer(user=user).create()
-            subscription = Subscription(customer=customer, plan=plan).create()
-            db.session.add(subscription)
+            from async import tasks
+
+            args = dict(user_id=user.id, plan_name=kwargs.get('plan_name'))
+            task = Task.create(method=tasks.create_customer_account, args=args)
+            db.session.add(task)
             email_template = Constants.DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE
             email_subject = Constants.DEFAULT_NEW_SHOP_OWNER_SUBJECT
         else:
@@ -149,18 +152,20 @@ class User(db.Model, UserMixin, Repopulatable):
         db.session.commit()
 
         # Send email
-        from async import tasks
+        user = User.query.filter_by(id=user_id).first()
+        if user and user.temp_password:
+            from async import tasks
 
-        args = dict(recipients=[user.email],
-                    template=email_template,
-                    template_ctx={'user_email': user.email,
-                                  'user_temp_password': user.temp_password,
-                                  'user_name': user.name
-                                  },
-                    subject=email_subject)
-        task = Task.create(method=tasks.send_email, args=args)
-        db.session.add(task)
-        db.session.commit()
+            args = dict(recipients=[user.email],
+                        template=email_template,
+                        template_ctx={'user_email': user.email,
+                                      'user_temp_password': user.temp_password,
+                                      'user_name': user.name
+                                      },
+                        subject=email_subject)
+            task = Task.create(method=tasks.send_email, args=args)
+            db.session.add(task)
+            db.session.commit()
 
     @classmethod
     def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, user_legacy_email=None,

@@ -1,15 +1,19 @@
-
-  {% if review.youtube_video %}
-      <div class="row youtube-iframe-container">
-      <iframe class="youtube-iframe" src="{{ review.youtube_video }}" frameborder="0"
-              allowfullscreen></iframe>
-      </div>
-  {% endif %}
-  {% if review.image_url %}
-      <div class="media-left media-top image-container">
-      <br>
-      <img class="img-responsive" src="{{ review.image_url }}"
-           alt="{{ review.product.name }} review by {{ review.user.name }}">
-      </div>
-  {% endif %}
+{% if review.youtube_video %}
+  <div class="row youtube-iframe-container">
+    <iframe class="youtube-iframe" src="{{ review.youtube_video }}" frameborder="0"
+            allowfullscreen></iframe>
+  </div>
+{% endif %}
+{% if review.image_url %}
+  <div class="media-left media-top image-container">
+    <br>
+    <div style="max-height: 320px; overflow: hidden;">
+      <a href="#" data-toggle="modal" data-target="#modal-lightbox" data-image-url="{{ review.image_url }}">
+      <img style="width: 100%; max-width: 100%; height: auto !important; display: block;" src="{{ review.image_url }}"
+           alt="{{ review.product.name }} review by {{ review.user.name }}"/>
+      </a>
+    </div>
+  <br>
+  </div>
+{% endif %}
 

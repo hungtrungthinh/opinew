@@ -19,7 +19,7 @@
         <td>
           <a href="{{ url_for('client.get_product', product_id=product.id) }}"
              target="_blank">{{ product.name }}</a>
-          <a href="http://{{ product.url }}" target="_blank"><span class="glyphicon glyphicon-link"></span></a>
+          <a href="{{ product.url }}" target="_blank"><span class="glyphicon glyphicon-link"></span></a>
         </td>
         <td>
           {{ product.reviews | length }}

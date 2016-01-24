@@ -74,6 +74,13 @@ function showMoreReview(el) {
   return false;
 }
 
+$('#modal-lightbox').on('show.bs.modal', function (event) {
+  var button = $(event.relatedTarget);
+  var imageUrl = button.data('image-url');
+  var modal = $(this);
+  modal.find('#lightbox-img').attr('src', imageUrl).css('height', Math.max(document.documentElement.clientHeight, window.innerHeight || 0) - 60 + 'px');
+});
+
 $(document).ready(function () {
   $('.review-more-btn').click(function (e) {
     e.preventDefault();
