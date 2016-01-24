@@ -147,7 +147,7 @@ class TestClient(TestFlaskApplication):
                                                                       'email': testing_constants.NEW_USER_EMAIL,
                                                                       'password': testing_constants.NEW_USER_PWD,
                                                                       'password_confirm': testing_constants.NEW_USER_PWD})
-        location_expected = 'http://localhost:5000/confirm'
+        location_expected = 'http://localhost:5000/'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
@@ -170,7 +170,7 @@ class TestClient(TestFlaskApplication):
                                                                       'password': testing_constants.NEW_USER_PWD,
                                                                       'password_confirm': testing_constants.NEW_USER_PWD,
                                                                       'is_shop_owner': True})
-        location_expected = 'http://localhost:5000/confirm'
+        location_expected = 'http://localhost:5000/'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 

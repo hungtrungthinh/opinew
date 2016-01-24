@@ -1,6 +1,6 @@
 from flaskopinewext import FlaskOpinewExt
 from flask import g, request, redirect, flash
-from flask_admin import Admin
+from flask_admin import Admin, BaseView
 from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -26,11 +26,20 @@ class MyHomeView(AdminIndexView):
     def index(self):
         from webapp import models
         users = models.User.query.order_by(models.User.id).all()
+        return self.render('admin/index.html',
+                           users=users)
+
+
+class AnalyticsView(BaseView):
+    @expose('/')
+    @login_required
+    @roles_required(Constants.ADMIN_ROLE)
+    def stats(self):
+        from webapp import models
         from async import celery_async
         tasks = celery_async.get_scheduled_tasks()
         shops = models.Shop.query.all()
-        return self.render('admin/index.html',
-                           users=users,
+        return self.render('admin/analytics.html',
                            shops=shops,
                            tasks=tasks)
 
@@ -41,6 +50,7 @@ migrate = Migrate()
 
 mail = Mail()
 admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
+admin.add_view(AnalyticsView(name="Analytics", endpoint='analytics'))
 security = Security()
 api_manager = APIManager()
 compress = Compress()

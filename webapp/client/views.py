@@ -476,13 +476,6 @@ def get_plugin():
                            funnel_stream_id=funnel_stream_id)
 
 
-@client.route('/plugin-test')
-def plugin_test():
-    if not current_app.debug:
-        abort(404)
-    return render_template("plugin_test.html")
-
-
 @client.route('/update-funnel')
 def update_funnel():
     funnel_stream_id = request.args.get('funnel_stream_id')

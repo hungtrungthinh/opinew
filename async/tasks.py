@@ -120,6 +120,16 @@ def create_shopify_shop(shopify_api, shop_id):
 
 
 @this_celery.task()
+def create_customer_account(user_id, plan_name):
+    user = models.User.query.filter_by(id=user_id).first()
+    plan_name = plan_name or Constants.PLAN_NAME_SIMPLE
+    plan = models.Plan.query.filter_by(name=plan_name).first()
+    customer = models.Customer(user=user).create()
+    subscription = models.Subscription(customer=customer, plan=plan).create()
+    db.session.add(subscription)
+
+
+@this_celery.task()
 def update_orders():
     magento_platform = models.Platform.query.filter_by(name="magento").first()
     shops = models.Shop.query.filter_by(platform=magento_platform).all()
