@@ -99,7 +99,7 @@
                    placeholder="Please type your email here" value="{{ user_email }}"/>
             </div>
             <br>
-            <div class="input-group">
+            <div id="input-user-password-container" class="input-group">
                 <span class="input-group-addon" id="basic-addon1">Password: </span>
                 <input type="password" class="form-control" id="input-user-password" name="password"/>
             </div>
@@ -110,6 +110,11 @@
         <span class="input-group-addon" id="basic-addon1">Email: </span>
             <input type="email" class="form-control" id="input-user-email" name="email"
                placeholder="Please type your email here"/>
+        </div>
+        <br>
+        <div id="input-user-password-container" class="input-group" style="display: none">
+            <span class="input-group-addon" id="basic-addon1" >Password: </span>
+                <input disabled="disabled" type="password" class="form-control" id="input-user-password" name="password"/>
         </div>
     {% endif %}
     <br>
