@@ -280,8 +280,11 @@ def shop_dashboard_id(shop_id):
     platforms = Platform.query.all()
     plans = Plan.query.all()
     current_plan = shop.owner.customer[0].subscription[0].plan
-    expiry_days = (
-    current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
+    if current_user.confirmed_at:
+        # TODO: temporary fix for legacy users, we should always get the data from the subscription ts
+        expiry_days = (current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
+    else:
+        expiry_days = (current_user.customer[0].subscription[0].timestamp + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
                            review_request_form=review_request_form, platforms=platforms,
                            plans=plans, expiry_days=expiry_days, current_plan=current_plan)

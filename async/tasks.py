@@ -126,7 +126,9 @@ def create_customer_account(user_id, plan_name):
     plan = models.Plan.query.filter_by(name=plan_name).first()
     customer = models.Customer(user=user).create()
     subscription = models.Subscription(customer=customer, plan=plan).create()
+    db.session.add(customer)
     db.session.add(subscription)
+    db.session.commit()
 
 
 @this_celery.task()
