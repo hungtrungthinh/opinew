@@ -1,12 +1,9 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width">
-    <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE">
+  {% extends "layout.html" %}
+{% import "_macros.html" as macros %}
 
-    <!-- For development, pass document through inliner -->
-    <style type="text/css">@media screen and (max-width: 640px) {
+{% block content %}
+
+<style type="text/css">@media screen and (max-width: 640px) {
     *[class=wrapto100pc] {
         width: 100%;
         height: auto
@@ -128,8 +125,19 @@
                             </tr>
 
                             <tr style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; line-height:1.65; margin:0; padding:20px 0 20px 0'>
+                                <td align="center" width="640" style='background:white; font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; line-height:1.65; margin:0; padding:0'>
+                                    <div class="col-sm-12">
+                                        {% include "pricing_plans/simple.html" %}
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; line-height:1.65; margin:0; padding:20px 0 20px 0'>
                                 <td width="640" align="center" style='background:white; font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; line-height:1.65; margin:0; padding:0'>
-                                    <h3 style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:1.5em; line-height:1.25; margin:0; margin-bottom:0; padding:0'>Have a shop running on Shopify?</h3>
+                                    <h3 style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:1.5em; line-height:1.25; margin:0; margin-bottom:0; padding:0'><br>
+                                    Have a shop running on <img class="img-responsive"
+                                                             src="{{ url_for('static', filename='img/marketing/shopify.png') }}"
+                                                             alt="Shopify" style="height: 1.3em; display:inline;"/>?</h3>
                                     <p style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:1.4em; font-weight:normal; line-height:1.65; margin:0; margin-bottom:0; padding:0'>
                                         We have a special version of Opinew for that too.
                                     </p>
@@ -150,17 +158,12 @@
 
                             <tr style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; line-height:1.65; margin:0; padding:20px 0 20px 0'>
                                 <td align="center" style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; line-height:1.65; margin:0; padding:0'>
-                                    <p style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:1.4em; font-weight:normal; line-height:1.65; margin:0; margin-bottom:20px; padding:0'>We are looking forward to an exciting future working with you.</p>
-                                    <p style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:1.4em; font-weight:normal; line-height:1.65; margin:0; margin-bottom:20px; padding:0'>Sincerely,The Opinew Team</p>
+                                    <p style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:1.4em; font-weight:normal; line-height:1.65; margin:0; margin-bottom:20px; padding:0'><br>
+                                    We are looking forward to an exciting future working with you.</p>
+                                    <p style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:1.4em; font-weight:normal; line-height:1.65; margin:0; margin-bottom:20px; padding:0'>Sincerely,<br />The Opinew Team</p>
                                 </td>
                             </tr>
 
-                            <tr style='font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; line-height:1.65; margin:0; padding:0'>
-                                <td align="center" style='background:none; font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; line-height:1.65; margin:0; padding:0'>
-                                    <p style='color:#888; font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:14px; font-weight:normal; line-height:1.65; margin:0; margin-bottom:0; padding:0; text-align:center' align="center">Sent by <a href="%7B%7B%20url_for('client.index')%20%7D%7D" style='color:#888; font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; font-weight:bold; line-height:1.65; margin:0; padding:0; text-decoration:none'>Opinew</a>, 220 Wallace Street, Glasgow, UK, G5 8AL</p>
-                                    <p style='color:#888; font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:14px; font-weight:normal; line-height:1.65; margin:0; margin-bottom:0; padding:0; text-align:center' align="center"><a href="mailto:" style='color:#888; font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; font-weight:bold; line-height:1.65; margin:0; padding:0; text-decoration:none'>team@opinew.com</a> | <a href="#" style='color:#888; font-family:"Avenir Next", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif; font-size:100%; font-weight:bold; line-height:1.65; margin:0; padding:0; text-decoration:none'>Unsubscribe</a></p>
-                                </td>
-                            </tr>
                         </table>
 
                     </td>
@@ -173,5 +176,5 @@
     </tr>
 
 </table>
-</body>
-</html>
+
+  {% endblock %}
