@@ -99,8 +99,8 @@ $('#review-giphy-form').on("submit", function (e) {
 
 $('#submit-review-form').bind('click', function (e) {
   var $form = $("#review-form");
-  var formData = getReviewFormData($form)
-  userExists(formData['user_email']);
+  var formData = getReviewFormData($form);
+  checkIfUserExists(formData['user_email']);
   return false;
 });
 
@@ -131,7 +131,7 @@ function getReviewFormData(formSelector){
   return formData
 }
 
-function onUserExists() {
+function postReview() {
     var $form = $("#review-form");
     var formData = getReviewFormData($form)
     $.ajax({
@@ -169,7 +169,7 @@ $.emojiarea.path = 'https://twemoji.maxcdn.com/36x36/';
 $.emojiarea.icons = EMOJIS;
 $('#textarea-body').emojiarea({button: '#emoji-button'});
 
-function userExists(userEmail) {
+function checkIfUserExists(userEmail) {
   $.ajax({
     url: "/api/v1/check-user-exists",
     data: {user_email:userEmail},
@@ -179,10 +179,10 @@ function userExists(userEmail) {
         $('#input-user-password').removeAttr("disabled");
         $('#input-user-password-container').slideDown("slow");
         }else{
-          onUserExists();
+          postReview();
         }
       }else if(r.message =="newuser"){
-        onUserExists();
+        postReview();
       }
     }
   });}
