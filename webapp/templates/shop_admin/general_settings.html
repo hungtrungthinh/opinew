@@ -23,8 +23,14 @@
 
 
   {% if current_plan.name == g.constants.PLAN_NAME_SIMPLE %}
+    <h2>How to install:</h2>
+    <ol>
+    <li><a href="#step-1">Add products or services - one plugin per URL</a></li>
+    <li><a href="#step-2">Copy the plugin code</a></li>
+    </ol>
+    <h3 id="step-1">1. Add products/services - one plugin per URL</h3>
     {% include "shop_admin/products.html" %}
-    <h3>2. Copy this plugin code</h3>
+    <h3 id="step-2">2. Copy this plugin code</h3>
     <p>Copy the following code where you want your plugin to appear</p>
   {% else %}
     <h3>Plugin code</h3>
