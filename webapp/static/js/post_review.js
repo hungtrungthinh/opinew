@@ -99,6 +99,13 @@ $('#review-giphy-form').on("submit", function (e) {
 
 $('#submit-review-form').bind('click', function (e) {
   var $form = $("#review-form");
+  var formData = getReviewFormData($form);
+  checkIfUserExists(formData['user_email']);
+  return false;
+});
+
+function getReviewFormData(formSelector){
+  var $form = formSelector;
   var formData = {};
 
   $form.find(".form-serialize").each(function () {
@@ -117,11 +124,17 @@ $('#submit-review-form').bind('click', function (e) {
   if ($('#user-legacy-email')) {
     formData['user_legacy_email'] = $('#user-legacy-email').val();
   }
-  if ($('#input-user-password')) {
+  if ($('#input-user-password') && !$('#input-user-password').is('[disabled=disabled]')) {
     formData['user_password'] = $('#input-user-password').val();
   }
 
-  $.ajax({
+  return formData
+}
+
+function postReview() {
+    var $form = $("#review-form");
+    var formData = getReviewFormData($form)
+    $.ajax({
     type: $form.attr('method'),
     url: $form.attr('action'),
     data: JSON.stringify(formData),
@@ -150,12 +163,29 @@ $('#submit-review-form').bind('click', function (e) {
         .slideDown();
     grecaptcha.reset();
   });
-  return false;
-});
+}
 
 $.emojiarea.path = 'https://twemoji.maxcdn.com/36x36/';
 $.emojiarea.icons = EMOJIS;
 $('#textarea-body').emojiarea({button: '#emoji-button'});
+
+function checkIfUserExists(userEmail) {
+  $.ajax({
+    url: "/api/v1/check-user-exists",
+    data: {user_email:userEmail},
+    success: function (r) {
+      if(r.message == "exists"){
+        if($('#input-user-password').is('[disabled=disabled]')){
+        $('#input-user-password').removeAttr("disabled");
+        $('#input-user-password-container').slideDown("slow");
+        }else{
+          postReview();
+        }
+      }else if(r.message =="newuser"){
+        postReview();
+      }
+    }
+  });}
 
 function hookEmojiAreaPlaceholder(){
     var wysiwygDiv = $('.emoji-wysiwyg-editor');

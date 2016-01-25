@@ -38,9 +38,9 @@
                 <li {% if request.path == link %}class="active"{% endif %}>
                     <a href="{{ link }}">FAQ</a>
                 </li>
-              {% set link = "http://opinew.com/about-us" %}
+              {% set link = url_for('client.about_us') %}
                 <li>
-                    <a href="{{ link }}" target="_blank">About us</a>
+                    <a href="{{ link }}" >About us</a>
                 </li>
             </ul>
             <ul class="nav navbar-nav navbar-right">

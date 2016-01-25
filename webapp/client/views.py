@@ -653,6 +653,9 @@ def sitemapxml():
     response.headers["Content-Type"] = "application/xml"
     return response
 
+@client.route('/opinew-simple')
+def render_simple_promo_page():
+    return render_template('simple_promotional_page.html')
 
 @client.route('/render-order-review-email')
 def render_order_review_email():
@@ -672,7 +675,7 @@ def render_order_review_email():
 
 @client.route('/render-marketing-email')
 def render_marketing_email():
-    return render_template('email/marketing_email.html')
+    return render_template('email/shop_marketing_opinew_simple.html')
 
 
 @client.route('/fake-shopify-api', defaults={'shop': None})

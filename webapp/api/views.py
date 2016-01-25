@@ -8,8 +8,9 @@ from flask.ext.restless import ProcessingException
 from webapp import api_manager, models, db, csrf
 from webapp.api import api
 from webapp.common import get_post_payload, param_required, catch_exceptions, random_pwd
-from webapp.exceptions import DbException, ExceptionMessages
+from webapp.exceptions import DbException, ExceptionMessages, UserExistsException
 from config import Constants
+from urlparse import urlsplit
 
 
 def del_csrf(data, *args, **kwargs):
@@ -301,9 +302,23 @@ def pre_post_answer(data, *args, **kwargs):
     data['user_id'] = current_user.id
 
 
+def shop_domain_parse(data, *args, **kwargs):
+    domain = data['domain']
+    splitted = urlsplit(domain)
+    if splitted.scheme == "":
+        domain = "http://"+domain
+    elif splitted.scheme in ["http", "https"]:
+        domain = splitted.scheme + "://" + splitted.netloc
+    else:
+        raise ProcessingException(description="Sorry, we couldn't process your shop domain name. "
+                                              "Are you sure it looks like one of these? "
+                                              "https://www.shop.com, http://www.shop.com, www.shop.com", code=401)
+    data["domain"] = domain
+
+
+
 # To query the reviews:
 # http://flask-restless.readthedocs.org/en/latest/searchformat.html
-# TODO: TEST THIS SHIT
 # e.g. http://localhost:5000/api/v1/review?q={"order_by": [{"field": "created_ts", "direction":"desc"}], "offset":10}
 api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
@@ -313,7 +328,7 @@ api_manager.create_api(models.Review,
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.Review.exclude_fields(),
-                       validation_exceptions=[DbException])
+                       validation_exceptions=[DbException, UserExistsException])
 
 api_manager.create_api(models.ReviewLike,
                        url_prefix=Constants.API_V1_URL_PREFIX,
@@ -371,8 +386,8 @@ api_manager.create_api(models.Shop,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['POST', 'PATCH'],
                        preprocessors={
-                           'POST': [del_csrf, req_shop_owner, pre_create_shop],
-                           'PATCH_SINGLE': [del_csrf, req_shop_owner, is_shop_owned_by_user]
+                           'POST': [del_csrf, req_shop_owner, shop_domain_parse, pre_create_shop],
+                           'PATCH_SINGLE': [del_csrf, shop_domain_parse, req_shop_owner, is_shop_owned_by_user]
                        },
                        validation_exceptions=[DbException])
 
@@ -424,5 +439,15 @@ def authenticate():
         raise DbException('invalid password', 400)
     login_user(user)
     return jsonify({})
+
+@api.route('/check-user-exists', methods=['GET'])
+@csrf.exempt
+@catch_exceptions
+def check_if_user_exists():
+    user_email = request.args.get('user_email')
+    user = models.User.get_by_email_no_exception(email=user_email)
+    if user:
+        return jsonify({"message": "exists"})
+    return jsonify({"message":"newuser"})
 
 from webapp.api.webhooks import shopify

@@ -17,6 +17,8 @@ class ParamException(ResponseException):
 class DbException(ResponseException):
     pass
 
+class UserExistsException(ResponseException):
+    pass
 
 class ApiException(ResponseException):
     pass

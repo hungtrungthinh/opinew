@@ -622,3 +622,8 @@ blockquote p {
 .interaction-row {
   margin-top: 10px;
 }
+
+.pricing-plan-btn {
+  color: white;
+  background-color: #337ab7;
+}
