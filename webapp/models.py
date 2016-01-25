@@ -149,7 +149,6 @@ class User(db.Model, UserMixin, Repopulatable):
             reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
             if reviewer_role and reviewer_role not in user.roles:
                 user.roles.append(reviewer_role)
-
         if user and user.temp_password:
             from async import tasks
 
