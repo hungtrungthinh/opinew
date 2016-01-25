@@ -11,17 +11,6 @@ this_celery = make_celery(app)
 
 
 @this_celery.task()
-def add_together(a, b):
-    return a + b
-
-
-@this_celery.task()
-def delete(a, b):
-    # used for testing failing tasks like division/0
-    return a / b
-
-
-@this_celery.task()
 def send_email(*args, **kwargs):
     from async.email_sender import send_email
 
@@ -128,7 +117,7 @@ def create_customer_account(user_id, plan_name):
     subscription = models.Subscription(customer=customer, plan=plan).create()
     db.session.add(customer)
     db.session.add(subscription)
-    db.session.commit()
+    db.session.flush()
 
 
 @this_celery.task()

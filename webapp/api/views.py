@@ -1,5 +1,6 @@
 import datetime
 import requests
+import httplib
 from flask import jsonify, current_app, request, session
 from flask_wtf.csrf import generate_csrf
 from flask.ext.security import login_user, current_user, login_required
@@ -303,16 +304,23 @@ def pre_post_answer(data, *args, **kwargs):
 
 
 def shop_domain_parse(data, *args, **kwargs):
-    domain = data['domain']
+    """
+    Parses the domain of a shop. A domain is optional argument either with http or https scheme or no scheme at all
+    (in which case assumes http:// scheme). It expects to be in one of these forms:
+    https://{domain}, http://{domain}, {domain}
+    If it's not, it raises a ProcessingException
+    :param data: data passed by Flask-Restless
+    """
+    domain = data.get('domain')
+    if not domain:
+        return
     splitted = urlsplit(domain)
     if splitted.scheme == "":
         domain = "http://"+domain
     elif splitted.scheme in ["http", "https"]:
         domain = splitted.scheme + "://" + splitted.netloc
     else:
-        raise ProcessingException(description="Sorry, we couldn't process your shop domain name. "
-                                              "Are you sure it looks like one of these? "
-                                              "https://www.shop.com, http://www.shop.com, www.shop.com", code=401)
+        raise ProcessingException(description=ExceptionMessages.DOMAIN_NEEDED, code=httplib.BAD_REQUEST)
     data["domain"] = domain
 
 

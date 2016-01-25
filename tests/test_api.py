@@ -1,5 +1,6 @@
 import json
 import datetime
+import httplib
 from flask import url_for
 from freezegun import freeze_time
 from webapp.models import Review, Notification, User, Order,\
@@ -8,7 +9,7 @@ from tests import testing_constants
 from config import Constants
 from tests.framework import TestFlaskApplication, expect_mail
 from flask.ext.restless import ProcessingException
-from webapp import db, mail
+from webapp import db
 from webapp.exceptions import ExceptionMessages
 
 
@@ -1314,7 +1315,7 @@ class TestAPI(TestFlaskApplication):
                                                     headers={'content-type': 'application/json'},
                                                     data=payload)
         response_json_dict = json.loads(response_actual.data)
-        self.assertEqual(response_actual.status_code, 200)
+        self.assertEqual(response_actual.status_code, httplib.OK)
         self.assertEqual(response_json_dict["description"], "changed")
         self.refresh_db()
         self.logout()
@@ -1325,7 +1326,7 @@ class TestAPI(TestFlaskApplication):
         response_actual = self.desktop_client.patch("/api/v1/shop/3",
                                                     headers={'content-type': 'application/json'},
                                                     data=payload)
-        self.assertEqual(response_actual.status_code, 401)
+        self.assertEqual(response_actual.status_code, httplib.UNAUTHORIZED)
         self.assertRaises(ProcessingException)
         self.refresh_db()
         self.logout()

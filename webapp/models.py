@@ -138,7 +138,7 @@ class User(db.Model, UserMixin, Repopulatable):
             # create a customer account
             from async import tasks
 
-            args = dict(user_id=user.id, plan_name=kwargs.get('plan_name'))
+            args = dict(user_id=user_id, plan_name=kwargs.get('plan_name'))
             task = Task.create(method=tasks.create_customer_account, args=args)
             db.session.add(task)
             email_template = Constants.DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE
@@ -149,10 +149,7 @@ class User(db.Model, UserMixin, Repopulatable):
             reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
             if reviewer_role and reviewer_role not in user.roles:
                 user.roles.append(reviewer_role)
-        db.session.commit()
 
-        # Send email
-        user = User.query.filter_by(id=user_id).first()
         if user and user.temp_password:
             from async import tasks
 
@@ -165,7 +162,7 @@ class User(db.Model, UserMixin, Repopulatable):
                         subject=email_subject)
             task = Task.create(method=tasks.send_email, args=args)
             db.session.add(task)
-            db.session.commit()
+        db.session.commit()
 
     @classmethod
     def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, user_legacy_email=None,
