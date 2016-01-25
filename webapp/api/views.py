@@ -386,8 +386,8 @@ api_manager.create_api(models.Shop,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['POST', 'PATCH'],
                        preprocessors={
-                           'POST': [del_csrf, req_shop_owner, pre_create_shop],
-                           'PATCH_SINGLE': [del_csrf, req_shop_owner, is_shop_owned_by_user]
+                           'POST': [del_csrf, req_shop_owner, shop_domain_parse, pre_create_shop],
+                           'PATCH_SINGLE': [del_csrf, shop_domain_parse, req_shop_owner, is_shop_owned_by_user]
                        },
                        validation_exceptions=[DbException])
 
