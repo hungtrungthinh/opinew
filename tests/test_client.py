@@ -533,14 +533,9 @@ class TestClient(TestFlaskApplication):
                                                        'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
         self.assertEquals(response_actual.status_code, 200)
         shop = Shop.query.filter_by(id=testing_constants.SHOPIFY_SHOP_ID).first()
-        self.assertIsNone(shop.access_token)
+        self.assertIsNone(shop)
 
         # make sure tasks are revoked
-        self.assertEquals(len(shop.orders), 1)
-        for order in shop.orders:
-            self.assertEquals(len(order.tasks), 2)
-            for task in order.tasks:
-                self.assertEquals(task.status, Constants.TASK_STATUS_REVOKED)
         db.session.delete(order)
         db.session.delete(product)
         db.session.commit()

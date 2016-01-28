@@ -124,6 +124,7 @@ def platform_shopify_fulfill_order():
     shopify_api.fulfill_order(shop, payload)
     return jsonify({}), 200
 
+
 @api.route('/platform/shopify/app/uninstalled', methods=['POST'])
 @catch_exceptions
 @verify_webhook
@@ -135,13 +136,11 @@ def platform_shopify_app_uninstalled():
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
-    shop.access_token = None
-    db.session.add(shop)
-
     # revoke tasks
     for order in shop.orders:
         for task in order.tasks:
             task.revoke()
             db.session.add(task)
+    db.session.delete(shop)
     db.session.commit()
     return jsonify({}), 200

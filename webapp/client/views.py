@@ -431,6 +431,7 @@ def get_next_funnel_stream():
 
 @client.route('/plugin')
 def get_plugin():
+    show_recaptcha = not current_user.is_authenticated()
     try:
         review_form = ReviewForm()
         review_image_form = ReviewImageForm()
@@ -480,7 +481,7 @@ def get_plugin():
                            signup_form=signup_form, login_form=login_form, review_form=review_form,
                            review_image_form=review_image_form, next_arg=next_arg,
                            own_review=own_review, featured_reviews=featured_reviews, in_plugin=True,
-                           funnel_stream_id=funnel_stream_id)
+                           funnel_stream_id=funnel_stream_id, show_recaptcha=show_recaptcha)
 
 
 @client.route('/update-funnel')

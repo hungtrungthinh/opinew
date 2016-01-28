@@ -5,7 +5,6 @@ from webapp import create_app, models, db
 from providers import magento_api
 from celery_async import make_celery
 from config import Constants
-from sqlalchemy.orm import sessionmaker, scoped_session
 
 app = current_app or create_app('db_prod')
 this_celery = make_celery(app)

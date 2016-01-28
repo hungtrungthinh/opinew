@@ -1,20 +1,25 @@
 <h2>Account</h2>
-{% if current_user.customer[0].last4 %}
-  <div class="alert alert-info">
-    <p class="lead">
-      You don't have any billings yet. They will appear here.
-    </p>
-    <p>We have your payment details ending <strong>**** **** **** {{ current_user.customer.0.last4 }}</strong></p>
-  </div>
-{% else %}
+{% if current_user.customer and current_user.customer|length > 0 %}
   <p class="lead">
-    Please add your payment card details below
-  </p>
-  <div class="row">
-    <div class="well col-md-6">
-      {% include "forms/add_card_form.html" %}
+        Your current plan is <b>{{ current_user.customer[0].subscription[0].plan.name }}</b>: <b>£{{ '%0.2f'|format((current_user.customer[0].subscription[0].plan.amount|int)/100|float) }} per month</b>
+      </p>
+  {% if current_user.customer[0].last4 %}
+    <div class="alert alert-info">
+      <p>
+        You don't have any billings yet. They will appear here.
+      </p>
+      <p>We have your payment details ending <strong>**** **** **** {{ current_user.customer.0.last4 }}</strong></p>
     </div>
-  </div>
+  {% else %}
+    <p>
+      Please add your payment card details below
+    </p>
+    <div class="row">
+      <div class="well col-md-6">
+        {% include "forms/add_card_form.html" %}
+      </div>
+    </div>
+  {% endif %}
 {% endif %}
 <hr>
 <div class="row">

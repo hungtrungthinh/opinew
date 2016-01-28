@@ -1,6 +1,8 @@
 $('#shop-form').bind('submit', function (e) {
   e.preventDefault();
   var $form = $(this);
+  var btn = $form.find('.btn-primary')[0];
+  btn.disabled = true;
   var formData = {};
 
   $form.find(".form-serialize").each(function () {
@@ -14,6 +16,7 @@ $('#shop-form').bind('submit', function (e) {
   }).done(function (r) {
     window.location.href = "/dashboard";
   }).fail(function (r) {
+    btn.disabled = false;
     var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
     $('#product-post-status')
         .addClass('alert-danger')

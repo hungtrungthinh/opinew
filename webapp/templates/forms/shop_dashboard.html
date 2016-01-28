@@ -7,14 +7,6 @@
   {{ macros.form_field(shop_form, shop_form.name, class="form-control form-serialize", placeholder='Name of your shop') }}<br>
   {{ macros.form_field(shop_form, shop_form.domain, class="form-control form-serialize", placeholder='Your shop\'s website address eg. www.myshop.com') }}<br>
   {{ macros.form_field(shop_form, shop_form.description, class="form-control form-serialize", placeholder='What is your shop mission?') }}<br>
-    <label for="platform_id">Platform</label>
-    <select class="form-control form-serialize" name="platform_id">
-      {% for platform in platforms %}
-          <option {% if shop and shop.platform_id == platform.id %}selected{% endif %} value="{{ platform.id }}">
-            {{ platform.name }}
-          </option>
-      {% endfor %}
-    </select>
     <br>
   {{ shop_form.submit(class="form-control btn-primary") }}<br>
 </form>
