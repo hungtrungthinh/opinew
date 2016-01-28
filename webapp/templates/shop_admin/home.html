@@ -29,7 +29,7 @@
       </ul>
       <div class="col-sm-12">
         <br>
-        {% if not current_user.customer[0].last4 %}
+        {% if current_user.customer and current_user.customer|length and not current_user.customer[0].last4 %}
           {% if expiry_days <= 0 %}
             <div class="alert alert-danger">
             <p class="lead">
@@ -56,7 +56,7 @@
           <div role="tabpanel" class="tab-pane" id="account">
             {% include "shop_admin/account.html" %}
           </div>
-          {% if current_plan.name == g.constants.PLAN_NAME_BASIC %}
+          {% if current_plan and current_plan.name == g.constants.PLAN_NAME_BASIC %}
             <div role="tabpanel" class="tab-pane" id="orders">
               <img src="/static/img/ajax-loader.gif" alt="loading"/>
             </div>

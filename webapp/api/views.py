@@ -123,13 +123,24 @@ def pre_create_order(data, *args, **kwargs):
     data['purchase_timestamp'] = unicode(datetime.datetime.utcnow())
 
 
-def pre_create_product(data, *args, **kwargs):
+def verify_request_by_shop_owner(data, *args, **kwargs):
     shop_id = data.get('shop_id')
     if not shop_id:
-        raise ProcessingException(description='Shop id required', code=401)
+        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM.format(param='shop_id'),
+                                  code=httplib.BAD_REQUEST)
+    if not str(shop_id).isdigit():
+        raise ProcessingException(description=ExceptionMessages.PARAM_NOT_INTEGER.format(param='shop_id'),
+                                  code=httplib.BAD_REQUEST)
     shop = models.Shop.query.filter_by(id=shop_id).first()
+    if not shop:
+        raise ProcessingException(description=ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='shop',
+                                                                                           id=shop_id),
+                                  code=httplib.BAD_REQUEST)
     if not shop.owner == current_user:
-        raise ProcessingException(description='Not your shop', code=401)
+        raise ProcessingException(description=ExceptionMessages.NOT_YOUR_SHOP, code=httplib.UNAUTHORIZED)
+
+
+def verify_product_url_exists(data, *args, **kwargs):
     product_url = data.get('url')
     product_name = data.get('name')
     if not product_url or not product_name:
@@ -137,10 +148,20 @@ def pre_create_product(data, *args, **kwargs):
     product_exists = models.Product.query.filter_by(url=product_url).first()
     if product_exists:
         raise ProcessingException(description='Product with that url exists', code=401)
-    shop_domain = shop.domain
-    if not product_url.startswith(shop_domain):
-        raise ProcessingException(description='Product url needs to start with the shop domain: %s' % shop.domain,
-                                  code=401)
+
+
+def verify_product_url_is_from_shop_domain(data, *args, **kwargs):
+    product_url = data.get('url')
+    if product_url.startswith('http://') or product_url.startswith('https://'):
+        product_url = product_url.split('://')[1]
+    shop_id = data.get('shop_id')
+    shop = models.Shop.query.filter_by(id=shop_id).first()
+    shop_domain_no_schema = shop_domain = shop.domain
+    if shop_domain.startswith('http://') or shop_domain.startswith('https://'):
+        shop_domain_no_schema = shop_domain.split('://')[1]
+    if not product_url.startswith(shop_domain_no_schema):
+        raise ProcessingException(description=ExceptionMessages.PRODUCT_NOT_WITHIN_SHOP_DOMAIN.format(shop_domain=shop_domain),
+                                  code=httplib.UNAUTHORIZED)
 
 
 def pre_create_shop(data, *args, **kwargs):
@@ -157,7 +178,7 @@ def get_many_notifications_preprocessor(search_params, **kw):
     """Accepts a single argument, `search_params`, which is a dictionary
     containing the search parameters for the request.
     """
-    search_params["filters"] = [{"name":"user_id", "op":"==", "val":current_user.id}]
+    search_params["filters"] = [{"name": "user_id", "op": "==", "val": current_user.id}]
 
 
 def pre_notification_patch(instance_id, data, *args, **kwargs):
@@ -194,7 +215,8 @@ def check_recaptcha(data, *args, **kwargs):
             return
     recaptcha = data.get('g-recaptcha-response')
     if not recaptcha:
-        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM % 'g-recaptcha-response', code=401)
+        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM.format(param='g-recaptcha-response'),
+                                  code=401)
     r = requests.post(current_app.config.get("RECAPTCHA_URL"),
                       data={
                           'secret': current_app.config.get("RECAPTCHA_SECRET"),
@@ -221,15 +243,15 @@ def check_if_user_exists(data, *args, **kwargs):
         del data['user_legacy_email']
 
     if not user_name:
-        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM % 'user_name', code=401)
+        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM.format(param='user_name'), code=401)
 
     if not user_email:
-        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM % 'user_email', code=401)
+        raise ProcessingException(description=ExceptionMessages.MISSING_PARAM.format(param='user_email'), code=401)
 
     user, is_new = models.User.get_or_create_by_email(email=user_email, role_name=Constants.REVIEWER_ROLE,
                                                       user_legacy_email=user_legacy_email, name=user_name)
     if not is_new:
-        #TODO maybe display a passwd field if user is not new?
+        # TODO maybe display a passwd field if user is not new?
         raise ProcessingException(description=ExceptionMessages.USER_EXISTS % user_email, code=401)
 
     db.session.add(user)
@@ -316,13 +338,12 @@ def shop_domain_parse(data, *args, **kwargs):
         return
     splitted = urlsplit(domain)
     if splitted.scheme == "":
-        domain = "http://"+domain
+        domain = "http://" + domain
     elif splitted.scheme in ["http", "https"]:
         domain = splitted.scheme + "://" + splitted.netloc
     else:
         raise ProcessingException(description=ExceptionMessages.DOMAIN_NEEDED, code=httplib.BAD_REQUEST)
     data["domain"] = domain
-
 
 
 # To query the reviews:
@@ -332,7 +353,8 @@ api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST'],
                        preprocessors={
-                           'POST': [del_csrf, check_recaptcha, login_user_if_possible, check_if_user_exists, is_verified_review, add_source],
+                           'POST': [del_csrf, check_recaptcha, login_user_if_possible, check_if_user_exists,
+                                    is_verified_review, add_source],
                            'PATCH_SINGLE': [del_csrf, auth_func]
                        },
                        exclude_columns=models.Review.exclude_fields(),
@@ -403,7 +425,11 @@ api_manager.create_api(models.Product,
                        url_prefix=Constants.API_V1_URL_PREFIX,
                        methods=['GET', 'POST', 'PATCH'],
                        preprocessors={
-                           'POST': [del_csrf, req_shop_owner, pre_create_product],
+                           'POST': [del_csrf,
+                                    req_shop_owner,
+                                    verify_request_by_shop_owner,
+                                    verify_product_url_exists,
+                                    verify_product_url_is_from_shop_domain],
                            'PATCH_SINGLE': [del_csrf, req_shop_owner]
                        }, )
 
@@ -423,10 +449,12 @@ api_manager.create_api(models.Answer,
                        },
                        validation_exceptions=[DbException])
 
+
 @login_required
 @api.route('/token')
 def token():
     return jsonify({'token': generate_csrf()})
+
 
 @api.route('/auth', methods=['POST'])
 @csrf.exempt
@@ -448,6 +476,7 @@ def authenticate():
     login_user(user)
     return jsonify({})
 
+
 @api.route('/check-user-exists', methods=['GET'])
 @csrf.exempt
 @catch_exceptions
@@ -456,6 +485,7 @@ def check_if_user_exists():
     user = models.User.get_by_email_no_exception(email=user_email)
     if user:
         return jsonify({"message": "exists"})
-    return jsonify({"message":"newuser"})
+    return jsonify({"message": "newuser"})
+
 
 from webapp.api.webhooks import shopify

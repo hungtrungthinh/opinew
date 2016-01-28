@@ -279,7 +279,11 @@ def shop_dashboard_id(shop_id):
     review_request_form = ReviewRequestForm()
     platforms = Platform.query.all()
     plans = Plan.query.all()
-    current_plan = shop.owner.customer[0].subscription[0].plan
+    current_plan = None
+    if shop.owner.customer and len(shop.owner.customer) > 0 and shop.owner.customer[0] and \
+        shop.owner.customer[0].subscription and len(shop.owner.customer[0].subscription) > 0 and \
+        shop.owner.customer[0].subscription[0]:
+        current_plan = shop.owner.customer[0].subscription[0].plan
     if current_user.confirmed_at:
         # TODO: temporary fix for legacy users, we should always get the data from the subscription ts
         expiry_days = (current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days

@@ -372,7 +372,7 @@ class TestAPI(TestFlaskApplication):
                                                    data=payload)
         self.assertEquals(response_actual.status_code, 401)
         jsonified_response = json.loads(response_actual.data)
-        expected_response = {'message': ExceptionMessages.MISSING_PARAM % 'g-recaptcha-response'}
+        expected_response = {'message': ExceptionMessages.MISSING_PARAM.format(param='g-recaptcha-response')}
         self.assertEquals(jsonified_response, expected_response)
 
     def test_api_post_review_not_logged_failing_recaptcha(self):
@@ -800,7 +800,7 @@ class TestAPI(TestFlaskApplication):
                                                    data=payload)
         self.assertEquals(response_actual.status_code, 401)
         jsonified_response = json.loads(response_actual.data)
-        expected_response = {'message': ExceptionMessages.MISSING_PARAM % 'user_name'}
+        expected_response = {'message': ExceptionMessages.MISSING_PARAM.format(param='user_name')}
         self.assertEquals(jsonified_response, expected_response)
 
     def test_api_post_review_not_logged_no_email(self):
@@ -816,7 +816,7 @@ class TestAPI(TestFlaskApplication):
                                                    data=payload)
         self.assertEquals(response_actual.status_code, 401)
         jsonified_response = json.loads(response_actual.data)
-        expected_response = {'message': ExceptionMessages.MISSING_PARAM % 'user_email'}
+        expected_response = {'message': ExceptionMessages.MISSING_PARAM.format(param='user_email')}
         self.assertEquals(jsonified_response, expected_response)
 
     def test_api_post_review_not_logged_existing_user(self):
