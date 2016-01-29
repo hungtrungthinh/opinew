@@ -175,7 +175,13 @@ def merge_products(shop, current_shop_products, new_and_updated_products):
 
 
 def init(shop):
-    api = API(shop.domain, shop.access_user, shop.access_token)
+    if 'http://' in shop.domain:
+        shop_domain = shop.domain.split('http://')[1]
+    elif 'https://' in shop.domain:
+        shop_domain = shop.domain.split('https://')[1]
+    else:
+        shop_domain = shop.domain
+    api = API(shop_domain, shop.access_user, shop.access_token)
 
     # Update products
     current_shop_products = models.Product.query.filter_by(shop_id=shop.id).all()
