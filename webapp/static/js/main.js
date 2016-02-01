@@ -81,6 +81,17 @@ $('#modal-lightbox').on('show.bs.modal', function (event) {
   modal.find('#lightbox-img').attr('src', imageUrl).css('height', Math.max(document.documentElement.clientHeight, window.innerHeight || 0) - 60 + 'px');
 });
 
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0; i<ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1);
+        if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
+    }
+    return "";
+}
+
 $(document).ready(function () {
   $('.review-more-btn').click(function (e) {
     e.preventDefault();
@@ -91,7 +102,7 @@ $(document).ready(function () {
     var finalText = $(this).text();
     for (var property in EMOJIS) {
       if (EMOJIS.hasOwnProperty(property)) {
-        finalText = finalText.replace(property, "<img style='height: 1.2em' src='http://twemoji.maxcdn.com/36x36/" + EMOJIS[property] + "' />")
+        finalText = finalText.replace(property, "<img style='height: 1.2em' src='https://twemoji.maxcdn.com/36x36/" + EMOJIS[property] + "' />")
       }
     }
     $(this).html(finalText);

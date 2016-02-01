@@ -1,5 +1,5 @@
 from flaskopinewext import FlaskOpinewExt
-from flask import g, request, redirect, flash
+from flask import g, request, redirect, flash, session
 from flask_admin import Admin, BaseView
 from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
@@ -17,6 +17,7 @@ import logging
 from logging.handlers import SMTPHandler
 from logging import Formatter
 from user_agents import parse
+from werkzeug.datastructures import ImmutableTypeConversionDict
 
 
 class MyHomeView(AdminIndexView):
@@ -76,7 +77,6 @@ def create_app(option):
     app.register_blueprint(api, url_prefix=Constants.API_V1_URL_PREFIX)
     app.register_blueprint(media, url_prefix=Constants.MEDIA_URL_PREFIX)
 
-    csrf.init_app(app)
     compress.init_app(app)
     gravatar.init_app(app)
     db.init_app(app)
@@ -98,6 +98,15 @@ def create_app(option):
 
         @app.before_request
         def before_request():
+            # hack to allow browsers who don't set 3rd party cookies
+            x_session = request.headers.get('X-Session')
+            if x_session:
+                rc = dict(request.cookies)
+                rc['session'] = x_session
+                request.cookies = ImmutableTypeConversionDict(rc)
+                # refresh session
+                refreshed_csrf_token = app.session_interface.open_session(app, request).get('csrf_token')
+                session['csrf_token'] = refreshed_csrf_token
             user_agent = parse(request.user_agent.string)
             g.mobile = False
             if user_agent.is_mobile or user_agent.is_tablet:
@@ -116,6 +125,8 @@ def create_app(option):
                 return redirect(payload.get('api_next'))
             return response_class
 
+    # register here CSRF so that the before_request is executed after the hack above
+    csrf.init_app(app)
     patch_request_class(app, Constants.MAX_FILE_SIZE)
 
     from webapp.common import make_json_error

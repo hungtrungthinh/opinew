@@ -452,8 +452,15 @@ api_manager.create_api(models.Answer,
 
 @login_required
 @api.route('/token')
-def token():
+def get_token():
     return jsonify({'token': generate_csrf()})
+
+
+@api.route('/session')
+def get_session():
+    _token = generate_csrf()
+    _session = current_app.session_interface.get_signing_serializer(current_app).dumps(dict(session))
+    return jsonify({'token': _token, 'session': _session})
 
 
 @api.route('/auth', methods=['POST'])

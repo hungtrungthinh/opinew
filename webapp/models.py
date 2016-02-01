@@ -875,7 +875,7 @@ class Review(db.Model, Repopulatable):
 
     @classmethod
     def exclude_fields(cls):
-        excluded = []
+        excluded = ['shop.access_token']
         excluded += User.exclude_fields()
         return excluded
 

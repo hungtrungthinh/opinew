@@ -6,12 +6,17 @@ function inIframe() {
   }
 }
 
-$('#giphy-button').on('click', function() {
+var gifsLoaded = false;
+
+$('#giphy-button').on('click', function () {
+  if (!gifsLoaded) {
+    getGiphyImages($('#review-giphy-form'));
+  }
   $('#giphy-container').slideToggle();
 });
 
-$('#image-button').on('click', function() {
-    $('#review-img-upload-input').trigger('click');
+$('#image-button').on('click', function () {
+  $('#review-img-upload-input').trigger('click');
 });
 
 $('#review-img-upload-input').change(function (e) {
@@ -22,23 +27,23 @@ $('#review-img-upload-input').change(function (e) {
   var formData = new FormData(form);
   var progressBar = $('.progress-bar');
   $.ajax({
-    beforeSend: function(){
+    beforeSend: function () {
       progressBar.parent().show();
     },
-    xhr: function() {
-    var xhr = new window.XMLHttpRequest();
-    xhr.upload.addEventListener("progress", function(evt) {
-      if (evt.lengthComputable) {
-        var percentComplete = evt.loaded / evt.total;
-        percentComplete = parseInt(percentComplete * 100);
-        var percent = percentComplete.toString() + '%';
-        progressBar.html(percent);
-        progressBar.css('width', percent);
+    xhr: function () {
+      var xhr = new window.XMLHttpRequest();
+      xhr.upload.addEventListener("progress", function (evt) {
+        if (evt.lengthComputable) {
+          var percentComplete = evt.loaded / evt.total;
+          percentComplete = parseInt(percentComplete * 100);
+          var percent = percentComplete.toString() + '%';
+          progressBar.html(percent);
+          progressBar.css('width', percent);
 
-      }
-    }, false);
+        }
+      }, false);
 
-    return xhr;
+      return xhr;
     },
     type: $form.attr('method'),
     url: $form.attr('action'),
@@ -104,7 +109,7 @@ $('#submit-review-form').bind('click', function (e) {
   return false;
 });
 
-function getReviewFormData(formSelector){
+function getReviewFormData(formSelector) {
   var $form = formSelector;
   var formData = {};
 
@@ -132,10 +137,30 @@ function getReviewFormData(formSelector){
 }
 
 function postReview() {
-    var $form = $("#review-form");
-    var formData = getReviewFormData($form)
-    $.ajax({
+  // Check if the session cookie is set.
+  var sessionCookie = getCookie('session');
+  var sessionCookieExists = true;
+  // In case it is not, 3rd party cookies are probably disabled. Retrieve and then try to post
+  if (!sessionCookie) {
+    sessionCookieExists = false;
+    var sessionJson = $.ajax({
+      type: "GET",
+      url: '/api/v1/session',
+      async: false
+    }).responseJSON;
+    sessionCookie = sessionJson['session'];
+    csrftoken = sessionJson['token'];
+  }
+  var $form = $("#review-form");
+  var formData = getReviewFormData($form);
+  $.ajax({
     type: $form.attr('method'),
+    beforeSend: function (request) {
+      request.setRequestHeader("X-CSRFToken", csrftoken);
+      if (!sessionCookieExists) {
+        request.setRequestHeader("x-session", sessionCookie);
+      }
+    },
     url: $form.attr('action'),
     data: JSON.stringify(formData),
     contentType: 'application/json'
@@ -156,7 +181,7 @@ function postReview() {
     }
 
   }).fail(function (r) {
-    var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message);
+    var errors = JSON.stringify(r.responseJSON.validation_errors) || JSON.stringify(r.responseJSON.message) || r.responseJSON.error;
     $('#ajax-status')
         .addClass('alert-danger')
         .html('<p><strong>Something went wrong</strong>: ' + errors + '</p>')
@@ -172,41 +197,40 @@ $('#textarea-body').emojiarea({button: '#emoji-button'});
 function checkIfUserExists(userEmail) {
   $.ajax({
     url: "/api/v1/check-user-exists",
-    data: {user_email:userEmail},
+    data: {user_email: userEmail},
     success: function (r) {
-      if(r.message == "exists"){
-        if($('#input-user-password').is('[disabled=disabled]')){
-        $('#input-user-password').removeAttr("disabled");
-        $('#input-user-password-container').slideDown("slow");
-        }else{
+      if (r.message == "exists") {
+        if ($('#input-user-password').is('[disabled=disabled]')) {
+          $('#input-user-password').removeAttr("disabled");
+          $('#input-user-password-container').slideDown("slow");
+        } else {
           postReview();
         }
-      }else if(r.message =="newuser"){
+      } else if (r.message == "newuser") {
         postReview();
       }
     }
-  });}
+  });
+}
 
-function hookEmojiAreaPlaceholder(){
-    var wysiwygDiv = $('.emoji-wysiwyg-editor');
-    var placeholder_text = $('#textarea-body').attr('placeholder');
-    wysiwygDiv.css('white-space','pre-wrap');
-    wysiwygDiv.text(placeholder_text);
-    wysiwygDiv.css('color', 'grey');
-    wysiwygDiv.css('font-size','1em');
-    wysiwygDiv.addClass('not-clicked-yet');
-    $('.not-clicked-yet').click(function(){
-            $(this).empty();
-            $(this).focus();
-            $(this).css('color','black');
-            $(".not-clicked-yet").unbind( "click" );
-        }
-    );
+function hookEmojiAreaPlaceholder() {
+  var wysiwygDiv = $('.emoji-wysiwyg-editor');
+  var placeholder_text = $('#textarea-body').attr('placeholder');
+  wysiwygDiv.css('white-space', 'pre-wrap');
+  wysiwygDiv.text(placeholder_text);
+  wysiwygDiv.css('color', 'grey');
+  wysiwygDiv.css('font-size', '1em');
+  wysiwygDiv.addClass('not-clicked-yet');
+  $('.not-clicked-yet').click(function () {
+        $(this).empty();
+        $(this).focus();
+        $(this).css('color', 'black');
+        $(".not-clicked-yet").unbind("click");
+      }
+  );
 
 }
 
 $(document).ready(function () {
-  //$('.emoji-wysiwyg-editor').focus();
-  getGiphyImages($('#review-giphy-form'));
-    hookEmojiAreaPlaceholder();
+  hookEmojiAreaPlaceholder();
 });

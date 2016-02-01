@@ -14,7 +14,6 @@ from webapp.exceptions import ParamException, ApiException, DbException
 from config import Constants, Config
 from sqlalchemy.exc import InvalidRequestError
 
-
 def verify_initialization():
     from webapp import models
     # Check that the free plan exists in the database
