@@ -529,7 +529,9 @@ def get_product(product_id):
     except (ParamException, DbException) as e:
         flash(e.message)
         return redirect(request.referrer)
-    return render_template('product.html', page_title="%s Reviews - " % product.name,
+    return render_template('product.html',
+                           page_image=product.image_url,
+                           page_title="%s Reviews - Opinew" % product.name,
                            product=product,
                            reviews=reviews,
                            own_review=own_review,

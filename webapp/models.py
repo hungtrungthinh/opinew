@@ -851,6 +851,14 @@ class Review(db.Model, Repopulatable):
         return review
 
     @classmethod
+    def create_for_test(cls, source_user_name=None, source_id=None, user=None, **kwargs):
+        review = Review(**kwargs)
+        review.user = user
+        review.source_user_name = source_user_name
+        review.source_id = source_id
+        return review
+
+    @classmethod
     def verify_review_request(cls, data):
         review_request_id = data.get('review_request_id')
         if review_request_id:
@@ -940,6 +948,31 @@ class Review(db.Model, Repopulatable):
             rf = ReviewFeature.query.filter_by(review_id=self.id).first()
             return (0 if rf.action == 1 else 1) if rf else 1
         return 1
+
+    @property
+    def user_name(self):
+        if self.source_id and not self.source_id == 1 and self.source_user_name:
+            _user_name = self.source_user_name
+        elif self.user and self.user.name:
+            _user_name = self.user.name
+        else:
+            _user_name = Constants.DEFAULT_ANONYMOUS_USER_NAME
+        return _user_name
+
+    @property
+    def user_image_url(self):
+        if self.user:
+            if self.user.image_url:
+                _user_image_url = self.user.image_url
+            elif self.user.email:
+                _user_image_url = gravatar(self.user.email)
+            else:
+                _user_image_url = gravatar('')
+        elif self.source_id and not self.source_id == 1 and self.source_user_image_url:
+            _user_image_url = self.source_user_image_url
+        else:
+            _user_image_url = gravatar('')
+        return _user_image_url
 
     def __repr__(self):
         return '<Review %r... by %r>' % (self.body[:10] if self.body else self.id, self.user)

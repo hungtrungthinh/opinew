@@ -81,6 +81,23 @@ $('#modal-lightbox').on('show.bs.modal', function (event) {
   modal.find('#lightbox-img').attr('src', imageUrl).css('height', Math.max(document.documentElement.clientHeight, window.innerHeight || 0) - 60 + 'px');
 });
 
+function shareReview(reviewId) {
+  var dataReviewEl = $('#data-review-' + reviewId);
+  var reviewBody = dataReviewEl.find('.review-body').text();
+  var reviewShopName = dataReviewEl.find('.review-shop-name').text();
+  console.log('TODO: share id: ' + reviewId + '\n' +
+              'product_url' + productUrl + '\n' +
+              'body: ' + reviewBody + '\n' +
+              'shop_name: ' + reviewShopName);
+  //https://developers.facebook.com/docs/sharing/reference/feed-dialog/v2.5
+  //FB.ui({
+  //  method: 'feed',
+  //  link: 'https://developers.facebook.com/docs/',
+  //  caption: 'An example caption',
+  //}, function (response) {
+  //});
+}
+
 $(document).ready(function () {
   $('.review-more-btn').click(function (e) {
     e.preventDefault();
@@ -88,10 +105,10 @@ $(document).ready(function () {
   });
 
   $('.review-body-content').each(function () {
-    var finalText = $(this).text();
+    var finalText = $(this).html();
     for (var property in EMOJIS) {
       if (EMOJIS.hasOwnProperty(property)) {
-        finalText = finalText.replace(property, "<img style='height: 1.2em' src='http://twemoji.maxcdn.com/36x36/" + EMOJIS[property] + "' />")
+        finalText = finalText.replace(property, "<img style='height: 1.2em' src='https://twemoji.maxcdn.com/36x36/" + EMOJIS[property] + "' />")
       }
     }
     $(this).html(finalText);

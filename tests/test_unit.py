@@ -1,10 +1,11 @@
+import httplib
 from unittest import TestCase
 from flask.ext.security import login_user
 from webapp import models, db, create_app
 from webapp.api.views import shop_domain_parse, verify_request_by_shop_owner, verify_product_url_is_from_shop_domain
 from webapp.exceptions import ExceptionMessages
 from flask.ext.restless import ProcessingException
-import httplib
+from config import Constants
 
 app = create_app('testing')
 
@@ -214,3 +215,25 @@ class TestVerifyProductUrlIsFromShopDomain(TestCase):
     def tearDownClass(cls):
         db.session.remove()
         db.drop_all()
+
+
+class TestGetReviewUserName(TestCase):
+    USER_NAME = 'Peter Griffin'
+
+    def test_no_user_name(self):
+        review = models.Review()
+        self.assertEquals(review.user_name, Constants.DEFAULT_ANONYMOUS_USER_NAME)
+
+    def test_user_name_valid(self):
+        user = models.User(name=self.USER_NAME)
+        review = models.Review.create_for_test(user=user)
+        self.assertEquals(review.user_name, self.USER_NAME)
+
+    def test_user_name_from_source(self):
+        review = models.Review.create_for_test(source_id=15, source_user_name=self.USER_NAME)
+        self.assertEquals(review.user_name, self.USER_NAME)
+
+
+class TestGetReviewUserImageUrl(TestCase):
+    pass
+    # TODO

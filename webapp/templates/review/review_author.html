@@ -1,35 +1,17 @@
-{% if review.source_id and not review.source_id == 1 %}
-  {% set user_name = review.source_user_name or "Anonymous" %}
-  {% set source_url = review.source_url %}
-  {% if review.source_user_image_url %}
-    {% set user_image_url = review.source_user_image_url %}
-  {% else %}
-    {% set user_image_url = review.source_user_name | gravatar %}
-  {% endif %}
-{% else %}
-  {% set user_name = review.user.name or "Anonymous" %}
-  {% if review.user.image_url %}
-    {% set user_image_url = review.user.image_url %}
-  {% elif review.user and review.user.email and review.user.email | gravatar %}
-    {% set user_image_url = review.user.email | gravatar %}
-  {% else %}
-    {% set user_image_url = url_for('media.get_user_image', filename=g.constants.DEFAULT_PROFILE_PICTURE) %}
-  {% endif %}
-{% endif %}
-{% if user_image_url %}
+{% if review.user_image_url %}
   {% if review.user_id %}
     <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
-      <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
+      <img class="review-profile-pic" src="{{ review.user_image_url }}" alt="{{ review.user_name }} profile image"/>
     </a>
   {% else %}
-    <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
+    <img class="review-profile-pic" src="{{ review.user_image_url }}" alt="{{ review.user_name }} profile image"/>
   {% endif %}
 {% endif %}
 <div class="review-author-name">
   {% if review.user_id %}
     <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}"
        {% if in_plugin %}target="_blank"{% endif %}>
-      {{ user_name }}
+      {{ review.user_name }}
     </a>
   {% else %}
     {{ user_name }}

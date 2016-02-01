@@ -7,8 +7,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Constants(object):
+    META_CANONICAL_URL = "https://opinew.com/"
     META_DEFAULT_TITLE = "Opinew"
     META_DEFAULT_DESCRIPTION = "Opinew is the photo review platform for the new generation"
+    META_DEFAULT_IMAGE = "https://opinew.com/static/img/opinew_square.png"
     META_DEFAULT_PRERENDER = "/reviews"
 
     DEFAULT_SHOP_NAME = 'Online shop'
@@ -40,6 +42,8 @@ class Constants(object):
     YOUTUBE_WATCH_LINK = 'https://www.youtube.com/watch?v='
     YOUTUBE_SHORT_LINK = 'https://youtu.be/'
     YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/{youtube_video_id}'
+    DEFAULT_LINK_SHORT_SIZE = 42
+    DEFAULT_ANONYMOUS_USER_NAME = "Anonymous"
 
     TRIAL_PERIOD_DAYS = 30
 

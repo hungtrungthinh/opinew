@@ -1,44 +1,43 @@
 <!doctype html>
 <html class="no-js" lang="">
 <head>
-    {# DNS Prefetch hints #}
-    <link rel="dns-prefetch" href="maxcdn.bootstrapcdn.com">
-    <link rel="dns-prefetch" href="ajax.googleapis.com">
-    {# Hints for CURRENT page #}
-    <link rel="subresource" href="/static/js/main.js">
-    {# Hints for FUTURE navigation #}
-    <link rel="prefetch" href="/static/js/post_review.js">
-    {# Chrome prerenders this ONE page in the background for INSTANT click - ONLY GET #}
-    <link rel="prerender" href="https://opinew.com{{ page_prerender or g.constants.META_DEFAULT_PRERENDER }}">
-    {# standart HTML Meta tags #}
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>{{ page_title or g.constants.META_DEFAULT_TITLE }}</title>
-    <meta name="description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/opinew32.ico') }}"/>
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon192.png') }}"/>
-    {# Facebook's open graph things #}
-    <meta property="og:url" content="https://opinew.com/"/>
-    <meta property="og:title" content="Opinew"/>
-    <meta property="og:description" content="Opinew is the photo review platform for the new generation"/>
-    <meta property="og:image" content="https://opinew.com/static/img/opinew_square.png"/>
-    {# Set the theme color on android devices #}
-    <meta name="theme-color" content="#2c54a8">
-    {#  Stylesheets #}
-    {% if g.mode == 'production' %}
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-    {% elif g.mode in ['development', 'testing'] %}
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}"/>
-    {% endif %}
-    {% if g.mobile %}
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}"/>
-    {% endif %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}"/>
-    {# Place per-page styles #}
-    {% block style %}{% endblock %}
-
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+  {# DNS Prefetch hints #}
+  <link rel="dns-prefetch" href="maxcdn.bootstrapcdn.com">
+  <link rel="dns-prefetch" href="ajax.googleapis.com">
+  {# Hints for CURRENT page #}
+  <link rel="subresource" href="/static/js/main.js">
+  {# Hints for FUTURE navigation #}
+  <link rel="prefetch" href="/static/js/post_review.js">
+  {# Chrome prerenders this ONE page in the background for INSTANT click - ONLY GET #}
+  <link rel="prerender" href="https://opinew.com{{ page_prerender or g.constants.META_DEFAULT_PRERENDER }}">
+  {# standart HTML Meta tags #}
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{{ page_title or g.constants.META_DEFAULT_TITLE }}</title>
+  <meta name="description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='icons/opinew32.ico') }}"/>
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon192.png') }}"/>
+  {# Facebook's open graph things #}
+  <meta property="og:url" content="{{ request.url or g.constants.META_CANONICAL_URL }}"/>
+  <meta property="og:title" content="{{ page_title or g.constants.META_DEFAULT_TITLE }}"/>
+  <meta property="og:description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}"/>
+  <meta property="og:image" content="{{ page_image or g.constants.META_DEFAULT_IMAGE }}"/>
+  {# Set the theme color on android devices #}
+  <meta name="theme-color" content="#2c54a8">
+  {#  Stylesheets #}
+  {% if g.mode == 'production' %}
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+  {% elif g.mode in ['development', 'testing'] %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}"/>
+  {% endif %}
+  {% if g.mobile %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}"/>
+  {% endif %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}"/>
+  {# Place per-page styles #}
+  {% block style %}{% endblock %}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
 {% if g.mobile %}
@@ -52,20 +51,20 @@
   {% block content %}{% endblock %}
 </div>
 {% if not g.mobile %}
-    <div class="spacer"></div>
+  <div class="spacer"></div>
   {% include "footer.html" %}
 {% endif %}
 {# /End of main content #}
 {% if g.mode == 'production' %}
-    <script defer src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script defer src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  <script defer src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script defer src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 {% elif g.mode in ['development', 'testing'] %}
-    <script defer src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
-    <script defer src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
 {% endif %}
 <script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% if g.mobile %}
-        <script defer src="{{ url_for('static', filename='js/mobile.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/mobile.js') }}"></script>
 {% endif %}
 {# Place per-page scripts #}
 {% block script %}{% endblock %}

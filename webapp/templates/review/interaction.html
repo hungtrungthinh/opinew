@@ -1,3 +1,4 @@
+<button class="btn btn-default btn-interaction" onclick="shareReview('{{ review.id }}')"><span class="glyphicon glyphicon-share-alt"></span> Share</button>
 {% if not hide_buy_button %}
     <a class="btn pull-right btn-buy" href="http://{{ review.product.url }}">Buy</a>
 {% endif %}
@@ -10,7 +11,7 @@
       {% include "forms/like_review.html" %}
     </div>
 {% else %}
-    <a class="btn btn-default pull-right" style="margin-right: 10px;"
+    <a class="btn btn-default btn-interaction pull-right" style="margin-right: 10px;"
         {% if in_plugin %}
        data-toggle="modal" data-target="#modal-signup"
         {% else %}
