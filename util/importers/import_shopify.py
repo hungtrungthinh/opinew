@@ -11,6 +11,8 @@ from importer import OpinewImporter
 We are assuming that the shop from which the reviews came, is already registered
 and we imported all of its products.
 """
+
+
 class ShopifyImpoter(OpinewImporter):
 
     def __init__(self, shop_id):
@@ -36,7 +38,7 @@ class ShopifyImpoter(OpinewImporter):
         num_of_reviews = len(shopify_reviews)
         num_imported = 0
         for row in shopify_reviews:
-            #gets an instance of a user or legacy user
+            # gets an instance of a user or legacy user
             user = self.create_or_match_user_from_review_data(row["author"], row["email"])
             try:
                 self.import_review_from_shopify_data(row["body"], row["product_handle"],
@@ -52,14 +54,13 @@ class ShopifyImpoter(OpinewImporter):
     def import_review_from_shopify_data(self, body, product_handle, rating,
                                         created_at, user):
         product = Product.query.filter_by(shop_id=self.shop_id,
-                                             name=product_handle
-                                             ).first()
+                                          name=product_handle
+                                          ).first()
         product_id = None
         if product:
             product_id = product.id
         else:
             raise ProductNotFoundException
-
 
         if rating and isinstance(int(rating), int):
             rating = int(rating)
