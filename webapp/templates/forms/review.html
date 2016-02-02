@@ -45,11 +45,11 @@
                 <div class="progress-bar" role="progressbar" aria-valuenow="60"
                      aria-valuemin="0" aria-valuemax="100" style="width: 10%; min-width: 2em;">0%</div >
             </div>
-            <img src="" class="img-thumbnail img-responsive img-review" hidden id="review-image"/>
+            <img src="{{ review.image_url if review else '' }}" class="img-thumbnail img-responsive img-review" {% if not (review and review.image_url) %}hidden{% endif %} id="review-image"/>
           {{ review_form.image_url(class="form-control form-serialize hidden") }}<br>
         </div>
         <div class="col-xs-10" id="review-body-container" style="padding:0;">
-          {{ review_form.body(id='textarea-body', class="form-control form-serialize", placeholder='Write your review here... \nYou can paste a youtube link too!') }}<br>
+          {{ review_form.body(id='textarea-body', value=review.body, class="form-control form-serialize", placeholder='Write your review here... \nYou can paste a youtube link too!') }}<br>
         </div>
         <div class="col-xs-2">
             <a id="emoji-button" class="btn btn-default review-add-button ">

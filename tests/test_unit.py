@@ -214,3 +214,25 @@ class TestVerifyProductUrlIsFromShopDomain(TestCase):
     def tearDownClass(cls):
         db.session.remove()
         db.drop_all()
+
+class TestEditReview(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        app.app_context().push()
+        db.create_all()
+        user = models.User()
+        db.session.add(user)
+        db.session.commit()
+
+    def test_url_no_schema(self):
+        data = {
+            'shop_id': self.SHOP_ID,
+            'url': self.PRODUCT_URL_NO_SCHEMA
+        }
+        verify_product_url_is_from_shop_domain(data)
+        self.assertTrue(True)
+
+    @classmethod
+    def tearDownClass(cls):
+        db.session.remove()
+        db.drop_all()

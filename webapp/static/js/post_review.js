@@ -215,20 +215,30 @@ function checkIfUserExists(userEmail) {
 
 function hookEmojiAreaPlaceholder() {
   var wysiwygDiv = $('.emoji-wysiwyg-editor');
+  var value_text = $('#textarea-body').attr('value');
   var placeholder_text = $('#textarea-body').attr('placeholder');
   wysiwygDiv.css('white-space', 'pre-wrap');
-  wysiwygDiv.text(placeholder_text);
-  wysiwygDiv.css('color', 'grey');
   wysiwygDiv.css('font-size', '1em');
-  wysiwygDiv.addClass('not-clicked-yet');
-  $('.not-clicked-yet').click(function () {
-        $(this).empty();
-        $(this).focus();
-        $(this).css('color', 'black');
-        $(".not-clicked-yet").unbind("click");
-      }
-  );
+  if (value_text) {
+    wysiwygDiv.text(value_text);
+    $('.not-clicked-yet').click(function () {
+      $(this).focus();
+      $(this).css('color', 'black');
+      $(".not-clicked-yet").unbind("click");
+    })
+  } else {
+    wysiwygDiv.css('color', 'grey');
 
+    wysiwygDiv.addClass('not-clicked-yet');
+    $('.not-clicked-yet').click(function () {
+          wysiwygDiv.text(placeholder_text);
+          $(this).empty();
+          $(this).focus();
+          $(this).css('color', 'black');
+          $(".not-clicked-yet").unbind("click");
+        }
+    );
+  }
 }
 
 $(document).ready(function () {

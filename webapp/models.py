@@ -942,7 +942,7 @@ class Review(db.Model, Repopulatable):
         return 1
 
     def __repr__(self):
-        return '<Review %r... by %r>' % (self.body[:10] if self.body else self.id, self.user)
+        return '<Review %r %r... by %r>' % (self.id, self.body[:10] if self.body else self.id, self.user)
 
     def is_for_shop(self, shop):
         if not self.order.shop == shop:

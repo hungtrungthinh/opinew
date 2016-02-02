@@ -1,5 +1,6 @@
 import datetime
 import os
+import httplib
 from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort, jsonify, send_file, Response, session
@@ -11,7 +12,7 @@ from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy
 from webapp.common import param_required, catch_exceptions, get_post_payload
-from webapp.exceptions import ParamException, DbException, ApiException
+from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
 from providers import giphy
@@ -579,10 +580,29 @@ def add_review():
                 ctx['is_legacy'] = True
     if 'user_email' in request.args:
         ctx['user_email'] = request.args.get('user_email')
-    # TODO what is this line below???
+    # If we don't have any product, display a list of all products
     if 'product' not in ctx or not ctx['product']:
         ctx['products'] = Product.query.all()
     # Initialize forms
+    ctx['review_image_form'] = ReviewImageForm()
+    ctx['review_form'] = ReviewForm()
+    return render_template('add_review.html', **ctx)
+
+
+@client.route('/edit-review/<int:review_id>')
+@login_required
+def edit_review(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        flash(ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance="review", id=review_id))
+        return redirect(request.referrer or url_for('client.index'))
+    if not review.user == current_user:
+        flash(ExceptionMessages.NOT_YOUR_REVIEW)
+        return redirect(request.referrer or url_for('client.index'))
+    ctx = {}
+    ctx['review'] = review
+    if review.product_id:
+        ctx['product'] = Product.query.filter_by(id=review.product_id).first()
     ctx['review_image_form'] = ReviewImageForm()
     ctx['review_form'] = ReviewForm()
     return render_template('add_review.html', **ctx)
