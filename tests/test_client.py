@@ -378,8 +378,12 @@ class TestClient(TestFlaskApplication):
 
     def test_shopify_update_product(self):
         product = Product(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
-                          name=testing_constants.NEW_PRODUCT_NAME,
-                          shop_id=testing_constants.SHOPIFY_SHOP_ID)
+                          name=testing_constants.NEW_PRODUCT_NAME)
+        shop = Shop.query.filter_by(id=testing_constants.SHOPIFY_SHOP_ID).first()
+        if not shop:
+            shop = Shop(domain=testing_constants.SHOPIFY_SHOP_DOMAIN)
+            db.session.add(shop)
+        product.shop = shop
         db.session.add(product)
         db.session.commit()
         data = json.dumps({
@@ -395,7 +399,7 @@ class TestClient(TestFlaskApplication):
                                                        'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
         self.assertEquals(response_actual.status_code, 200)
         product = Product.query.filter_by(platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID,
-                                          shop_id=testing_constants.SHOPIFY_SHOP_ID).first()
+                                          shop=shop).first()
         self.assertEquals(product.name, testing_constants.CHANGED_PRODUCT_NAME)
         db.session.delete(product)
         db.session.commit()

@@ -12,6 +12,10 @@
         {% if review.featured and review.featured.action %}
           <span class="label label-warning"><span class="glyphicon glyphicon-star"></span> Featured</span>
         {% endif %}
+      {% if review.user == current_user %}
+        <a class="btn btn-default" href="{{ url_for('client.edit_review', review_id=review.id) }}"><span class="glyphicon glyphicon-pencil"></span> Edit</a>
+        <a class="btn btn-default" href="{{ url_for('client.delete_review', review_id=review.id) }}"><span class="glyphicon glyphicon-trash"></span></a>
+      {% endif %}
         <span class="rating-review-body pull-right">
           <span class="star-rating {% if review.star_rating >= 1 %}star-active{% endif %}">☆</span>
           <span class="star-rating {% if review.star_rating >= 2 %}star-active{% endif %}">☆</span>
