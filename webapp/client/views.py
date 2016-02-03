@@ -682,9 +682,6 @@ def render_order_review_email():
 @login_required
 @roles_required(Constants.ADMIN_ROLE)
 def render_email():
-    import sys
-    print sys.path
-    print "yo"
     from util.email_inliner import inline_email
     template_name = request.args.get('template_name')
     inline_email(template_name)

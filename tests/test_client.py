@@ -1410,3 +1410,60 @@ class TestClient(TestFlaskApplication):
         self.assertTrue("%s has been successfully unsubscribed." % legacy_user.email in response_actual.data)
         self.assertTrue(legacy_user.unsubscribed)
         self.refresh_db()
+
+
+    ############# Test admin panel view ##############
+    def test_display_email_renderer(self):
+        self.login(self.admin_user.email, self.admin_password)
+        response_actual = self.desktop_client.get('admin/email-renders', follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue("Welcome to the motherfuckin' email renderer!" in response_actual.data)
+        self.logout()
+
+    def test_display_email_renderer_non_admin(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        response_actual = self.desktop_client.get('admin/email-renders', follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertFalse("Welcome to the motherfuckin' email renderer!" in response_actual.data)
+        self.assertTrue("You do not have permission to view this resource." in response_actual.data)
+        self.logout()
+
+    def test_display_email_renderer_non_admin2(self):
+        self.login(self.shop_owner_user.email, self.shop_owner_password)
+        response_actual = self.desktop_client.get('admin/email-renders', follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertFalse("Welcome to the motherfuckin' email renderer!" in response_actual.data)
+        self.assertTrue("You do not have permission to view this resource." in response_actual.data)
+        self.logout()
+
+
+    def test_email_renderer_has_email_options(self):
+        self.login(self.admin_user.email, self.admin_password)
+        response_actual = self.desktop_client.get('admin/email-renders', follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue("""<option value="review_order.html">
+            review_order.html
+          </option>""" in response_actual.data)
+        self.assertTrue("""<option value="shop_marketing.html">
+            shop_marketing.html
+          </option>""" in response_actual.data)
+        self.assertTrue("""<option value="shop_marketing_opinew_simple.html">
+            shop_marketing_opinew_simple.html
+          </option>""" in response_actual.data)
+        self.assertTrue("""<option value="new_reviewer_user.html">
+            new_reviewer_user.html
+          </option>""" in response_actual.data)
+        self.assertTrue("""<option value="new_shop_owner_user.html">
+            new_shop_owner_user.html
+          </option>""" in response_actual.data)
+        self.logout()
+
+    ############ Test email rendering route #################
+    def test_email_renders_correctly(self):
+        self.login(self.admin_user.email, self.admin_password)
+        params = {"template_name":"review_order.html"}
+        response_actual = self.desktop_client.get('/render-email',query_string=params, follow_redirects=True)
+        self.assertEqual(response_actual.status_code, 200)
+        self.assertTrue("""What do you think about the products you recently bought from""" in response_actual.data)
+        self.logout()
+
