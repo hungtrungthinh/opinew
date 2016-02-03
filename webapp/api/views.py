@@ -351,7 +351,7 @@ def shop_domain_parse(data, *args, **kwargs):
 # e.g. http://localhost:5000/api/v1/review?q={"order_by": [{"field": "created_ts", "direction":"desc"}], "offset":10}
 api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
-                       methods=['GET', 'POST'],
+                       methods=['GET', 'POST', 'PATCH'],
                        preprocessors={
                            'POST': [del_csrf, check_recaptcha, login_user_if_possible, check_if_user_exists,
                                     is_verified_review, add_source],

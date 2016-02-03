@@ -752,6 +752,8 @@ class Review(db.Model, Repopulatable):
 
     # CANNOT SET THESE BELOW:
     created_ts = db.Column(db.DateTime)
+    deleted = db.Column(db.Boolean, default=False)
+    deleted_ts = db.Column(db.DateTime)
 
     verified_review = db.Column(db.Boolean, default=False)
     by_shop_owner = db.Column(db.Boolean, default=False)

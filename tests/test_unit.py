@@ -1,4 +1,5 @@
 from unittest import TestCase
+from flask import url_for
 from flask.ext.security import login_user
 from webapp import models, db, create_app
 from webapp.api.views import shop_domain_parse, verify_request_by_shop_owner, verify_product_url_is_from_shop_domain
@@ -215,22 +216,65 @@ class TestVerifyProductUrlIsFromShopDomain(TestCase):
         db.session.remove()
         db.drop_all()
 
+
 class TestEditReview(TestCase):
+    REVIEW_USER_EMAIL = 'a@aa.aa'
+    REVIEW_USER_PWD = '123456789'
+    REVIEW_USER = None
+    REVIEW_ID = None
+    NOT_YOUR_REVIEW_ID = None
+
     @classmethod
     def setUpClass(cls):
         app.app_context().push()
+        cls.client = app.test_client()
         db.create_all()
-        user = models.User()
-        db.session.add(user)
+        # create db fixtures
+        r = cls.register(cls.REVIEW_USER_EMAIL, cls.REVIEW_USER_PWD)
+        cls.REVIEW_USER = models.User.query.first()
+        db.session.add(cls.REVIEW_USER)
+
+        review = models.Review.create_from_import(user=cls.REVIEW_USER)
+        not_your_review = models.Review()
+
+
+        db.session.add(review)
+        db.session.add(not_your_review)
         db.session.commit()
 
-    def test_url_no_schema(self):
-        data = {
-            'shop_id': self.SHOP_ID,
-            'url': self.PRODUCT_URL_NO_SCHEMA
-        }
-        verify_product_url_is_from_shop_domain(data)
-        self.assertTrue(True)
+        cls.REVIEW_ID = review.id
+        cls.NOT_YOUR_REVIEW_ID = not_your_review.id
+
+    def setUp(self):
+        self.login(self.REVIEW_USER_EMAIL, self.REVIEW_USER_PWD)
+
+    @classmethod
+    def register(cls, email, password):
+        return cls.client.post('/register', data=dict(
+                name='fake',
+                email=email,
+                password=password,
+                password_confirm=password
+        ), follow_redirects=True)
+
+    @classmethod
+    def login(cls, email, password):
+        return cls.client.post('/login', data=dict(
+                email=email,
+                password=password
+        ), follow_redirects=True)
+
+    def test_get_edit_your_review(self):
+        response_actual = self.client.get(url_for('client.edit_review', review_id=self.REVIEW_ID))
+        self.assertEqual(response_actual.status_code, httplib.OK)
+
+    def test_get_edit_not_existing_review(self):
+        response_actual = self.client.get(url_for('client.edit_review', review_id=123456))
+        self.assertEqual(response_actual.status_code, httplib.FOUND)
+
+    def test_get_edit_not_your_review(self):
+        response_actual = self.client.get(url_for('client.edit_review', review_id=self.NOT_YOUR_REVIEW_ID))
+        self.assertEqual(response_actual.status_code, httplib.FOUND)
 
     @classmethod
     def tearDownClass(cls):

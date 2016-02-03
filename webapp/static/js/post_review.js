@@ -228,7 +228,7 @@ function hookEmojiAreaPlaceholder() {
     })
   } else {
     wysiwygDiv.css('color', 'grey');
-
+    wysiwygDiv.text(placeholder_text);
     wysiwygDiv.addClass('not-clicked-yet');
     $('.not-clicked-yet').click(function () {
           wysiwygDiv.text(placeholder_text);
