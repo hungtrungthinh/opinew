@@ -6,6 +6,7 @@ from webapp.api.views import shop_domain_parse, verify_request_by_shop_owner, ve
 from webapp.exceptions import ExceptionMessages
 from flask.ext.restless import ProcessingException
 import httplib
+import json
 
 app = create_app('testing')
 
@@ -217,7 +218,25 @@ class TestVerifyProductUrlIsFromShopDomain(TestCase):
         db.drop_all()
 
 
-class TestEditReview(TestCase):
+class Authenticatable(object):
+    @classmethod
+    def register(cls, email, password):
+        return cls.client.post('/register', data=dict(
+                name='fake',
+                email=email,
+                password=password,
+                password_confirm=password
+        ), follow_redirects=True)
+
+    @classmethod
+    def login(cls, email, password):
+        return cls.client.post('/login', data=dict(
+                email=email,
+                password=password
+        ), follow_redirects=True)
+
+
+class TestEditReview(TestCase, Authenticatable):
     REVIEW_USER_EMAIL = 'a@aa.aa'
     REVIEW_USER_PWD = '123456789'
     REVIEW_USER = None
@@ -237,6 +256,59 @@ class TestEditReview(TestCase):
         review = models.Review.create_from_import(user=cls.REVIEW_USER)
         not_your_review = models.Review()
 
+        db.session.add(review)
+        db.session.add(not_your_review)
+        db.session.commit()
+
+        cls.REVIEW_ID = review.id
+        cls.NOT_YOUR_REVIEW_ID = not_your_review.id
+
+    def setUp(self):
+        self.login(self.REVIEW_USER_EMAIL, self.REVIEW_USER_PWD)
+
+    def test_get_edit_your_review(self):
+        response_actual = self.client.get(url_for('client.edit_review', review_id=self.REVIEW_ID))
+        self.assertEqual(response_actual.status_code, httplib.OK)
+
+    def test_get_edit_not_existing_review(self):
+        NOT_EXISTING_REVIEW_ID = 123456
+        response_actual = self.client.get(url_for('client.edit_review', review_id=NOT_EXISTING_REVIEW_ID),
+                                          follow_redirects=True)
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review',
+                                                                     id=NOT_EXISTING_REVIEW_ID) in response_actual.data)
+
+    def test_get_edit_not_your_review(self):
+        response_actual = self.client.get(url_for('client.edit_review', review_id=self.NOT_YOUR_REVIEW_ID),
+                                          follow_redirects=True)
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(ExceptionMessages.NOT_YOUR_REVIEW in response_actual.data)
+
+    @classmethod
+    def tearDownClass(cls):
+        db.session.remove()
+        db.drop_all()
+
+
+class TestDeleteReview(TestCase, Authenticatable):
+    REVIEW_USER_EMAIL = 'a@aa.aa'
+    REVIEW_USER_PWD = '123456789'
+    REVIEW_USER = None
+    REVIEW_ID = None
+    NOT_YOUR_REVIEW_ID = None
+
+    @classmethod
+    def setUpClass(cls):
+        app.app_context().push()
+        cls.client = app.test_client()
+        db.create_all()
+        # create db fixtures
+        r = cls.register(cls.REVIEW_USER_EMAIL, cls.REVIEW_USER_PWD)
+        cls.REVIEW_USER = models.User.query.first()
+        db.session.add(cls.REVIEW_USER)
+
+        review = models.Review.create_from_import(user=cls.REVIEW_USER)
+        not_your_review = models.Review()
 
         db.session.add(review)
         db.session.add(not_your_review)
@@ -248,33 +320,107 @@ class TestEditReview(TestCase):
     def setUp(self):
         self.login(self.REVIEW_USER_EMAIL, self.REVIEW_USER_PWD)
 
-    @classmethod
-    def register(cls, email, password):
-        return cls.client.post('/register', data=dict(
-                name='fake',
-                email=email,
-                password=password,
-                password_confirm=password
-        ), follow_redirects=True)
+    def test_delete_your_review(self):
+        response_actual = self.client.get(url_for('client.delete_review', review_id=self.REVIEW_ID))
+        self.assertEqual(response_actual.status_code, httplib.FOUND)
+        review = models.Review.query.filter_by(id=self.REVIEW_ID).first()
+        self.assertTrue(review.deleted)
 
-    @classmethod
-    def login(cls, email, password):
-        return cls.client.post('/login', data=dict(
-                email=email,
-                password=password
-        ), follow_redirects=True)
-
-    def test_get_edit_your_review(self):
-        response_actual = self.client.get(url_for('client.edit_review', review_id=self.REVIEW_ID))
+    def test_delete_not_existing_review(self):
+        NOT_EXISTING_REVIEW_ID = 123456
+        response_actual = self.client.get(url_for('client.delete_review', review_id=NOT_EXISTING_REVIEW_ID),
+                                          follow_redirects=True)
         self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review',
+                                                                     id=NOT_EXISTING_REVIEW_ID) in response_actual.data)
 
-    def test_get_edit_not_existing_review(self):
-        response_actual = self.client.get(url_for('client.edit_review', review_id=123456))
-        self.assertEqual(response_actual.status_code, httplib.FOUND)
+    def test_delete_not_your_review(self):
+        response_actual = self.client.get(url_for('client.delete_review', review_id=self.NOT_YOUR_REVIEW_ID),
+                                          follow_redirects=True)
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(ExceptionMessages.NOT_YOUR_REVIEW in response_actual.data)
 
-    def test_get_edit_not_your_review(self):
-        response_actual = self.client.get(url_for('client.edit_review', review_id=self.NOT_YOUR_REVIEW_ID))
-        self.assertEqual(response_actual.status_code, httplib.FOUND)
+    @classmethod
+    def tearDownClass(cls):
+        db.session.remove()
+        db.drop_all()
+
+
+class TestApiPatchReviewSingle(TestCase, Authenticatable):
+    REVIEW_USER_EMAIL = 'a@aa.aa'
+    REVIEW_USER_PWD = '123456789'
+    REVIEW_USER = None
+    REVIEW_ID = None
+    REVIEW_BODY = 'Admiral Ackbar has warned us about the trap'
+    NOT_YOUR_REVIEW_ID = None
+
+    @classmethod
+    def setUpClass(cls):
+        app.app_context().push()
+        cls.client = app.test_client()
+        db.create_all()
+        # create db fixtures
+        r = cls.register(cls.REVIEW_USER_EMAIL, cls.REVIEW_USER_PWD)
+        cls.REVIEW_USER = models.User.query.first()
+        db.session.add(cls.REVIEW_USER)
+
+        review = models.Review.create_from_import(user=cls.REVIEW_USER,
+                                                  body=cls.REVIEW_BODY)
+        not_your_review = models.Review()
+
+        db.session.add(review)
+        db.session.add(not_your_review)
+        db.session.commit()
+
+        cls.REVIEW_ID = review.id
+        cls.NOT_YOUR_REVIEW_ID = not_your_review.id
+
+    def setUp(self):
+        self.login(self.REVIEW_USER_EMAIL, self.REVIEW_USER_PWD)
+
+    def test_patch_your_review_body(self):
+        NEW_BODY = "IT'S A TRAP!"
+        payload = {
+            'body': NEW_BODY
+        }
+        response_actual = self.client.patch('/api/v1/review/%s' % self.REVIEW_ID,
+                                            headers={'content-type': 'application/json'},
+                                            data=json.dumps(payload))
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(NEW_BODY in response_actual.data)
+
+    def test_patch_your_review_stars(self):
+        NEW_STARS = '3'
+        payload = {
+            'star_rating': NEW_STARS
+        }
+        response_actual = self.client.patch('/api/v1/review/%s' % self.REVIEW_ID,
+                                            headers={'content-type': 'application/json'},
+                                            data=json.dumps(payload))
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(NEW_STARS in response_actual.data)
+
+    def test_patch_your_review_image_url(self):
+        NEW_IMAGE_URL = 'http://hello.com/new.png'
+        payload = {
+            'image_url': NEW_IMAGE_URL
+        }
+        response_actual = self.client.patch('/api/v1/review/%s' % self.REVIEW_ID,
+                                            headers={'content-type': 'application/json'},
+                                            data=json.dumps(payload))
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(NEW_IMAGE_URL in response_actual.data)
+
+    def test_patch_not_your_review(self):
+        NEW_BODY = "IT'S A TRAP!"
+        payload = {
+            'body': NEW_BODY
+        }
+        response_actual = self.client.patch('/api/v1/review/%s' % self.NOT_YOUR_REVIEW_ID,
+                                            headers={'content-type': 'application/json'},
+                                            data=json.dumps(payload))
+        self.assertEqual(response_actual.status_code, httplib.UNAUTHORIZED)
+        self.assertTrue(ExceptionMessages.NOT_YOUR_REVIEW in response_actual.data)
 
     @classmethod
     def tearDownClass(cls):

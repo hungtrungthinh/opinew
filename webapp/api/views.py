@@ -196,6 +196,12 @@ def is_shop_owned_by_user(instance_id, *args, **kwargs):
         raise ProcessingException(description='Not your shop', code=401)
 
 
+def is_review_owned_by_user(instance_id, *args, **kwargs):
+    review = models.Review.query.filter_by(id=instance_id).first()
+    if not review or not review.user == current_user:
+        raise ProcessingException(description=ExceptionMessages.NOT_YOUR_REVIEW, code=httplib.UNAUTHORIZED)
+
+
 def del_user_id(data, *args, **kwargs):
     if 'user_id' in data:
         del data['user_id']
@@ -355,7 +361,7 @@ api_manager.create_api(models.Review,
                        preprocessors={
                            'POST': [del_csrf, check_recaptcha, login_user_if_possible, check_if_user_exists,
                                     is_verified_review, add_source],
-                           'PATCH_SINGLE': [del_csrf, auth_func]
+                           'PATCH_SINGLE': [del_csrf, auth_func, is_review_owned_by_user]
                        },
                        exclude_columns=models.Review.exclude_fields(),
                        validation_exceptions=[DbException, UserExistsException])
