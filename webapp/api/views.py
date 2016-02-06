@@ -196,6 +196,12 @@ def is_shop_owned_by_user(instance_id, *args, **kwargs):
         raise ProcessingException(description='Not your shop', code=401)
 
 
+def is_review_owned_by_user(instance_id, *args, **kwargs):
+    review = models.Review.query.filter_by(id=instance_id).first()
+    if not review or not review.user == current_user:
+        raise ProcessingException(description=ExceptionMessages.NOT_YOUR_REVIEW, code=httplib.UNAUTHORIZED)
+
+
 def del_user_id(data, *args, **kwargs):
     if 'user_id' in data:
         del data['user_id']
@@ -351,11 +357,11 @@ def shop_domain_parse(data, *args, **kwargs):
 # e.g. http://localhost:5000/api/v1/review?q={"order_by": [{"field": "created_ts", "direction":"desc"}], "offset":10}
 api_manager.create_api(models.Review,
                        url_prefix=Constants.API_V1_URL_PREFIX,
-                       methods=['GET', 'POST'],
+                       methods=['GET', 'POST', 'PATCH'],
                        preprocessors={
                            'POST': [del_csrf, check_recaptcha, login_user_if_possible, check_if_user_exists,
                                     is_verified_review, add_source],
-                           'PATCH_SINGLE': [del_csrf, auth_func]
+                           'PATCH_SINGLE': [del_csrf, auth_func, is_review_owned_by_user]
                        },
                        exclude_columns=models.Review.exclude_fields(),
                        validation_exceptions=[DbException, UserExistsException])
@@ -452,8 +458,15 @@ api_manager.create_api(models.Answer,
 
 @login_required
 @api.route('/token')
-def token():
+def get_token():
     return jsonify({'token': generate_csrf()})
+
+
+@api.route('/session')
+def get_session():
+    _token = generate_csrf()
+    _session = current_app.session_interface.get_signing_serializer(current_app).dumps(dict(session))
+    return jsonify({'token': _token, 'session': _session})
 
 
 @api.route('/auth', methods=['POST'])

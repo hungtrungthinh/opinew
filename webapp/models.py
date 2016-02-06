@@ -752,6 +752,8 @@ class Review(db.Model, Repopulatable):
 
     # CANNOT SET THESE BELOW:
     created_ts = db.Column(db.DateTime)
+    deleted = db.Column(db.Boolean, default=False)
+    deleted_ts = db.Column(db.DateTime)
 
     verified_review = db.Column(db.Boolean, default=False)
     by_shop_owner = db.Column(db.Boolean, default=False)
@@ -883,7 +885,7 @@ class Review(db.Model, Repopulatable):
 
     @classmethod
     def exclude_fields(cls):
-        excluded = []
+        excluded = ['shop.access_token']
         excluded += User.exclude_fields()
         return excluded
 
@@ -975,7 +977,7 @@ class Review(db.Model, Repopulatable):
         return _user_image_url
 
     def __repr__(self):
-        return '<Review %r... by %r>' % (self.body[:10] if self.body else self.id, self.user)
+        return '<Review %r %r... by %r>' % (self.id, self.body[:10] if self.body else self.id, self.user)
 
     def is_for_shop(self, shop):
         if not self.order.shop == shop:

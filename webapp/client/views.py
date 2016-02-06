@@ -1,8 +1,9 @@
 import datetime
 import os
+import httplib
 from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, jsonify, send_file, Response
+    current_app, make_response, abort, jsonify, send_file, Response, session
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import API
@@ -456,10 +457,10 @@ def get_plugin():
             return '', 404
 
         if current_user and current_user.is_authenticated():
-            own_review = Review.query.filter_by(product_id=product.id, user=current_user).order_by(Review.created_ts.desc()).first()
+            own_review = Review.query.filter_by(product_id=product.id, user=current_user, deleted=False).order_by(Review.created_ts.desc()).first()
         else:
             own_review = None
-        all_reviews = Review.query.filter_by(product_id=product.id, approved_by_shop=True).order_by(Review.created_ts.desc()).all()
+        all_reviews = Review.query.filter_by(product_id=product.id, approved_by_shop=True, deleted=False).order_by(Review.created_ts.desc()).all()
         featured_reviews = [fr for fr in all_reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
         rest_reviews = [r for r in all_reviews if r not in featured_reviews and not r == own_review]
         next_arg = request.url
@@ -519,11 +520,11 @@ def get_product(product_id):
     try:
         product = Product.get_by_id(product_id)
         if current_user and current_user.is_authenticated():
-            own_review = Review.query.filter_by(product_id=product_id, user=current_user).order_by(
+            own_review = Review.query.filter_by(product_id=product_id, user=current_user, deleted=False).order_by(
                 Review.created_ts.desc()).first()
         else:
             own_review = None
-        reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_ts.desc()).all()
+        reviews = Review.query.filter_by(product_id=product_id, deleted=False).order_by(Review.created_ts.desc()).all()
         featured_reviews = [fr for fr in reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
         reviews = [r for r in reviews if r not in featured_reviews and not r == own_review]
     except (ParamException, DbException) as e:
@@ -581,13 +582,51 @@ def add_review():
                 ctx['is_legacy'] = True
     if 'user_email' in request.args:
         ctx['user_email'] = request.args.get('user_email')
-    # TODO what is this line below???
+    # If we don't have any product, display a list of all products
     if 'product' not in ctx or not ctx['product']:
         ctx['products'] = Product.query.all()
     # Initialize forms
     ctx['review_image_form'] = ReviewImageForm()
     ctx['review_form'] = ReviewForm()
     return render_template('add_review.html', **ctx)
+
+
+@client.route('/edit-review', defaults={'review_id': 0})
+@client.route('/edit-review/<int:review_id>')
+@login_required
+def edit_review(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        flash(ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance="review", id=review_id))
+        return redirect(request.referrer or url_for('client.index'))
+    if not review.user == current_user:
+        flash(ExceptionMessages.NOT_YOUR_REVIEW)
+        return redirect(request.referrer or url_for('client.index'))
+    ctx = {}
+    ctx['review'] = review
+    if review.product_id:
+        ctx['product'] = Product.query.filter_by(id=review.product_id).first()
+    ctx['review_image_form'] = ReviewImageForm()
+    ctx['review_form'] = ReviewForm()
+    return render_template('add_review.html', **ctx)
+
+
+@client.route('/delete-review', defaults={'review_id': 0})
+@client.route('/delete-review/<int:review_id>')
+@login_required
+def delete_review(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        flash(ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance="review", id=review_id))
+        return redirect(request.referrer or url_for('client.index'))
+    if not review.user == current_user:
+        flash(ExceptionMessages.NOT_YOUR_REVIEW)
+        return redirect(request.referrer or url_for('client.index'))
+    review.deleted = True
+    review.deleted_ts = datetime.datetime.utcnow()
+    db.session.add(review)
+    db.session.commit()
+    return redirect(request.referrer or url_for('client.get_product', product_id=review.product_id) or url_for('client.index'))
 
 
 @client.route('/review', defaults={'review_id': 0})

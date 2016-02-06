@@ -62,15 +62,7 @@
   <script defer src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
   <script defer src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
 {% endif %}
-<!-- Load Facebook SDK for JavaScript -->
-	<div id="fb-root"></div>
-	<script>(function(d, s, id) {
-	  var js, fjs = d.getElementsByTagName(s)[0];
-	  if (d.getElementById(id)) return;
-	  js = d.createElement(s); js.id = id;
-	  js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.5";
-	  fjs.parentNode.insertBefore(js, fjs);
-	}(document, 'script', 'facebook-jssdk'));</script>
+{% include "fb_code.html" %}
 <script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% if g.mobile %}
   <script defer src="{{ url_for('static', filename='js/mobile.js') }}"></script>

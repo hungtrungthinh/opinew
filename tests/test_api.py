@@ -914,6 +914,75 @@ class TestAPI(TestFlaskApplication):
         self.assertTrue(testing_constants.RENDERED_BY_SHOP_OWNER in response_actual.data)
         self.logout()
 
+    ############ REVIEW PATCH ################
+    def test_patch_your_review_body(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        review = Review.create_from_import(user=self.reviewer_user)
+        db.session.add(review)
+        db.session.commit()
+        NEW_BODY = "IT'S A TRAP!"
+        payload = {
+            'body': NEW_BODY
+        }
+        response_actual = self.desktop_client.patch('/api/v1/review/%s' % review.id,
+                                            headers={'content-type': 'application/json'},
+                                            data=json.dumps(payload))
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(NEW_BODY in response_actual.data)
+        db.session.delete(review)
+        db.session.commit()
+
+    def test_patch_your_review_stars(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        review = Review.create_from_import(user=self.reviewer_user)
+        db.session.add(review)
+        db.session.commit()
+        NEW_STARS = '3'
+        payload = {
+            'star_rating': NEW_STARS
+        }
+        response_actual = self.desktop_client.patch('/api/v1/review/%s'  % review.id,
+                                            headers={'content-type': 'application/json'},
+                                            data=json.dumps(payload))
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(NEW_STARS in response_actual.data)
+        db.session.delete(review)
+        db.session.commit()
+
+    def test_patch_your_review_image_url(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        review = Review.create_from_import(user=self.reviewer_user)
+        db.session.add(review)
+        db.session.commit()
+        NEW_IMAGE_URL = 'http://hello.com/new.png'
+        payload = {
+            'image_url': NEW_IMAGE_URL
+        }
+        response_actual = self.desktop_client.patch('/api/v1/review/%s'  % review.id,
+                                            headers={'content-type': 'application/json'},
+                                            data=json.dumps(payload))
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(NEW_IMAGE_URL in response_actual.data)
+        db.session.delete(review)
+        db.session.commit()
+
+    def test_patch_not_your_review(self):
+        self.login(self.reviewer_user.email, self.reviewer_password)
+        not_your_review = Review.create_from_import()
+        db.session.add(not_your_review)
+        db.session.commit()
+        NEW_BODY = "IT'S A TRAP!"
+        payload = {
+            'body': NEW_BODY
+        }
+        response_actual = self.desktop_client.patch('/api/v1/review/%s'  % not_your_review.id,
+                                            headers={'content-type': 'application/json'},
+                                            data=json.dumps(payload))
+        self.assertEqual(response_actual.status_code, httplib.UNAUTHORIZED)
+        self.assertTrue(ExceptionMessages.NOT_YOUR_REVIEW in response_actual.data)
+        db.session.delete(not_your_review)
+        db.session.commit()
+
     ###########REVIEW LIKE###############
 
     def test_review_like_first_time(self):

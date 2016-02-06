@@ -1,13 +1,15 @@
 import httplib
 from unittest import TestCase
+from flask import url_for
 from flask.ext.security import login_user
-from webapp import models, db, create_app
+import webapp
+from webapp import models, db
 from webapp.api.views import shop_domain_parse, verify_request_by_shop_owner, verify_product_url_is_from_shop_domain
 from webapp.exceptions import ExceptionMessages
 from flask.ext.restless import ProcessingException
 from config import Constants
 
-app = create_app('testing')
+new_app = webapp.create_app('testing')
 
 
 class TestShopDomainParse(TestCase):
@@ -61,7 +63,8 @@ class TestVerifyRequestByShopOwner(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        app.app_context().push()
+        cls.app = new_app
+        cls.app.app_context().push()
         db.create_all()
         cls.SHOP_OWNER_USER = models.User()
         shop = models.Shop(owner=cls.SHOP_OWNER_USER)
@@ -73,7 +76,7 @@ class TestVerifyRequestByShopOwner(TestCase):
         cls.SHOP_NOT_OWNED_ID = shop_not_owned.id
 
     def setUp(self):
-        ctx = app.test_request_context('/')
+        ctx = self.app.test_request_context('/')
         ctx.push()
         login_user(self.SHOP_OWNER_USER)
 
@@ -144,7 +147,8 @@ class TestVerifyProductUrlIsFromShopDomain(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        app.app_context().push()
+        cls.app = new_app
+        cls.app.app_context().push()
         db.create_all()
         shop = models.Shop(domain=cls.SHOP_DOMAIN)
         db.session.add(shop)
@@ -234,6 +238,131 @@ class TestGetReviewUserName(TestCase):
         self.assertEquals(review.user_name, self.USER_NAME)
 
 
-class TestGetReviewUserImageUrl(TestCase):
-    pass
-    # TODO
+class Authenticatable(object):
+    @classmethod
+    def register(cls, email, password):
+        return cls.client.post('/register', data=dict(
+                name='fake',
+                email=email,
+                password=password,
+                password_confirm=password
+        ), follow_redirects=True)
+
+    @classmethod
+    def login(cls, email, password):
+        return cls.client.post('/login', data=dict(
+                email=email,
+                password=password
+        ), follow_redirects=True)
+
+
+class TestEditReview(TestCase, Authenticatable):
+    REVIEW_USER_EMAIL = 'a@aa.aa'
+    REVIEW_USER_PWD = '123456789'
+    REVIEW_USER = None
+    REVIEW_ID = None
+    NOT_YOUR_REVIEW_ID = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app = new_app
+        cls.client = cls.app.test_client()
+        cls.app.app_context().push()
+        db.create_all()
+        # create db fixtures
+        r = cls.register(cls.REVIEW_USER_EMAIL, cls.REVIEW_USER_PWD)
+        cls.REVIEW_USER = models.User.query.first()
+        db.session.add(cls.REVIEW_USER)
+
+        review = models.Review.create_from_import(user=cls.REVIEW_USER)
+        not_your_review = models.Review()
+
+        db.session.add(review)
+        db.session.add(not_your_review)
+        db.session.commit()
+
+        cls.REVIEW_ID = review.id
+        cls.NOT_YOUR_REVIEW_ID = not_your_review.id
+
+    def setUp(self):
+        self.login(self.REVIEW_USER_EMAIL, self.REVIEW_USER_PWD)
+
+    def test_get_edit_your_review(self):
+        response_actual = self.client.get(url_for('client.edit_review', review_id=self.REVIEW_ID))
+        self.assertEqual(response_actual.status_code, httplib.OK)
+
+    def test_get_edit_not_existing_review(self):
+        NOT_EXISTING_REVIEW_ID = 123456
+        response_actual = self.client.get(url_for('client.edit_review', review_id=NOT_EXISTING_REVIEW_ID),
+                                          follow_redirects=True)
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review',
+                                                                     id=NOT_EXISTING_REVIEW_ID) in response_actual.data)
+
+    def test_get_edit_not_your_review(self):
+        response_actual = self.client.get(url_for('client.edit_review', review_id=self.NOT_YOUR_REVIEW_ID),
+                                          follow_redirects=True)
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(ExceptionMessages.NOT_YOUR_REVIEW in response_actual.data)
+
+    @classmethod
+    def tearDownClass(cls):
+        db.session.remove()
+        db.drop_all()
+
+
+class TestDeleteReview(TestCase, Authenticatable):
+    REVIEW_USER_EMAIL = 'a@aa.aa'
+    REVIEW_USER_PWD = '123456789'
+    REVIEW_USER = None
+    REVIEW_ID = None
+    NOT_YOUR_REVIEW_ID = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app = new_app
+        cls.client = cls.app.test_client()
+        cls.app.app_context().push()
+        db.create_all()
+        # create db fixtures
+        r = cls.register(cls.REVIEW_USER_EMAIL, cls.REVIEW_USER_PWD)
+        cls.REVIEW_USER = models.User.query.first()
+        db.session.add(cls.REVIEW_USER)
+
+        review = models.Review.create_from_import(user=cls.REVIEW_USER)
+        not_your_review = models.Review()
+
+        db.session.add(review)
+        db.session.add(not_your_review)
+        db.session.commit()
+
+        cls.REVIEW_ID = review.id
+        cls.NOT_YOUR_REVIEW_ID = not_your_review.id
+
+    def setUp(self):
+        self.login(self.REVIEW_USER_EMAIL, self.REVIEW_USER_PWD)
+
+    def test_delete_your_review(self):
+        response_actual = self.client.get(url_for('client.delete_review', review_id=self.REVIEW_ID))
+        self.assertEqual(response_actual.status_code, httplib.FOUND)
+        review = models.Review.query.filter_by(id=self.REVIEW_ID).first()
+        self.assertTrue(review.deleted)
+
+    def test_delete_not_existing_review(self):
+        NOT_EXISTING_REVIEW_ID = 123456
+        response_actual = self.client.get(url_for('client.delete_review', review_id=NOT_EXISTING_REVIEW_ID),
+                                          follow_redirects=True)
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review',
+                                                                     id=NOT_EXISTING_REVIEW_ID) in response_actual.data)
+
+    def test_delete_not_your_review(self):
+        response_actual = self.client.get(url_for('client.delete_review', review_id=self.NOT_YOUR_REVIEW_ID),
+                                          follow_redirects=True)
+        self.assertEqual(response_actual.status_code, httplib.OK)
+        self.assertTrue(ExceptionMessages.NOT_YOUR_REVIEW in response_actual.data)
+
+    @classmethod
+    def tearDownClass(cls):
+        db.session.remove()
+        db.drop_all()

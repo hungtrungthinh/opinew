@@ -9,6 +9,7 @@ class ExceptionMessages(object):
                     "Are you sure it looks like one of these? " \
                     "https://www.shop.com, http://www.shop.com, www.shop.com"
     NOT_YOUR_SHOP = "Not your shop"
+    NOT_YOUR_REVIEW = "Not your review."
 
 
 class ResponseException(Exception):
