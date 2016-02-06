@@ -85,17 +85,17 @@ function shareReview(reviewId) {
   var dataReviewEl = $('#data-review-' + reviewId);
   var reviewBody = dataReviewEl.find('.review-body').text();
   var reviewShopName = dataReviewEl.find('.review-shop-name').text();
+  var productUrl = dataReviewEl.find('.review-product-url').text();
   console.log('TODO: share id: ' + reviewId + '\n' +
               'product_url' + productUrl + '\n' +
               'body: ' + reviewBody + '\n' +
               'shop_name: ' + reviewShopName);
   //https://developers.facebook.com/docs/sharing/reference/feed-dialog/v2.5
-  //FB.ui({
-  //  method: 'feed',
-  //  link: 'https://developers.facebook.com/docs/',
-  //  caption: 'An example caption',
-  //}, function (response) {
-  //});
+  FB.ui({
+    method: 'feed',
+    link: 'https://opinew.com/review/' + reviewId,
+  }, function (response) {
+  });
 }
 
 $(document).ready(function () {

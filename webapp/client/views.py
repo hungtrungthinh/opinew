@@ -11,7 +11,7 @@ from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy
 from webapp.common import param_required, catch_exceptions, get_post_payload
-from webapp.exceptions import ParamException, DbException, ApiException
+from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
 from providers import giphy
@@ -592,11 +592,16 @@ def add_review():
 
 @client.route('/review', defaults={'review_id': 0})
 @client.route('/review/<int:review_id>')
-@roles_required(Constants.SHOP_OWNER_ROLE)
-@login_required
 def view_review(review_id):
-    review = Review.query.filter_by(review_id)
-    return render_template('shop_admin/view_review.html', review=review)
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        flash(ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id))
+        return redirect(request.referrer or url_for('client.index'))
+    return render_template('shop_admin/view_review.html',
+                           review=review,
+                           page_title='Review by %s about %s' % (review.user_name, review.product.name),
+                           page_description=review.body,
+                           page_image=review.image_url)
 
 
 @client.route('/plugin-logout')

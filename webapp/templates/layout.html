@@ -19,7 +19,7 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='icons/opinew32.ico') }}"/>
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon192.png') }}"/>
   {# Facebook's open graph things #}
-  <meta property="og:url" content="{{ request.url or g.constants.META_CANONICAL_URL }}"/>
+  <meta property="og:url" content="{{ page_url or request.url or g.constants.META_CANONICAL_URL }}"/>
   <meta property="og:title" content="{{ page_title or g.constants.META_DEFAULT_TITLE }}"/>
   <meta property="og:description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}"/>
   <meta property="og:image" content="{{ page_image or g.constants.META_DEFAULT_IMAGE }}"/>
@@ -62,6 +62,15 @@
   <script defer src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
   <script defer src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
 {% endif %}
+<!-- Load Facebook SDK for JavaScript -->
+	<div id="fb-root"></div>
+	<script>(function(d, s, id) {
+	  var js, fjs = d.getElementsByTagName(s)[0];
+	  if (d.getElementById(id)) return;
+	  js = d.createElement(s); js.id = id;
+	  js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.5";
+	  fjs.parentNode.insertBefore(js, fjs);
+	}(document, 'script', 'facebook-jssdk'));</script>
 <script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% if g.mobile %}
   <script defer src="{{ url_for('static', filename='js/mobile.js') }}"></script>

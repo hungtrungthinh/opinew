@@ -1,15 +1,3 @@
-<span hidden id="data-review-{{ review.id }}">
-  <span class="review-product-url">{{ url_for('client.get_product', product_id=review.product.id) }}</span>
-  <span class="review-product-name">{{ review.product.name }}</span>
-  <span class="review-shop-name">{{ review.product.shop.name }}</span>
-  <span class="review-star-rating">{{ review.star_rating }}</span>
-  <span class="review-body">{{ review.body }}</span>
-  <span class="review-user-name">{{ review.user_name }}</span>
-  <span class="review-user-image-url">{{ review.user_image_url }}</span>
-  <span class="review-date">{{ review.created_ts.strftime('%d %b, %Y') }}</span>
-  <span class="review-image-url">{{ review.image_url }}</span>
-  <span class="review-youtube-url">{{ review.youtube_video }}</span>
-</span>
 <div class="review-container">
   <div class="media">
     <div class="row review-badges">
