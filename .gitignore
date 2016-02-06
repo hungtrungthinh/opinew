@@ -2,5 +2,6 @@
 venv
 *.pyc
 media/review/*
+media/cache/*
 *.pgsql
 .~lock.*#

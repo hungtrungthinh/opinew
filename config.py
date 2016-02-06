@@ -118,6 +118,10 @@ class Config(object):
     UPLOADED_SHOPIMAGES_DEST = os.path.join(basedir, 'media', 'shop')
     UPLOADED_SHOPIMAGES_URL = '/media/shop/'
 
+    RESIZE_URL = '/media'
+    RESIZE_ROOT = os.path.join(basedir, 'media',)
+    RESIZE_CACHE = os.path.join(basedir, 'media','cache')
+
     SHOPIFY_APP_API_KEY = sensitive.SHOPIFY_APP_API_KEY
     SHOPIFY_APP_SECRET = sensitive.SHOPIFY_APP_SECRET
     SHOPIFY_APP_SCOPES = 'read_products,read_orders,read_fulfillments'
@@ -190,6 +194,8 @@ class ConfigTest(Config):
     CELERY_RESULT_BACKEND = 'cache'
     CELERY_CACHE_BACKEND = 'memory'
 
+    RESIZE_NOOP = True
+
 
 class ConfigDev(Config):
     MODE = Constants.MODE_DEVELOPMENT
@@ -206,6 +212,7 @@ class ConfigProd(Config):
     STRIPE_PUBLISHABLE_API_KEY = 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'  # test key: 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
     SERVER_NAME = 'opinew.com'
+    RESIZE_URL = 'https://opinew.com/media'
 
 
 config_factory = {

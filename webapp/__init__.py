@@ -9,6 +9,7 @@ from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required
 from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
 from flask.ext.gravatar import Gravatar
+from flask_resize import Resize
 from flask_mail import Mail
 from werkzeug.exceptions import default_exceptions
 from config import config_factory, Constants
@@ -61,6 +62,8 @@ user_images = UploadSet('userimages', IMAGES)
 review_images = UploadSet('reviewimages', IMAGES)
 shop_images = UploadSet('shopimages', IMAGES)
 
+resize = Resize()
+
 
 def create_app(option):
     app = FlaskOpinewExt(__name__)
@@ -79,6 +82,7 @@ def create_app(option):
 
     compress.init_app(app)
     gravatar.init_app(app)
+    resize.init_app(app)
     db.init_app(app)
     admin.init_app(app)
     mail.init_app(app)

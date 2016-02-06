@@ -929,3 +929,7 @@ def unsubscribe():
     db.session.add(user)
     db.session.commit()
     return "%s has been successfully unsubscribed." % email
+
+@client.route('/img')
+def img():
+    return render_template('img.html')
