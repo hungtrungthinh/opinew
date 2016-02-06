@@ -563,7 +563,13 @@ def add_review():
     ctx = {}
     # Check if product_id is requested
     if 'product_id' in request.args:
-        ctx['product'] = Product.query.filter_by(id=request.args.get('product_id')).first()
+        product_id = request.args.get('product_id')
+        ctx['product'] = Product.query.filter_by(id=product_id).first()
+        if current_user and current_user.is_authenticated():
+            # Check if review by this user exists for this product
+            existing_review = Review.query.filter_by(product_id=product_id, user_id=current_user.id).first()
+            if existing_review:
+                return redirect(url_for('client.edit_review', review_id=existing_review.id))
     # Check if it's a review request and that the correct token is there
     ctx['show_recaptcha'] = not current_user.is_authenticated()
     if 'review_request_id' in request.args and 'review_request_token' in request.args:
@@ -929,7 +935,3 @@ def unsubscribe():
     db.session.add(user)
     db.session.commit()
     return "%s has been successfully unsubscribed." % email
-
-@client.route('/img')
-def img():
-    return render_template('img.html')
