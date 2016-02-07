@@ -1017,7 +1017,7 @@ class Review(db.Model, Repopulatable):
 
     @classmethod
     def get_latest(cls, start, end):
-        reviews = cls.query.order_by(Review.id.desc()).all()[start:end]
+        reviews = cls.query.filter_by(deleted=False).order_by(Review.id.desc()).all()[start:end]
         return reviews
 
     @classmethod

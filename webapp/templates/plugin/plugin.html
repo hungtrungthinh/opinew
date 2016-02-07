@@ -40,6 +40,19 @@
           {% if not rest_reviews and not featured_reviews and not own_review %}
               <h3>Bought it? Leave a review and help others!</h3>
           {% else %}
+            {% if average_stars %}
+              <div class="row" style="display:flex;justify-content:center;align-items:center;">
+                <div style="font-size: 2em; margin-bottom:20px;">
+                  <span class="star-rating {% if average_stars >= 1 %}star-active{% endif %}">☆</span>
+                  <span class="star-rating {% if average_stars >= 2 %}star-active{% endif %}">☆</span>
+                  <span class="star-rating {% if average_stars >= 3 %}star-active{% endif %}">☆</span>
+                  <span class="star-rating {% if average_stars >= 4 %}star-active{% endif %}">☆</span>
+                  <span class="star-rating {% if average_stars == 5 %}star-active{% endif %}">☆</span>
+                  <span style="color: #fb8c2d">  {{ average_stars }}/5</span>
+                  from {{ all_reviews|length }} reviews
+                 </div>
+              </div>
+            {% endif %}
             {% set hide_buy_button = True %}
             {% if own_review %}
                 <h4>Your review</h4>

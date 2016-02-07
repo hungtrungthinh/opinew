@@ -26,7 +26,19 @@
                 <h3>Reviews</h3>
                 <a class="btn btn-default btn-block btn-info" style="margin-bottom: 15px"
                    href="{{ url_for('client.add_review', product_id=product.id) }}">Add a review</a>
-
+              {% if average_stars %}
+              <div class="row" style="display:flex;justify-content:center;align-items:center;">
+                <div style="font-size: 2em; margin-bottom:20px;">
+                  <span class="star-rating {% if average_stars >= 1 %}star-active{% endif %}">☆</span>
+                  <span class="star-rating {% if average_stars >= 2 %}star-active{% endif %}">☆</span>
+                  <span class="star-rating {% if average_stars >= 3 %}star-active{% endif %}">☆</span>
+                  <span class="star-rating {% if average_stars >= 4 %}star-active{% endif %}">☆</span>
+                  <span class="star-rating {% if average_stars == 5 %}star-active{% endif %}">☆</span>
+                  <span style="color: #fb8c2d">  {{ average_stars }}/5</span>
+                  from {{ all_reviews|length }} reviews
+                 </div>
+              </div>
+            {% endif %}
               {% if own_review %}
                   <h4>Your review</h4>
                 {% set review = own_review %}
