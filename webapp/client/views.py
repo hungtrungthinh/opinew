@@ -1,3 +1,4 @@
+from __future__ import division
 import datetime
 import os
 import httplib
@@ -464,7 +465,7 @@ def get_plugin():
         featured_reviews = [fr for fr in all_reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
         rest_reviews = [r for r in all_reviews if r not in featured_reviews and not r == own_review]
         stars_list = [r.star_rating for r in all_reviews if r.star_rating]
-        average_stars = sum(stars_list) / len(stars_list)
+        average_stars = sum(stars_list) / len(stars_list) if len(stars_list) else 0
         next_arg = request.url
         # TODO: deprecate plugin_views
         product.plugin_views += 1
@@ -486,6 +487,39 @@ def get_plugin():
                            review_image_form=review_image_form, next_arg=next_arg,
                            own_review=own_review, featured_reviews=featured_reviews, in_plugin=True,
                            funnel_stream_id=funnel_stream_id, show_recaptcha=show_recaptcha)
+
+
+@client.route('/plugin-stars')
+def get_plugin_stars():
+    try:
+        shop_id = param_required('shop_id', request.args)
+        if not shop_id:
+            return '', 404
+        get_by = param_required('get_by', request.args)
+        if get_by == 'url':
+            product_url = param_required('product_url', request.args)
+            product = Product.find_product_by_url(product_url, shop_id)
+        elif get_by == 'platform_id':
+            platform_product_id = param_required('platform_product_id', request.args)
+            product = Product.query.filter_by(shop_id=shop_id, platform_product_id=platform_product_id).first()
+        else:
+            return '', 404
+        shop = product.shop
+        if shop.owner and \
+                shop.owner.customer and \
+                shop.owner.customer[0] and \
+                        (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
+                not shop.owner.customer[0].last4:
+            return '', 404
+        all_reviews = Review.query.filter_by(product_id=product.id, deleted=False).order_by(Review.created_ts.desc()).all()
+        stars_list = [r.star_rating for r in all_reviews if r.star_rating]
+        average_stars = sum(stars_list) / len(stars_list) if len(stars_list) else 0
+    except (ParamException, DbException, AssertionError, AttributeError) as e:
+        return '', 404
+    return render_template('plugin/plugin_stars.html',
+                           product=product,
+                           average_stars=average_stars,
+                           all_reviews=all_reviews)
 
 
 @client.route('/update-funnel')
@@ -527,17 +561,17 @@ def get_product(product_id):
                 Review.created_ts.desc()).first()
         else:
             own_review = None
-        reviews = Review.query.filter_by(product_id=product_id, deleted=False).order_by(Review.created_ts.desc()).all()
-        featured_reviews = [fr for fr in reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
-        reviews = [r for r in reviews if r not in featured_reviews and not r == own_review]
-        stars_list = [r.star_rating for r in reviews if r.star_rating]
-        average_stars = sum(stars_list) / len(stars_list)
+        all_reviews = Review.query.filter_by(product_id=product_id, deleted=False).order_by(Review.created_ts.desc()).all()
+        featured_reviews = [fr for fr in all_reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
+        reviews = [r for r in all_reviews if r not in featured_reviews and not r == own_review]
+        stars_list = [r.star_rating for r in all_reviews if r.star_rating]
+        average_stars = sum(stars_list) / len(stars_list) if len(stars_list) else 0
     except (ParamException, DbException) as e:
         flash(e.message)
         return redirect(request.referrer)
     return render_template('product.html',
                            average_stars=average_stars,
-                           all_reviews=reviews,
+                           all_reviews=all_reviews,
                            page_image=product.image_url,
                            page_title="%s Reviews - Opinew" % product.name,
                            product=product,

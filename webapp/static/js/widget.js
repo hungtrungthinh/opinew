@@ -1,12 +1,17 @@
 //var OPINEW_URL = "http://localhost:5000";
 var OPINEW_URL = "https://opinew.com";
 var OPINEW_PLUGIN_URL = OPINEW_URL + "/plugin";
+var OPINEW_STAR_PLUGIN_URL = OPINEW_URL + "/plugin-stars";
 var FUNNEL_STREAM_ID;
 
 var pluginElement = window.document.getElementById("opinew-plugin");
-var opinewShopId = pluginElement.getAttribute('data-opinew-shop-id');
-var opinewProductPlatformId = pluginElement.getAttribute('data-platform-product-id');
-var productLocation = window.location.host + window.location.pathname;
+
+if (pluginElement) {
+  var opinewShopId = pluginElement.getAttribute('data-opinew-shop-id');
+  var opinewProductPlatformId = pluginElement.getAttribute('data-platform-product-id');
+  var productLocation = window.location.host + window.location.pathname;
+  loadPlugin();
+}
 
 function insertPlugin(url) {
   pluginElement.innerHTML =
@@ -32,7 +37,6 @@ function loadPlugin() {
 
 }
 
-loadPlugin();
 
 var IS_GLIMPSED = false;
 var IS_FULLY_SEEN = false;
@@ -50,15 +54,17 @@ function isElementGlimpsed(el) {
 }
 
 function isElementFullyVisible(el) {
-  var rect = el.getBoundingClientRect();
-  return (
-      rect.top >= 0 &&
-      rect.left >= 0 &&
-      rect.width > 0 &&
-      rect.height > 0 &&
-      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-  );
+  if (el) {
+    var rect = el.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+  }
 }
 
 function onVisibilityChange(el, callback) {
@@ -108,3 +114,20 @@ function sendUpdate(action) {
   xhr.open('GET', OPINEW_URL + '/update-funnel?funnel_stream_id=' + FUNNEL_STREAM_ID + '&action=' + action);
   xhr.send(null);
 }
+
+function loadStarPlugin() {
+  var finalStarUrl = OPINEW_STAR_PLUGIN_URL;
+  var starPluginElements = document.getElementsByClassName('opinew-plugin-stars');
+  for (var i = 0; i < starPluginElements.length; i++) {
+    var starPluginElement = starPluginElements[i];
+    var opinewShopId = starPluginElement.getAttribute('data-opinew-shop-id');
+    finalStarUrl = finalStarUrl + '?shop_id=' + opinewShopId;
+    var opinewStarProductPlatformId = starPluginElement.getAttribute('data-platform-product-id');
+    if (opinewStarProductPlatformId) {
+      finalStarUrl = finalStarUrl + '&get_by=platform_id&platform_product_id=' + opinewStarProductPlatformId;
+      starPluginElement.innerHTML = '<iframe style="border:0; width:100%; height:60px;" src="' + finalStarUrl + '">' + '</iframe>';
+    }
+  }
+}
+
+loadStarPlugin();
