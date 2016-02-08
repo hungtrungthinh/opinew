@@ -55,17 +55,18 @@ $('#review-img-upload-input').change(function (e) {
     progressBar.parent().hide();
     progressBar.css('width', '5%');
     var image_url = r.image_url;
-    setImageUrl(image_url);
+    var resized_image_url = r.resized_image_url;
+    setImageUrl(image_url, resized_image_url);
   }).fail(function () {
     // Optionally alert the user of an error here...
   });
 });
 
-function setImageUrl(imageUrl) {
+function setImageUrl(imageUrl, resized_image_url) {
   $('#review-img-container').addClass('col-md-4');
   $('#review-body-container').removeClass('col-md-10').addClass('col-md-6');
   $('#image_url').val(imageUrl);
-  $('#review-image').attr('src', imageUrl).show();
+  $('#review-image').attr('src', resized_image_url).show();
 }
 
 function getGiphyImages(form) {

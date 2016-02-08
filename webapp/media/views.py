@@ -25,7 +25,10 @@ def get_user_image(filename):
 def upload_review_image():
     if 'image' in request.files:
         filename = review_images.save(request.files['image'])
-        return jsonify({'image_url': resize(g.config.get('OPINEW_API_SERVER') + url_for('media.get_review_image', filename=filename), '600x400')})
+        return jsonify({
+            'image_url': g.config.get('OPINEW_API_SERVER') + url_for('media.get_review_image', filename=filename),
+            'resized_image_url': resize(g.config.get('OPINEW_API_SERVER') + url_for('media.get_review_image', filename=filename), '600x400')
+        })
     return '', 400
 
 
