@@ -63,6 +63,9 @@ $('#review-img-upload-input').change(function (e) {
 });
 
 function setImageUrl(imageUrl, resized_image_url) {
+  if (!resized_image_url) {
+    resized_image_url = imageUrl;
+  }
   $('#review-img-container').addClass('col-md-4');
   $('#review-body-container').removeClass('col-md-10').addClass('col-md-6');
   $('#image_url').val(imageUrl);
