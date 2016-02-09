@@ -1044,7 +1044,7 @@ class Shop(db.Model, Repopulatable):
     owner = db.relationship("User", backref=db.backref("shops"))
 
     platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
-    platform = db.relationship("Platform", backref=db.backref("platform", uselist=False))
+    platform = db.relationship("Platform", backref=db.backref("platform"))
 
     def update_access_token(self, access_token):
         self.access_token = access_token
