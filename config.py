@@ -92,6 +92,8 @@ class Constants(object):
 
     FUNNEL_STREAM_ACTIONS = ['glimpse', 'fully_seen', 'mouse_hover', 'mouse_click', 'mouse_scroll']
 
+    DEFAULT_BODY_STARS = "I gave {star_rating} stars."
+
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),

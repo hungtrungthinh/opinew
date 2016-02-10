@@ -1,35 +1,30 @@
-{% if review.user_image_url %}
-  {% if review.user_id %}
-    <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
-      <img class="review-profile-pic" src="{{ review.user_image_url }}" alt="{{ review.user_name }} profile image"/>
+<div class="review-author">
+  {% if review.user_image_url %}
+    {%- if review.user_id %}
+      <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
+    {%- endif %}
+  <img class="img-circle review-author-image" src="{{ review.user_image_url }}"
+       alt="{{ review.user_name }} profile image"/>
+  {%- if review.user_id %}
     </a>
-  {% else %}
-    <img class="review-profile-pic" src="{{ review.user_image_url }}" alt="{{ review.user_name }} profile image"/>
+  {%- endif %}
   {% endif %}
-{% endif %}
-<div class="review-author-name">
-  {% if review.user_id %}
-    <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}"
-       {% if in_plugin %}target="_blank"{% endif %}>
-      {{ review.user_name }}
-    </a>
-  {% else %}
+  <p class="review-author-name">
+    {%- if review.user_id %}
+      <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}"
+         {% if in_plugin %}target="_blank"{% endif %}>
+    {%- endif %}
     {{ review.user_name }}
-  {% endif %}
-  {% if show_product_info %}
-    <span class="small-screen text-muted">
-                reviewed {% include "review/product_name.html" %}
-         </span>
-  {% endif %}
-</div>
+    {%- if review.user_id %}
+      </a>
+    {%- endif %}
 
-{% if review.user %}
-  <div class="review-author-stats">
-    <small>
-      <b>Reviews:</b> {{ review.user.reviews_count }} <br>
-      <b>Likes:</b> {{ review.user.likes_count }}
-    </small>
-  </div>
-{% else %}
-  <div>&nbsp;</div>
-{% endif %}
+    {% if show_product_info %}
+      <br>
+      ▸ <a href="{{ url_for('client.get_product', product_id=review.product.id) }}">
+      <b>{{ review.product.name }}</b> from <b>{{ review.product.shop.name }}</b>
+    </a>
+    {% endif %}
+  </p>
+  <div class="clearfix"></div>
+</div>

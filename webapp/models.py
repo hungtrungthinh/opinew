@@ -789,6 +789,11 @@ class Review(db.Model, Repopulatable):
         self.image_url = image_url
         self.star_rating = star_rating
 
+        if not body:
+            if not self.star_rating:
+                raise DbException(message="[consistency: At least a body or star rating is needed]", status_code=400)
+            self.body = Constants.DEFAULT_BODY_STARS.format(star_rating=star_rating)
+
         # differentiate between a review about a product vs a review about a shop
         if shop_id and product_id:
             raise DbException(message="[consistency: Can't set both shop_id and product_id]", status_code=400)
