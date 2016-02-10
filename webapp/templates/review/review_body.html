@@ -1,17 +1,19 @@
 <div class="review-body">
-  {% if review.body|length > g.constants.MAX_BODY_LENGTH %}
-    <p id="review-less-{{ review.id }}">
-      {{ review.body[:g.constants.MAX_BODY_LENGTH]|urlize(g.constants.DEFAULT_LINK_SHORT_SIZE, target='_blank') }}...
-      <a href="#" class="review-more-btn" data-review-id="{{ review.id }}">(more)</a>
-    </p>
+  {% if review.body %}
+    {% if review.body|length > g.constants.MAX_BODY_LENGTH %}
+      <p id="review-less-{{ review.id }}">
+        {{ review.body[:g.constants.MAX_BODY_LENGTH]|urlize(g.constants.DEFAULT_LINK_SHORT_SIZE, target='_blank') }}...
+        <a href="#" class="review-more-btn" data-review-id="{{ review.id }}">(more)</a>
+      </p>
 
-    <p id="review-more-{{ review.id }}" hidden>
-      {{ review.body|urlize(g.constants.DEFAULT_LINK_SHORT_SIZE, target='_blank') }}
-    </p>
-  {% else %}
-    <p>
-      {{ review.body|urlize(g.constants.DEFAULT_LINK_SHORT_SIZE, target='_blank') }}
-    </p>
+      <p id="review-more-{{ review.id }}" hidden>
+        {{ review.body|urlize(g.constants.DEFAULT_LINK_SHORT_SIZE, target='_blank') }}
+      </p>
+    {% else %}
+      <p>
+        {{ review.body|urlize(g.constants.DEFAULT_LINK_SHORT_SIZE, target='_blank') }}
+      </p>
+    {% endif %}
   {% endif %}
   <em class="pull-right text-muted review-date"> — {{ review.created_ts.strftime('%d %b, %Y') }}</em><br>
 </div>

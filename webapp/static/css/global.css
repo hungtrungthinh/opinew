@@ -48,21 +48,53 @@ a {
 }
 
 .btn-primary {
-  color: #fff;
   background-color: #1c9298;
-  border-color: #1c9298;
+  border-color: #198388;
+}
+
+.btn-primary:hover {
+  background-color: #167479 !important;
+  border-color: #13666a;
 }
 
 .btn-success {
-  color: #fff;
   background-color: #22be44;
-  border-color: #22be44;
+  border-color: #1eab3d;
+}
+
+.btn-success:hover {
+  background-color: #1b9836;
+  border-color: #17852f;
 }
 
 .btn-info {
-  color: #fff;
   background-color: #2c54a8;
-  border-color: #2c54a8;
+  border-color: #274b97;
+}
+
+.btn-info:hover {
+  background-color: #234386;
+  border-color: #1e3a75;
+}
+
+.btn-danger {
+  background-color: #fb412d;
+  border-color: #e13a28;
+}
+
+.btn-danger:hover {
+  background-color: #c83424;
+  border-color: #af2d1f;
+}
+
+.btn-warning {
+  background-color: #fb8c2d;
+  border-color: #e17e28;
+}
+
+.btn-warning:hover {
+  background-color: #c87024;
+  border-color: #af621f;
 }
 
 .well {
@@ -120,7 +152,8 @@ a {
 .review-image-container {
   position: relative;
   overflow: hidden;
-  max-height: 300px;
+  max-height: 320px;
+  background-color: #222;
 }
 
 .review-image {
@@ -129,14 +162,13 @@ a {
   right: 0;
   top: 0;
   bottom: 0;
-  width: 100%;
   height: auto;
   margin: auto;
 }
 
 .review-youtube-container {
   position: relative;
-  padding-bottom: 300px;
+  padding-bottom: 320px;
   padding-top: 25px;
   height: 0;
 }
@@ -159,17 +191,6 @@ a {
 
 .review-date {
   margin-bottom: 10px;
-}
-
-.btn-write-review {
-  color: white;
-  position: relative;
-  right: 0;
-}
-
-.btn-write-review:hover {
-  color: white;
-  background-color: #14676c !important;
 }
 
 .reviews-container {

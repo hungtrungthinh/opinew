@@ -17,6 +17,7 @@ from webapp.exceptions import ParamException, DbException, ApiException, Excepti
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
 from providers import giphy
+from webapp.strategies import rank_objects_for_product
 
 
 @client.route('/install')
@@ -457,15 +458,7 @@ def get_plugin():
                 not shop.owner.customer[0].last4:
             return '', 404
 
-        if current_user and current_user.is_authenticated():
-            own_review = Review.query.filter_by(product_id=product.id, user=current_user, deleted=False).order_by(Review.created_ts.desc()).first()
-        else:
-            own_review = None
-        all_reviews = Review.query.filter_by(product_id=product.id, approved_by_shop=True, deleted=False).order_by(Review.created_ts.desc()).all()
-        featured_reviews = [fr for fr in all_reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
-        rest_reviews = [r for r in all_reviews if r not in featured_reviews and not r == own_review]
-        stars_list = [r.star_rating for r in all_reviews if r.star_rating]
-        average_stars = sum(stars_list) / len(stars_list) if len(stars_list) else 0
+        product_objs = rank_objects_for_product(product.id)
         next_arg = request.url
         # TODO: deprecate plugin_views
         product.plugin_views += 1
@@ -481,12 +474,17 @@ def get_plugin():
                 db.session.commit()
     except (ParamException, DbException, AssertionError, AttributeError) as e:
         return '', 404
-    return render_template('plugin/plugin.html', product=product, rest_reviews=rest_reviews,
-                           average_stars=average_stars, all_reviews=all_reviews,
-                           signup_form=signup_form, login_form=login_form, review_form=review_form,
-                           review_image_form=review_image_form, next_arg=next_arg,
-                           own_review=own_review, featured_reviews=featured_reviews, in_plugin=True,
-                           funnel_stream_id=funnel_stream_id, show_recaptcha=show_recaptcha)
+    return render_template('plugin/plugin.html',
+                           product=product,
+                           product_objs=product_objs,
+                           signup_form=signup_form,
+                           login_form=login_form,
+                           review_form=review_form,
+                           review_image_form=review_image_form,
+                           next_arg=next_arg,
+                           in_plugin=True,
+                           funnel_stream_id=funnel_stream_id,
+                           show_recaptcha=show_recaptcha)
 
 
 @client.route('/plugin-stars')
@@ -556,28 +554,15 @@ def update_funnel():
 def get_product(product_id):
     try:
         product = Product.get_by_id(product_id)
-        if current_user and current_user.is_authenticated():
-            own_review = Review.query.filter_by(product_id=product_id, user=current_user, deleted=False).order_by(
-                Review.created_ts.desc()).first()
-        else:
-            own_review = None
-        all_reviews = Review.query.filter_by(product_id=product_id, deleted=False).order_by(Review.created_ts.desc()).all()
-        featured_reviews = [fr for fr in all_reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
-        reviews = [r for r in all_reviews if r not in featured_reviews and not r == own_review]
-        stars_list = [r.star_rating for r in all_reviews if r.star_rating]
-        average_stars = sum(stars_list) / len(stars_list) if len(stars_list) else 0
+        product_objs = rank_objects_for_product(product_id)
     except (ParamException, DbException) as e:
         flash(e.message)
         return redirect(request.referrer)
     return render_template('product.html',
-                           average_stars=average_stars,
-                           all_reviews=all_reviews,
+                           product_objs=product_objs,
                            page_image=product.image_url,
                            page_title="%s Reviews - Opinew" % product.name,
-                           product=product,
-                           reviews=reviews,
-                           own_review=own_review,
-                           featured_reviews=featured_reviews)
+                           product=product)
 
 
 @client.route('/read-notification')

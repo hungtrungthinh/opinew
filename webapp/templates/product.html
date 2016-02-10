@@ -1,55 +1,40 @@
 {% extends "layout.html" %}
 {% block content %}
   {% include "modal-lightbox.html" %}
-    <div class="container">
-        <div class="row">
-            <div class="col-xs-12 col-md-10 col-md-offset-1">
-                <h2>
-                    <a href="http://{{ product.url }}">{{ product.name }}</a><br>
-                    <small>from <a href="{{ product.shop.domain }}">{{ product.shop.name }}</a></small>
-                </h2>
-                <div class="media">
-                  {% if product.short_description %}
-                    {% if product.image_url %}
-                        <div class="media-left media-top">
-                            <a href="#">
-                                <img class="media-object img-thumbnail" src="{{ product.image_url }}"
-                                     alt="{{ product.name }} image" style="max-height:120px">
-                            </a>
-                        </div>
-                    {% endif %}
-                      <div class="media-body">
-                          <h4 class="media-heading">{{ product.short_description }}</h4>
-                      </div>
-                      </div>
-                  {% endif %}
-                <h3>Reviews</h3>
-                <a class="btn btn-primary btn-block btn-lg" style="margin-bottom: 15px"
-                   href="{{ url_for('client.add_review', product_id=product.id) }}">Add a review</a>
-              {% if average_stars %}
-              <div class="row" style="display:flex;justify-content:center;align-items:center;">
-                {% include "product/star_summary.html" %}
+  <div class="container">
+    <div class="row">
+      <div class="col-xs-12 col-md-10 col-md-offset-1">
+        <h2>
+          <a href="http://{{ product.url }}">{{ product.name }}</a><br>
+          <small>from <a href="{{ product.shop.domain }}">{{ product.shop.name }}</a></small>
+        </h2>
+        <div class="media">
+          {% if product.short_description %}
+            {% if product.image_url %}
+              <div class="media-left media-top">
+                <a href="#">
+                  <img class="media-object img-thumbnail" src="{{ product.image_url }}"
+                       alt="{{ product.name }} image" style="max-height:120px">
+                </a>
               </div>
             {% endif %}
-              {% if own_review %}
-                  <h4>Your review</h4>
-                {% set review = own_review %}
-                {% include "review/review.html" %}
-                  <hr>
-              {% endif %}
-              {% if featured_reviews %}
-                  <h4>Featured reviews</h4>
-                {% for review in featured_reviews %}
-                  {% include "review/review.html" %}
-                {% endfor %}
-                  <hr>
-              {% endif %}
-              {% if reviews %}
-                {% for review in reviews %}
-                  {% include "review/review.html" %}
-                {% endfor %}
-              {% endif %}
+            <div class="media-body">
+              <h4 class="media-heading">{{ product.short_description }}</h4>
             </div>
-        </div>
+            </div>
+          {% endif %}
+        <h3>Reviews</h3>
+        <a class="btn btn-primary btn-block btn-lg" style="margin-bottom: 15px"
+           href="{{ url_for('client.add_review', product_id=product.id) }}">Add a review</a>
+        {% if product_objs.average_stars %}
+          <div class="row" style="display:flex;justify-content:center;align-items:center;">
+            {% include "product/star_summary.html" %}
+          </div>
+        {% endif %}
+        {% for review in product_objs.objs_list %}
+          {% include "review/review.html" %}
+        {% endfor %}
+      </div>
     </div>
+  </div>
 {% endblock %}

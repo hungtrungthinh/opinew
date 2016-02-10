@@ -790,9 +790,10 @@ class Review(db.Model, Repopulatable):
         self.star_rating = star_rating
 
         if not body:
-            if not self.star_rating:
-                raise DbException(message="[consistency: At least a body or star rating is needed]", status_code=400)
-            self.body = Constants.DEFAULT_BODY_STARS.format(star_rating=star_rating)
+            if self.star_rating:
+                self.body = Constants.DEFAULT_BODY_STARS.format(star_rating=star_rating)
+            else:
+                body = ""
 
         # differentiate between a review about a product vs a review about a shop
         if shop_id and product_id:
@@ -980,6 +981,11 @@ class Review(db.Model, Repopulatable):
         else:
             _user_image_url = gravatar('')
         return _user_image_url
+
+
+    @classmethod
+    def get_all_undeleted_reviews_for_product(cls, product_id):
+        return cls.query.filter_by(product_id=product_id, deleted=False).all()
 
     def __repr__(self):
         return '<Review %r %r... by %r>' % (self.id, self.body[:10] if self.body else self.id, self.user)
