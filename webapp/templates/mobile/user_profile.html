@@ -20,8 +20,8 @@
                 </div>
                 <div class="profile-user-details" style="display: inline-block;margin-left: 5px;padding-bottom: 5px">
                     <h3>{{ user.name }}<br>
-                        <small>Reviews: {{ user.reviews_count }}</small><br>
-                    <small>Likes: {{ user.likes_count }}</small>
+                        <small>Reviews: {{ user.reviews|length }}</small><br>
+                    <small>Likes: {{ user.review_likes|length }}</small>
                     </h3>
                 </div>
 

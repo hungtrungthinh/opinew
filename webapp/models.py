@@ -106,14 +106,6 @@ class User(db.Model, UserMixin, Repopulatable):
     def get_by_email_no_exception(cls, email):
         return cls.query.filter_by(email=email).first()
 
-    @property
-    def reviews_count(self):
-        return len(self.reviews)
-
-    @property
-    def likes_count(self):
-        return len([rl for rl in ReviewLike.query.filter_by(user_id=self.id).all()])
-
     @classmethod
     def get_by_email(cls, email):
         user = cls.query.filter_by(email=email).first()
@@ -336,39 +328,60 @@ class Subscription(db.Model, Repopulatable):
 class ReviewLike(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
-                        default=current_user.id if current_user and current_user.is_authenticated() else 0)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("review_likes"))
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("review_likes"))
+    review = db.relationship("Review", backref=db.backref("likes"))
 
 
 class ReviewReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
-                        default=current_user.id if current_user and current_user.is_authenticated() else 0)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("review_reports"))
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("review_reports"))
+    review = db.relationship("Review", backref=db.backref("reports"))
 
 
 class ReviewFeature(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime)
 
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("review_features"))
+
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("feature"), uselist=False)
+    review = db.relationship("Review", backref=db.backref("featured"), uselist=False)
+
+
+class ReviewShare(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("review_shares"))
+
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship("Review", backref=db.backref("shares"))
+
+
+class UrlReferer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+    url = db.Column(db.String)
+    q = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("url_referers"))
 
 
 class Notification(db.Model):
@@ -908,54 +921,36 @@ class Review(db.Model, Repopulatable):
         return self
 
     @property
-    def likes(self):
-        return sum([rl.action for rl in ReviewLike.query.filter_by(review_id=self.id).all()])
-
-    @property
-    def reports(self):
-        return sum([rr.action for rr in ReviewReport.query.filter_by(review_id=self.id).all()])
-
-    @property
-    def liked_by_current_user(self):
+    def is_liked_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return rl
+            review_like = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_like:
+                return True
         return False
 
     @property
-    def reported_by_current_user(self):
+    def is_reported_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rr = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return rr
+            review_report = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_report:
+                return True
         return False
 
     @property
-    def featured(self):
+    def is_featured_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rf = ReviewFeature.query.filter_by(review_id=self.id).first()
-            return rf
+            review_feature = ReviewFeature.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_feature:
+                return True
         return False
 
     @property
-    def next_like_action(self):
+    def is_shared_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return (0 if rl.action == 1 else 1) if rl else 1
-        return 1
-
-    @property
-    def next_report_action(self):
-        if current_user and current_user.is_authenticated():
-            rr = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return (0 if rr.action == 1 else 1) if rr else 1
-        return 1
-
-    @property
-    def next_feature_action(self):
-        if current_user and current_user.is_authenticated():
-            rf = ReviewFeature.query.filter_by(review_id=self.id).first()
-            return (0 if rf.action == 1 else 1) if rf else 1
-        return 1
+            review_shared = ReviewShare.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_shared:
+                return True
+        return False
 
     @property
     def user_name(self):
@@ -1392,6 +1387,7 @@ admin.add_view(AdminModelView(Subscription, db.session))
 admin.add_view(AdminModelView(ReviewLike, db.session))
 admin.add_view(AdminModelView(ReviewReport, db.session))
 admin.add_view(AdminModelView(ReviewFeature, db.session))
+admin.add_view(AdminModelView(ReviewShare, db.session))
 admin.add_view(AdminModelView(ReviewRequest, db.session))
 admin.add_view(AdminModelView(Notification, db.session))
 admin.add_view(AdminModelView(Order, db.session))
@@ -1408,3 +1404,4 @@ admin.add_view(AdminModelView(Task, db.session))
 admin.add_view(AdminModelView(SentEmail, db.session))
 admin.add_view(AdminModelView(Source, db.session))
 admin.add_view(AdminModelView(FunnelStream, db.session))
+admin.add_view(AdminModelView(UrlReferer, db.session))

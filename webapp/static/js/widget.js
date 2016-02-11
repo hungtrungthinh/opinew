@@ -9,7 +9,7 @@ var pluginElement = window.document.getElementById("opinew-plugin");
 if (pluginElement) {
   var opinewShopId = pluginElement.getAttribute('data-opinew-shop-id');
   var opinewProductPlatformId = pluginElement.getAttribute('data-platform-product-id');
-  var productLocation = window.location.host + window.location.pathname;
+  var productLocation = window.location.protocol + '//' + window.location.host + window.location.pathname;
   loadPlugin();
 }
 

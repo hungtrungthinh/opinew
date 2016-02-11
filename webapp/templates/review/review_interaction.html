@@ -1,26 +1,15 @@
 <div class="review-interactions">
-  <button class="btn btn-default btn-interaction" onclick="shareReview('{{ review.id }}')"><span
-      class="glyphicon glyphicon-share-alt"></span> Share
-  </button>
-  {% if not hide_buy_button %}
-    <a class="btn pull-right btn-primary" href="http://{{ review.product.url }}">Buy</a>
-  {% endif %}
-  {% if current_user.is_authenticated() %}
-    <div class="pull-right">
-      {% if current_user and current_user.is_authenticated() and review.product.shop.owner == current_user %}
-        {% include "forms/feature_review.html" %}
+  {% include "review/interactions/share.html" %}
+  <div class="pull-right">
+    {% if current_user.is_authenticated() %}
+      {% if review.product.shop.owner == current_user %}
+        {% include "review/interactions/feature.html" %}
       {% endif %}
-      {% include "forms/report_review.html" %}
-      {% include "forms/like_review.html" %}
-    </div>
-  {% else %}
-    <a class="btn btn-default btn-interaction pull-right" style="margin-right: 10px;"
-        {% if in_plugin %}
-       data-toggle="modal" data-target="#modal-signup"
-        {% else %}
-       href="/login?next={{ request.full_path|urlencode }}"
-        {% endif %}>
-      <span class="glyphicon glyphicon-thumbs-up"></span> <span class="like-count">{{ review.likes }}</span>
-    </a>
-  {% endif %}
+      {% include "review/interactions/report.html" %}
+      {% include "review/interactions/like.html" %}
+      {% if not hide_buy_button %}
+        {% include "review/interactions/buy.html" %}
+      {% endif %}
+    {% endif %}
+  </div>
 </div>

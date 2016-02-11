@@ -10,6 +10,7 @@ class ExceptionMessages(object):
                     "https://www.shop.com, http://www.shop.com, www.shop.com"
     NOT_YOUR_SHOP = "Not your shop"
     NOT_YOUR_REVIEW = "Not your review."
+    CANT_FEATURE_THAT_REVIEW = "Can't feature that review."
 
 
 class ResponseException(Exception):

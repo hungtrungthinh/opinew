@@ -11,7 +11,8 @@ from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
-    Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy
+    Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
+    ReviewFeature, UrlReferer
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -454,6 +455,7 @@ def get_plugin():
         if shop.owner and \
                 shop.owner.customer and \
                 shop.owner.customer[0] and \
+                shop.owner.confirmed_at and \
                         (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
                 not shop.owner.customer[0].last4:
             return '', 404
@@ -821,7 +823,6 @@ def update_order():
     return redirect(url_for('client.shop_dashboard'))
 
 
-
 @client.route('/review-notification', defaults={'order_id': None})
 @client.route('/review-notification/<int:order_id>')
 @roles_required(Constants.SHOP_OWNER_ROLE)
@@ -961,3 +962,139 @@ def unsubscribe():
     db.session.add(user)
     db.session.commit()
     return "%s has been successfully unsubscribed." % email
+
+
+@client.route('/review-like', defaults={'review_id': None})
+@client.route('/review-like/<review_id>')
+@login_required
+def add_review_like(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        return jsonify({
+            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
+        }), httplib.BAD_REQUEST
+    review_like = ReviewLike.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+    if not review_like:
+        now = datetime.datetime.utcnow()
+        new_action = True
+        review_like = ReviewLike(review_id=review_id, user_id=current_user.id, timestamp=now)
+        db.session.add(review_like)
+    else:
+        new_action = False
+        db.session.delete(review_like)
+    db.session.commit()
+    if request.args.get('async'):
+        return jsonify({
+            'action': new_action,
+            'count': len(review.likes)
+        })
+    return redirect(request.referrer or url_for('client.reviews'))
+
+
+@client.route('/review-report', defaults={'review_id': None})
+@client.route('/review-report/<review_id>')
+@login_required
+def add_review_report(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        return jsonify({
+            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
+        }), httplib.BAD_REQUEST
+    review_report = ReviewReport.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+    if not review_report:
+        now = datetime.datetime.utcnow()
+        new_action = True
+        review_report = ReviewReport(review_id=review_id, user_id=current_user.id, timestamp=now)
+        db.session.add(review_report)
+    else:
+        new_action = False
+        db.session.delete(review_report)
+    db.session.commit()
+    if request.args.get('async'):
+        return jsonify({
+            'action': new_action,
+            'count': len(review.reports)
+        })
+    return redirect(request.referrer or url_for('client.reviews'))
+
+
+@client.route('/review-feature', defaults={'review_id': None})
+@client.route('/review-feature/<review_id>')
+@login_required
+@roles_required(Constants.SHOP_OWNER_ROLE)
+def add_review_feature(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        return jsonify({
+            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
+        }), httplib.BAD_REQUEST
+    if not (review.product and review.product.shop):
+        return jsonify({
+            "error": ExceptionMessages.CANT_FEATURE_THAT_REVIEW
+        }), httplib.BAD_REQUEST
+    review_shop = review.product.shop
+    if review_shop not in current_user.shops:
+        return jsonify({
+            "error": ExceptionMessages.CANT_FEATURE_THAT_REVIEW
+        }), httplib.UNAUTHORIZED
+    review_feature = ReviewFeature.query.filter_by(review_id=review_id).first()
+    if not review_feature:
+        now = datetime.datetime.utcnow()
+        new_action = True
+        review_feature = ReviewFeature(review_id=review_id, user_id=current_user.id, timestamp=now)
+        db.session.add(review_feature)
+    else:
+        new_action = False
+        db.session.delete(review_feature)
+    db.session.commit()
+    if request.args.get('async'):
+        return jsonify({
+            'action': new_action,
+            'count': 1 if review.featured else 0
+        })
+    return redirect(request.referrer or url_for('client.reviews'))
+
+
+@client.route('/review-share', defaults={'review_id': None})
+@client.route('/review-share/<review_id>')
+def add_review_share(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        return jsonify({
+            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
+        }), httplib.BAD_REQUEST
+    now = datetime.datetime.utcnow()
+    review_share = ReviewShare(timestamp=now, review=review)
+    if current_user.is_authenticated():
+        review_share.user = current_user
+    db.session.add(review_share)
+    db.session.commit()
+    if request.args.get('async'):
+        return jsonify({
+            'action': True,
+            'count': len(review.shares)
+        })
+    return redirect(request.referrer or url_for('client.reviews'))
+
+
+@client.route('/ref')
+def add_referer():
+    url = request.args.get('url')
+    if not url:
+        return jsonify({
+            "error": ExceptionMessages.MISSING_PARAM.format(param='url')
+        }), httplib.BAD_REQUEST
+    q = request.args.get('q')
+    if not q:
+        return jsonify({
+            "error": ExceptionMessages.MISSING_PARAM.format(param='q')
+        }), httplib.BAD_REQUEST
+    now = datetime.datetime.utcnow()
+    ref = UrlReferer(url=url, q=q, timestamp=now)
+    if current_user.is_authenticated():
+        ref.user = current_user
+    db.session.add(ref)
+    db.session.commit()
+    if url.startswith('http://') or url.startswith('https://'):
+        return redirect(url)
+    return redirect('http://' + url)

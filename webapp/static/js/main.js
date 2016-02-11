@@ -1,7 +1,5 @@
 var csrftoken = $('meta[name=csrf-token]').attr('content');
 
-var ASYNC_SCRIPTS = ASYNC_SCRIPTS || [];
-
 var EMOJIS = {
   ":joy:": "1f602.png",
   ":hearts:": "2665.png",
@@ -60,12 +58,6 @@ $('.nav-tabs a').on('shown.bs.tab', function (e) {
   window.location.hash = e.target.hash;
 });
 
-function loadAsync() {
-  for (var i = 0; i < ASYNC_SCRIPTS.length; i++) {
-    $.getScript(ASYNC_SCRIPTS[i]);
-  }
-}
-
 function showMoreReview(el) {
   var reviewId = $(el).data('review-id');
   $(el).hide();
@@ -81,14 +73,6 @@ $('#modal-lightbox').on('show.bs.modal', function (event) {
   modal.find('#lightbox-img').attr('src', imageUrl);
 });
 
-function shareReview(reviewId) {
-  FB.ui({
-    method: 'feed',
-    link: 'https://opinew.com/review/' + reviewId
-  }, function (response) {
-  });
-}
-
 function getCookie(cname) {
   var name = cname + "=";
   var ca = document.cookie.split(';');
@@ -100,12 +84,86 @@ function getCookie(cname) {
   return "";
 }
 
-$(document).ready(function () {
-  $('.review-more-btn').click(function (e) {
-    e.preventDefault();
-    showMoreReview(this);
+function sendAsync(url, successCallback) {
+  $.ajax({
+    url: url + '?async=1'
+  }).done(function (r) {
+    successCallback(r);
+  }).fail(function (r) {
+    var error = r.responseJSON.error;
+    $('#product-post-status')
+        .addClass('alert-danger')
+        .html('<p><strong>Something went wrong</strong>: ' + error + '</p>')
+        .slideDown();
   });
+}
 
+/* Change interaction button style and success callbacks */
+
+function changeInteractionButtonStyle(response, el, trueActionClass) {
+  var $el = $(el);
+  if (response.action) {
+    $el.addClass(trueActionClass).removeClass('btn-default');
+  } else {
+    $el.addClass('btn-default').removeClass(trueActionClass);
+  }
+  var $countEl = $el.find('.count'); if ($countEl) {
+    $countEl.text(response.count);
+  }
+}
+
+function shareReviewSuccess(response, el) {
+  changeInteractionButtonStyle(response, el, 'btn-info');
+}
+
+function likeReviewSuccess(response, el) {
+  changeInteractionButtonStyle(response, el, 'btn-success');
+}
+
+function reportReviewSuccess(response, el) {
+  changeInteractionButtonStyle(response, el, 'btn-danger');
+}
+
+function featureReviewSuccess(response, el) {
+  changeInteractionButtonStyle(response, el, 'btn-warning');
+}
+
+/* Interaction buttons asyncrounous actions */
+
+function likeReview(el, reviewId) {
+  sendAsync('/review-like/' + reviewId, function (response) {
+    likeReviewSuccess(response, el);
+  });
+}
+
+function reportReview(el, reviewId) {
+  sendAsync('/review-report/' + reviewId, function (response) {
+    reportReviewSuccess(response, el);
+  });
+}
+
+function featureReview(el, reviewId) {
+  sendAsync('/review-feature/' + reviewId, function (response) {
+    featureReviewSuccess(response, el);
+  });
+}
+
+function shareReview(el, reviewId) {
+  FB.ui({
+    method: 'feed',
+    link: 'https://opinew.com/review/' + reviewId
+  }, function (response) {
+    if (response && !response.error_code) {
+      // Log a share on our side
+      sendAsync('/review-share/' + reviewId, function () {
+        shareReviewSuccess(el);
+      });
+    }
+  });
+}
+
+/* Replace emojis */
+function replaceEmojis() {
   $('.review-body-content').each(function () {
     var finalText = $(this).html();
     for (var property in EMOJIS) {
@@ -115,6 +173,8 @@ $(document).ready(function () {
     }
     $(this).html(finalText);
   });
-  loadAsync();
+}
 
+$(document).ready(function () {
+  replaceEmojis();
 });

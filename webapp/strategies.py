@@ -5,6 +5,30 @@ from flask.ext.security import current_user
 from config import Constants
 
 
+def calculate_regular_review_score(review, timestamp):
+    # Calculate days between now and the post of the review.
+    days_since = (timestamp - review.created_ts).days
+    # Older reviews are penalized
+    review.rank_score -= days_since * Constants.REVIEW_RANK_DAYS_WEIGHT
+    if review.user:
+        # Promote liked users
+        review.rank_score += len(review.user.reviews) * Constants.REVIEW_RANK_USER_LIKES_WEIGHT
+        # Promote users with more reviews
+        review.rank_score += len(review.user.review_likes) * Constants.REVIEW_RANK_USER_REVIEWS_WEIGHT
+    # Promote reviews with more likes
+    review.rank_score += len(review.likes) * Constants.REVIEW_RANK_LIKES_WEIGHT
+    # Promote reviews with more shares
+    review.rank_score += len(review.shares) * Constants.REVIEW_RANK_SHARES_WEIGHT
+    # Penalize reviews with more reports
+    review.rank_score -= len(review.reports) * Constants.REVIEW_RANK_REPORTS_WEIGHT
+    # Promote verified reviews
+    review.rank_score += Constants.REVIEW_RANK_IS_VERIFIED_WEIGHT if review.verified_review else 0
+    # Promote reviews with images
+    review.rank_score += Constants.REVIEW_RANK_HAS_IMAGE_WEIGHT if review.image_url else 0
+    # Promote reviews with videos
+    review.rank_score += Constants.REVIEW_RANK_HAS_VIDEO_WEIGHT if review.youtube_video else 0
+
+
 def rank_objects_for_product(product_id):
     now = datetime.datetime.utcnow()
     own_review = []
@@ -23,29 +47,10 @@ def rank_objects_for_product(product_id):
         review.rank_score = 0
         if review.user == current_user:
             own_review = [review]
-        elif review.featured and review.featured.action == 1:
+        elif review.featured:
             featured_reviews.append(review)
         else:
-            # Calculate days between now and the post of the review.
-            days_since = (now - review.created_ts).days
-            # Older reviews are penalized
-            review.rank_score -= days_since * Constants.REVIEW_RANK_DAYS_WEIGHT
-            if review.user:
-                # Promote liked users
-                review.rank_score += review.user.likes_count * Constants.REVIEW_RANK_USER_LIKES_WEIGHT
-                # Promote users with more reviews
-                review.rank_score += review.user.reviews_count * Constants.REVIEW_RANK_USER_REVIEWS_WEIGHT
-            # Promote reviews with more likes
-            review.rank_score += review.likes * Constants.REVIEW_RANK_LIKES_WEIGHT
-            # Promote verified reviews
-            review.rank_score += Constants.REVIEW_RANK_IS_VERIFIED_WEIGHT if review.verified_review else 0
-            # Penalize reviews with more reports
-            review.rank_score -= review.reports * Constants.REVIEW_RANK_REPORTS_WEIGHT
-            # Promote reviews with images
-            review.rank_score += Constants.REVIEW_RANK_HAS_IMAGE_WEIGHT if review.image_url else 0
-            # Promote reviews with videos
-            review.rank_score += Constants.REVIEW_RANK_HAS_VIDEO_WEIGHT if review.youtube_video else 0
-            # TODO: Promote by number of shares
+            calculate_regular_review_score(review, timestamp=now)
             # Add it to regular reviews
             regular_reviews.append(review)
     # Sort by rank_score
