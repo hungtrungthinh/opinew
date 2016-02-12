@@ -8,8 +8,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Constants(object):
     META_CANONICAL_URL = "https://opinew.com/"
-    META_DEFAULT_TITLE = "Opinew"
-    META_DEFAULT_DESCRIPTION = "Opinew is the photo review platform for the new generation"
+    META_DEFAULT_TITLE = "Opinew - The Best Photo and Video Reviews for Your Online Business"
+    META_DEFAULT_DESCRIPTION = "Increase your sales through smart and beautiful photo reviews with a simple plugin that works everywhere. Start your 30-day free trial today!"
     META_DEFAULT_IMAGE = "https://opinew.com/static/img/opinew_square.png"
     META_DEFAULT_PRERENDER = "/reviews"
 

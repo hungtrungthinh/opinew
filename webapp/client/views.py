@@ -501,6 +501,8 @@ def get_plugin():
         signup_form = ExtendedRegisterForm()
         login_form = LoginForm()
         shop_id = param_required('shop_id', request.args)
+        if not shop_id:
+            return '', 404
         get_by = param_required('get_by', request.args)
         if get_by == 'url':
             product_url = param_required('product_url', request.args)
