@@ -764,7 +764,13 @@ class ReviewRequest(db.Model):
         return token
 
 
-class Review(db.Model, Repopulatable):
+class RenderableObject(object):
+    @property
+    def object_type(self):
+        return self.__class__.__name__
+
+
+class Review(db.Model, Repopulatable, RenderableObject):
     id = db.Column(db.Integer, primary_key=True)
 
     body = db.Column(db.String)
@@ -1295,31 +1301,37 @@ class ProductUrl(db.Model, Repopulatable):
     product = db.relationship("Product", backref=db.backref("urls"))
 
 
-class Question(db.Model, Repopulatable):
+class Question(db.Model, Repopulatable, RenderableObject):
     id = db.Column(db.Integer, primary_key=True)
+    created_ts = db.Column(db.DateTime)
 
     body = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("questions"))
 
-    about_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    about_product = db.relationship("Product", backref=db.backref("questions"))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("questions"))
 
     click_count = db.Column(db.Integer, default=0)
     is_public = db.Column(db.Boolean, default=False)
 
+    @classmethod
+    def get_all_questions_for_product(cls, product_id):
+        return cls.query.filter_by(product_id=product_id).all()
+
 
 class Answer(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
+    created_ts = db.Column(db.DateTime)
 
     body = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("answers"))
 
-    to_question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
-    to_question = db.relationship("Question", backref=db.backref("answers"))
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
+    question = db.relationship("Question", backref=db.backref("answers"))
 
 
 class SentEmail(db.Model):

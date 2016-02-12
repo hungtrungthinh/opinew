@@ -1,0 +1,16 @@
+{% if current_user.is_authenticated() %}
+  <div class="ask-form">
+    <img class="img-circle author-image" src="{{ current_user.image_url }}"
+         alt="{{ current_user.name }} profile image"/>
+    <form method="post" action="/questions/create">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="product_id" value="{{ product.id }}">
+      <div class="input-group">
+        <input class="form-control ask-form-body" name="body" placeholder="What would you like to know?"/>
+    <span class="input-group-btn">
+      <button class="btn btn-primary ask-btn">Ask</button>
+    </span>
+      </div>
+    </form>
+  </div>
+{% endif %}

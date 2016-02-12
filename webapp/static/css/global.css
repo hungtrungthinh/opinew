@@ -118,7 +118,11 @@ a {
 .review-body,
 .review-interactions,
 .comment-form,
-.comment-container {
+.comment-container,
+.question-body-container,
+.question-form,
+.answer-form,
+.answer-container {
   margin: 16px;
 }
 
@@ -205,7 +209,8 @@ a {
   font-size: 1.5em;
 }
 
-.review-comments-container {
+.review-comments-container,
+.answers-container {
   overflow: auto;
   background-color: #f6f6f6;
 }
@@ -217,6 +222,23 @@ a {
 
 .comment-container {
   overflow: auto;
+}
+
+.question-body {
+  font-size: 2em;
+}
+
+.ask-form {
+  margin: 16px;
+}
+
+.ask-form-body {
+  height: 2em;
+  font-size: 2em;
+}
+
+.ask-btn {
+  height: 4em;
 }
 
 /* /END Review Styles */

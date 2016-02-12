@@ -94,6 +94,9 @@ class Constants(object):
 
     DEFAULT_BODY_STARS = "I gave {star_rating} stars."
 
+    REVIEW_TYPE = 'Review'
+    QUESTION_TYPE = 'Question'
+
     REVIEW_RANK_DAYS_WEIGHT = 0.1
     REVIEW_RANK_USER_LIKES_WEIGHT = 0.1
     REVIEW_RANK_USER_REVIEWS_WEIGHT = 0.05
@@ -104,6 +107,8 @@ class Constants(object):
     REVIEW_RANK_HAS_IMAGE_WEIGHT = 3
     REVIEW_RANK_HAS_VIDEO_WEIGHT = 5
     REVIEW_RANK_IS_VERIFIED_WEIGHT = 10
+
+    QUESTION_RANK_DAYS_WEIGHT = 0.01
 
 
 class Config(object):

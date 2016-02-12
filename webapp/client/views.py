@@ -12,7 +12,7 @@ from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
-    ReviewFeature, UrlReferer, Comment
+    ReviewFeature, UrlReferer, Comment, Answer
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
@@ -1183,3 +1183,51 @@ def create_comment():
     db.session.add(comment)
     db.session.commit()
     return generate_success_response_from_obj(obj=comment, obj_name='comment')
+
+
+@client.route('/questions/create', methods=['POST'])
+@login_required
+def create_question():
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        product_id = required_parameter(request.form, 'product_id')
+        body = required_parameter(request.form, 'body')
+        product = required_model_instance_by_id(Product, product_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Question
+    now = datetime.datetime.utcnow()
+    question = Question(user=current_user,
+                        body=body,
+                        product=product,
+                        created_ts=now)
+    db.session.add(question)
+    db.session.commit()
+    return generate_success_response_from_obj(obj=question, obj_name='question')
+
+
+@client.route('/answers/create', methods=['POST'])
+@login_required
+def create_answer():
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        question_id = required_parameter(request.form, 'question_id')
+        body = required_parameter(request.form, 'body')
+        question = required_model_instance_by_id(Question, question_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Answer
+    now = datetime.datetime.utcnow()
+    answer = Answer(user=current_user,
+                    body=body,
+                    question=question,
+                    created_ts=now)
+    db.session.add(answer)
+    db.session.commit()
+    return generate_success_response_from_obj(obj=answer, obj_name='answer')
