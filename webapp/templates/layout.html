@@ -1,5 +1,5 @@
 <!doctype html>
-<html class="no-js" lang="">
+<html class="no-js" lang="en-G">
 <head>
   {# DNS Prefetch hints #}
   <link rel="dns-prefetch" href="maxcdn.bootstrapcdn.com">
@@ -15,6 +15,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>{{ page_title or g.constants.META_DEFAULT_TITLE }}</title>
   <meta name="description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
+  <meta name="keywords" content="reviews, photo reviews, image reviews, verified review, review plugin, review widget">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link id="favicon" rel="shortcut icon" href="/static/icons/opinew32.ico"/>
   <link rel="apple-touch-icon" sizes="60x60" href="/static/icons/apple-touch-icon60.png">
@@ -32,6 +33,7 @@
   <meta property="og:image" content="{{ page_image or g.constants.META_DEFAULT_IMAGE }}"/>
   {# Set the theme color on android devices #}
   <meta name="theme-color" content="#2c54a8">
+  <link href="https://plus.google.com/+Opinew" rel="publisher" />
   {#  Stylesheets #}
   {% if g.mode == 'production' %}
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
