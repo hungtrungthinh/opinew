@@ -724,8 +724,8 @@ def delete_review(review_id):
     return redirect(request.referrer or url_for('client.get_product', product_id=review.product_id) or url_for('client.index'))
 
 
-@client.route('/review', defaults={'review_id': 0})
-@client.route('/review/<int:review_id>')
+@client.route('/reviews', defaults={'review_id': 0})
+@client.route('/reviews/<int:review_id>')
 def view_review(review_id):
     review = Review.query.filter_by(id=review_id).first()
     if not review:

@@ -122,7 +122,8 @@ a {
 .question-body-container,
 .question-form,
 .answer-form,
-.answer-container {
+.answer-container,
+.comments-show-more-container{
   margin: 16px;
 }
 
@@ -222,6 +223,10 @@ a {
 
 .comment-container {
   overflow: auto;
+}
+
+.comments-show-more-container {
+
 }
 
 .question-body {
