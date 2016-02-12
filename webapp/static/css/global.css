@@ -36,7 +36,7 @@ html, body {
 }
 
 body {
-  background-color: #e8e8e8;
+  background-color: #f0f0f0;
 }
 
 a {
@@ -106,22 +106,23 @@ a {
 /* Reviews styles */
 
 .review-container {
-  -webkit-box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
-  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  -webkit-box-shadow: 0 1px 4px 0 rgba(0,0,0,0.14);
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.14);
   background-color: #fefefe;
   margin: 0 0 26px 0;
-  border-radius: 2px;
-  overflow: auto;
+  border-radius: 2px;  overflow: auto;
 }
 
 .review-header,
 .review-badges,
 .review-body,
-.review-interactions {
+.review-interactions,
+.comment-form,
+.comment-container {
   margin: 16px;
 }
 
-.review-author-image {
+.author-image {
   max-height: 42px;
   max-width: 42px;
   float: left;
@@ -204,9 +205,18 @@ a {
   font-size: 1.5em;
 }
 
+.review-comments-container {
+  overflow: auto;
+  background-color: #f6f6f6;
+}
+
 #submit-review-form {
   font-size: 2em;
   height: 2em;
+}
+
+.comment-container {
+  overflow: auto;
 }
 
 /* /END Review Styles */

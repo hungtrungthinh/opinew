@@ -9,12 +9,12 @@ from flask import url_for, abort, redirect, request
 from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
+from flask_resize import resize
 
-from webapp import db, admin
+from webapp import db, admin, gravatar
 from webapp.exceptions import DbException
 from providers import stripe_payment
 from config import Constants
-from webapp import gravatar
 from webapp.common import generate_temp_password, random_pwd
 
 order_products_table = db.Table('order_products',
@@ -372,6 +372,12 @@ class ReviewShare(db.Model):
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     review = db.relationship("Review", backref=db.backref("shares"))
 
+    def serialize(self):
+        return {
+            'action': True,
+            'count': len(self.review.shares)
+        }
+
 
 class UrlReferer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -684,6 +690,15 @@ class Comment(db.Model):
 
     def __repr__(self):
         return '<Comment %r... for %r by %r>' % (self.body[:10], self.review, self.user)
+
+    def serialize(self):
+        return {
+            'body': self.body,
+            'user': {
+                'name': self.user.name,
+                'image_url': self.user.image_url
+            }
+        }
 
 
 class Source(db.Model, Repopulatable):

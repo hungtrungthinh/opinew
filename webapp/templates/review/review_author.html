@@ -3,7 +3,7 @@
     {%- if review.user_id %}
       <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
     {%- endif %}
-  <img class="img-circle review-author-image" src="{{ review.user_image_url }}"
+  <img class="img-circle author-image" src="{{ review.user_image_url }}"
        alt="{{ review.user_name }} profile image"/>
   {%- if review.user_id %}
     </a>

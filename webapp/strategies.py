@@ -19,6 +19,8 @@ def calculate_regular_review_score(review, timestamp):
     review.rank_score += len(review.likes) * Constants.REVIEW_RANK_LIKES_WEIGHT
     # Promote reviews with more shares
     review.rank_score += len(review.shares) * Constants.REVIEW_RANK_SHARES_WEIGHT
+    # Promote reviews with more comments
+    review.rank_score += len(review.comments) * Constants.REVIEW_RANK_COMMENTS_WEIGHT
     # Penalize reviews with more reports
     review.rank_score -= len(review.reports) * Constants.REVIEW_RANK_REPORTS_WEIGHT
     # Promote verified reviews
