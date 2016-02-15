@@ -98,6 +98,8 @@ class Constants(object):
     QUESTION_TYPE = 'Question'
 
     REVIEW_RANK_DAYS_WEIGHT = 0.1
+    REVIEW_RANK_DAYS_WEIGHT = 0.5
+
     REVIEW_RANK_USER_LIKES_WEIGHT = 0.1
     REVIEW_RANK_USER_REVIEWS_WEIGHT = 0.05
     REVIEW_RANK_LIKES_WEIGHT = 1
@@ -109,19 +111,22 @@ class Constants(object):
     REVIEW_RANK_IS_VERIFIED_WEIGHT = 10
 
     QUESTION_RANK_DAYS_WEIGHT = 0.01
+    SHOPIFY_MAX_PRODUCTS_PER_PAGE = 250
+    SHOPIFY_MAX_ORDERS_PER_PAGE = 250
 
+    DASHBOARD_ORDERS_LIMIT = 50
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),
               ("Tomasz Sadowski", 'tomsz.sadowski@gmail.com')]
 
     # Double assignment because of celery
-    EMAIL_HOST = MAIL_SERVER = "smtpout.europe.secureserver.net"
+    EMAIL_HOST = MAIL_SERVER = "smtp-relay.gmail.com"
     SERVER_EMAIL = 'celery-error@opinew.com'  # celery
     MAIL_DEFAULT_SENDER = ('Opinew Reviews', 'team@opinew.com')
-    EMAIL_PORT = MAIL_PORT = 465
-    EMAIL_USE_SSL = MAIL_USE_SSL = True
-    EMAIL_HOST_USER = MAIL_USERNAME = "team@opinew.com"
+    EMAIL_PORT = MAIL_PORT = 587
+    EMAIL_USE_TLS = MAIL_USE_TLS = True
+    EMAIL_HOST_USER = MAIL_USERNAME = "daniel@opinew.com"
     EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
 
     OPINEW_API_SERVER = 'https://opinew.com'

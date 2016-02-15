@@ -109,22 +109,21 @@ a {
   -webkit-box-shadow: 0 1px 4px 0 rgba(0,0,0,0.14);
   box-shadow: 0 1px 4px 0 rgba(0,0,0,0.14);
   background-color: #fefefe;
-  margin: 0 0 26px 0;
+  margin: 0 0 16px 0;
   border-radius: 2px;  overflow: auto;
+  overflow: auto;
+}
+
+.review-body,
+.review-media {
+  overflow: hidden;
 }
 
 .review-header,
 .review-badges,
 .review-body,
-.review-interactions,
-.comment-form,
-.comment-container,
-.question-body-container,
-.question-form,
-.answer-form,
-.answer-container,
-.comments-show-more-container{
-  margin: 16px;
+.review-interactions {
+  margin: 8px;
 }
 
 .author-image {

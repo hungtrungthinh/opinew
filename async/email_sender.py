@@ -14,6 +14,9 @@ def send_email(recipients, template, template_ctx, subject=None, funnel_stream_i
         user = models.User.query.filter_by(email=recipient).first()
         if not user:
             user = models.UserLegacy.query.filter_by(email=recipient).first()
+        if not user:
+            user = models.UserLegacy(email=recipient)
+            db.session.add(user)
         if user.unsubscribed:
             # Just log that this email is not sent due to unsubscribed status and return
             sent_email = models.SentEmail(timestamp=datetime.datetime.utcnow(),
