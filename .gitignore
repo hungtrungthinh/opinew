@@ -3,5 +3,6 @@ venv
 *.pyc
 media/review/*
 media/cache/*
+webapp/static/.webassets-cache
 *.pgsql
 .~lock.*#
