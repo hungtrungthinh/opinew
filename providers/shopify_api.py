@@ -126,8 +126,8 @@ class API(object):
         response = r.json()
         return response.get('count', 0)
 
-    def get_orders(self):
-        r = requests.get("%s/admin/orders.json?status=any" % self.url_prefix,
+    def get_orders(self, limit=Constants.SHOPIFY_MAX_PRODUCTS_PER_PAGE, page=1):
+        r = requests.get("%s/admin/orders.json?status=any&limit=%s&page=%s" % (self.url_prefix, limit, page),
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
             raise ApiException(r.text, r.status_code)

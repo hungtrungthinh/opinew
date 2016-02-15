@@ -105,6 +105,9 @@ class Constants(object):
     REVIEW_RANK_IS_VERIFIED_WEIGHT = 10
 
     SHOPIFY_MAX_PRODUCTS_PER_PAGE = 250
+    SHOPIFY_MAX_ORDERS_PER_PAGE = 250
+
+    DASHBOARD_ORDERS_LIMIT = 50
 
 
 class Config(object):

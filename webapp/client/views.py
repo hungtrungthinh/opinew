@@ -334,12 +334,16 @@ def change_subscription():
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def shop_dashboard_orders(shop_id):
+    start = int(request.args.get('start', 0))
+    end = start + Constants.DASHBOARD_ORDERS_LIMIT
+    if start and not end > start > 0:
+        return ''
     now = datetime.datetime.utcnow()
     shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
     if not shop:
         flash('Not your shop')
         return redirect(url_for('client.shop_dashboard'))
-    orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
+    orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()[start:end]
     return render_template("shop_admin/orders.html", orders=orders, now=now)
 
 

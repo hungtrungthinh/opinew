@@ -59,52 +59,55 @@ def create_shopify_shop(shopify_api, shop_id):
                 db.session.add(var)
     db.session.commit()
 
-    # Get shopify orders
-    shopify_orders = shopify_api.get_orders()
+    shopify_orders_count = shopify_api.get_orders_count()
+    total_pages = shopify_orders_count / Constants.SHOPIFY_MAX_ORDERS_PER_PAGE + 1
+    for page in range(1, total_pages + 1):
+        # Get shopify orders
+        shopify_orders = shopify_api.get_orders(page=page)
 
-    # Import shop orders
-    for order_j in shopify_orders:
-        platform_order_id = str(order_j.get('id', 0))
-        existing_order = models.Order.query.filter_by(shop_id=shop_id, platform_order_id=platform_order_id).first()
-        if existing_order:
-            continue
+        # Import shop orders
+        for order_j in shopify_orders:
+            platform_order_id = str(order_j.get('id', 0))
+            existing_order = models.Order.query.filter_by(shop_id=shop_id, platform_order_id=platform_order_id).first()
+            if existing_order:
+                continue
 
-        try:
-            created_at_dt = datetime.datetime.strptime(order_j.get('created_at')[:-6], "%Y-%m-%dT%H:%M:%S")
-        except:
-            created_at_dt = datetime.datetime.utcnow()
+            try:
+                created_at_dt = datetime.datetime.strptime(order_j.get('created_at')[:-6], "%Y-%m-%dT%H:%M:%S")
+            except:
+                created_at_dt = datetime.datetime.utcnow()
 
-        order = models.Order(
-            purchase_timestamp=created_at_dt,
-            platform_order_id=platform_order_id,
-            shop_id=shop.id
-            )
+            order = models.Order(
+                purchase_timestamp=created_at_dt,
+                platform_order_id=platform_order_id,
+                shop_id=shop.id
+                )
 
-        existing_user = models.User.get_by_email_no_exception(order_j.get('email'))
-        if existing_user:
-            order.user = existing_user
-        else:
-            user_name = "%s %s" % (order_j.get('customer', {}).get('first_name'),
-                                   order_j.get('customer', {}).get('last_name')
-                                   )
-            user_legacy, _ = models.UserLegacy.get_or_create_by_email(email=order_j.get('email'), name=user_name)
-            order.user_legacy = user_legacy
-
-        if order_j.get('fulfillment_status'):
-            order.status = Constants.ORDER_STATUS_SHIPPED
-        if order_j.get('cancelled_at'):
-            order.status = Constants.ORDER_STATUS_FAILED
-        for product_j in order_j.get('line_items', []):
-            product = models.Product.query.filter_by(platform_product_id=str(product_j.get('product_id'))).first()
-            if product:
-                order.products.append(product)
+            existing_user = models.User.get_by_email_no_exception(order_j.get('email'))
+            if existing_user:
+                order.user = existing_user
             else:
-                variant = models.ProductVariant.query.filter_by(
-                    platform_variant_id=str(product_j.get('variant_id'))).first()
-                if not variant:
-                    continue
-                order.products.append(variant.product)
-        db.session.add(order)
+                user_name = "%s %s" % (order_j.get('customer', {}).get('first_name'),
+                                       order_j.get('customer', {}).get('last_name')
+                                       )
+                user_legacy, _ = models.UserLegacy.get_or_create_by_email(email=order_j.get('email'), name=user_name)
+                order.user_legacy = user_legacy
+
+            if order_j.get('fulfillment_status'):
+                order.status = Constants.ORDER_STATUS_SHIPPED
+            if order_j.get('cancelled_at'):
+                order.status = Constants.ORDER_STATUS_FAILED
+            for product_j in order_j.get('line_items', []):
+                product = models.Product.query.filter_by(platform_product_id=str(product_j.get('product_id'))).first()
+                if product:
+                    order.products.append(product)
+                else:
+                    variant = models.ProductVariant.query.filter_by(
+                        platform_variant_id=str(product_j.get('variant_id'))).first()
+                    if not variant:
+                        continue
+                    order.products.append(variant.product)
+            db.session.add(order)
     db.session.commit()
 
 
