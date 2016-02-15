@@ -7,10 +7,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Constants(object):
-    META_CANONICAL_URL = "https://opinew.com/"
+    META_CANONICAL_URL = "https://www.opinew.com/"
     META_DEFAULT_TITLE = "Opinew - The Best Photo and Video Reviews for Your Online Business"
     META_DEFAULT_DESCRIPTION = "Increase your sales through smart and beautiful photo reviews with a simple plugin that works everywhere. Start your 30-day free trial today!"
-    META_DEFAULT_IMAGE = "https://opinew.com/static/img/opinew_square.png"
+    META_DEFAULT_IMAGE = "https://www.opinew.com/static/img/opinew_square.png"
     META_DEFAULT_PRERENDER = "/reviews"
 
     DEFAULT_SHOP_NAME = 'Online shop'
@@ -129,7 +129,7 @@ class Config(object):
     EMAIL_HOST_USER = MAIL_USERNAME = "daniel@opinew.com"
     EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
 
-    OPINEW_API_SERVER = 'https://opinew.com'
+    OPINEW_API_SERVER = 'https://www.opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
 
     UPLOADED_USERIMAGES_DEST = os.path.join(basedir, 'media', 'user')
@@ -235,8 +235,8 @@ class ConfigProd(Config):
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     STRIPE_PUBLISHABLE_API_KEY = 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'  # test key: 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
-    SERVER_NAME = 'opinew.com'
-    RESIZE_URL = 'https://opinew.com/media'
+    SERVER_NAME = 'www.opinew.com'
+    RESIZE_URL = 'https://www.opinew.com/media'
 
 
 config_factory = {

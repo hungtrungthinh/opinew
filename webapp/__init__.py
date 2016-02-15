@@ -9,6 +9,7 @@ from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required
 from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
 from flask.ext.gravatar import Gravatar
+from flask.ext.assets import Environment, Bundle
 from flask_resize import Resize
 from flask_mail import Mail
 from werkzeug.exceptions import default_exceptions
@@ -63,6 +64,11 @@ review_images = UploadSet('reviewimages', IMAGES)
 shop_images = UploadSet('shopimages', IMAGES)
 
 resize = Resize()
+assets = Environment()
+js_assets = Bundle('js/min/jquery-1.11.3.min.js', 'js/min/bootstrap.min.js', 'js/main.js',
+            filters='rjsmin', output='js/main.min.js')
+css_assets = Bundle('css/min/bootstrap.min.css', 'css/global.css',
+            filters='cssmin', output='css/global.min.css')
 
 
 def create_app(option):
@@ -89,6 +95,10 @@ def create_app(option):
     migrate.init_app(app, db)
     from models import User, Role
     from webapp.forms import ExtendedRegisterForm
+
+    assets.init_app(app)
+    assets.register('js_all', js_assets)
+    assets.register('css_all', css_assets)
 
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
