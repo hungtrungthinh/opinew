@@ -18,6 +18,7 @@
   {% if current_user.temp_password %}
     <div class="alert alert-danger">
       Your <strong>temporary</strong> password is {{ current_user.temp_password }}. Please change it now:
+    <a href="/change" class="btn btn-danger">Change password</a>
     </div>
   {% endif %}
 
