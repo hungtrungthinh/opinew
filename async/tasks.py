@@ -42,21 +42,21 @@ def create_shopify_shop(shopify_api, shop_id):
                                          "/api/v1/platform/shopify/app/uninstalled"))
 
     # Get shopify products
-    shopify_products = shopify_api.get_products()
+    shopify_products_count = shopify_api.get_products_count()
+    total_pages = shopify_products_count / Constants.SHOPIFY_MAX_PRODUCTS_PER_PAGE + 1
+    for page in range(1, total_pages + 1):
+        shopify_products = shopify_api.get_products(page=page)
 
-    # Import shop products
-    for product_j in shopify_products:
-        product_url = "%s/products/%s" % (shop.domain, product_j.get('handle', ''))
-        product = models.Product(name=product_j.get('title', ''),
-                                 shop=shop,
-                                 platform_product_id=product_j.get('id', ''))
-        product_url = models.ProductUrl(url=product_url)
-        product.urls.append(product_url)
-        db.session.add(product)
-        for variant_j in product_j.get('variants', []):
-            var = models.ProductVariant(product=product,
-                                        platform_variant_id=str(variant_j.get('id', '')))
-            db.session.add(var)
+        # Import shop products
+        for product_j in shopify_products:
+            product = models.Product(name=product_j.get('title', ''),
+                                     shop=shop,
+                                     platform_product_id=product_j.get('id', ''))
+            db.session.add(product)
+            for variant_j in product_j.get('variants', []):
+                var = models.ProductVariant(product=product,
+                                            platform_variant_id=str(variant_j.get('id', '')))
+                db.session.add(var)
     db.session.commit()
 
     # Get shopify orders
