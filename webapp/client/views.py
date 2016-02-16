@@ -4,7 +4,7 @@ import os
 import httplib
 from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, jsonify, send_file, Response, session
+    current_app, make_response, abort, jsonify, send_file, Response
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import API
@@ -12,13 +12,72 @@ from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
-    ReviewFeature, UrlReferer
+    ReviewFeature, UrlReferer, Comment, Answer
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
 from providers import giphy
 from webapp.strategies import rank_objects_for_product
+from messages import SuccessMessages
+
+class ResponseContext(object):
+    def __init__(self, is_async, default_redirect):
+        self.is_async = is_async
+        self.default_redirect = default_redirect
+
+
+class RequirementException(Exception):
+    def __init__(self, response):
+        self.response = response
+
+
+def verify_required_object(obj, error_msg, error_code):
+    if not obj:
+        ctx = g.response_context.pop()
+        if ctx.is_async:
+            raise RequirementException(response=(jsonify({"error": error_msg}), httplib.BAD_REQUEST))
+        flash(error_msg)
+        raise RequirementException(response=redirect(request.referrer or ctx.default_redirect))
+
+
+def required_parameter(payload, param_name):
+    obj = payload.get(param_name)
+    verify_required_object(obj=obj,
+                           error_msg=ExceptionMessages.MISSING_PARAM.format(param=param_name),
+                           error_code=httplib.BAD_REQUEST)
+    return obj
+
+
+def required_model_instance_by_id(model, instance_id):
+    obj = model.query.filter_by(id=instance_id).first()
+    verify_required_object(obj=obj,
+                           error_msg = ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance=model.__name__, id=instance_id),
+                           error_code=httplib.BAD_REQUEST)
+    return obj
+
+
+def generate_success_response_from_obj(obj, obj_name):
+    ctx = g.response_context.pop()
+    if ctx.is_async:
+        return jsonify(obj.serialize()), httplib.CREATED
+    flash(SuccessMessages.SUCCESS_CREATING_OBJECT.format(object_name=obj_name))
+    return redirect(request.referrer or ctx.default_redirect)
+
+
+def create_response_context(default_redirect_url_for):
+    # Create a response context
+    if request.method in ['GET']:
+        payload = request.args
+    else:
+        payload = request.form
+    ctx = ResponseContext(
+            is_async=payload.get('async'),
+            default_redirect=url_for(default_redirect_url_for)
+    )
+
+    # Push the context
+    g.response_context.append(ctx)
 
 
 @client.route('/install')
@@ -669,8 +728,8 @@ def delete_review(review_id):
     return redirect(request.referrer or url_for('client.get_product', product_id=review.product_id) or url_for('client.index'))
 
 
-@client.route('/review', defaults={'review_id': 0})
-@client.route('/review/<int:review_id>')
+@client.route('/reviews', defaults={'review_id': 0})
+@client.route('/reviews/<int:review_id>')
 def view_review(review_id):
     review = Review.query.filter_by(id=review_id).first()
     if not review:
@@ -1061,40 +1120,42 @@ def add_review_feature(review_id):
     return redirect(request.referrer or url_for('client.reviews'))
 
 
+# TODO: From below - refactored with new quick verification functions (see top of file). Refactor the ones above too.
+
 @client.route('/review-share', defaults={'review_id': None})
 @client.route('/review-share/<review_id>')
 def add_review_share(review_id):
-    review = Review.query.filter_by(id=review_id).first()
-    if not review:
-        return jsonify({
-            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
-        }), httplib.BAD_REQUEST
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        review = required_model_instance_by_id(Review, review_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Review Share
     now = datetime.datetime.utcnow()
     review_share = ReviewShare(timestamp=now, review=review)
     if current_user.is_authenticated():
         review_share.user = current_user
     db.session.add(review_share)
     db.session.commit()
-    if request.args.get('async'):
-        return jsonify({
-            'action': True,
-            'count': len(review.shares)
-        })
-    return redirect(request.referrer or url_for('client.reviews'))
+
+    return generate_success_response_from_obj(obj=review_share, obj_name='Review Share')
 
 
 @client.route('/ref')
 def add_referer():
-    url = request.args.get('url')
-    if not url:
-        return jsonify({
-            "error": ExceptionMessages.MISSING_PARAM.format(param='url')
-        }), httplib.BAD_REQUEST
-    q = request.args.get('q')
-    if not q:
-        return jsonify({
-            "error": ExceptionMessages.MISSING_PARAM.format(param='q')
-        }), httplib.BAD_REQUEST
+    create_response_context(default_redirect_url_for='client.index')
+
+    # Verify required objects
+    try:
+        url = required_parameter(request.form, 'url')
+        q = required_parameter(request.form, 'q')
+    except RequirementException as e:
+        return e.response
+
+    # Create UrlReferrer object
     now = datetime.datetime.utcnow()
     ref = UrlReferer(url=url, q=q, timestamp=now)
     if current_user.is_authenticated():
@@ -1104,3 +1165,75 @@ def add_referer():
     if url.startswith('http://') or url.startswith('https://'):
         return redirect(url)
     return redirect('http://' + url)
+
+
+@client.route('/comments/create', methods=['POST'])
+@login_required
+def create_comment():
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        review_id = required_parameter(request.form, 'review_id')
+        body = required_parameter(request.form, 'body')
+        review = required_model_instance_by_id(Review, review_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Comment
+    now = datetime.datetime.utcnow()
+    comment = Comment(user=current_user,
+                      body=body,
+                      review=review,
+                      created_ts=now)
+    db.session.add(comment)
+    db.session.commit()
+    return generate_success_response_from_obj(obj=comment, obj_name='comment')
+
+
+@client.route('/questions/create', methods=['POST'])
+@login_required
+def create_question():
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        product_id = required_parameter(request.form, 'product_id')
+        body = required_parameter(request.form, 'body')
+        product = required_model_instance_by_id(Product, product_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Question
+    now = datetime.datetime.utcnow()
+    question = Question(user=current_user,
+                        body=body,
+                        product=product,
+                        created_ts=now)
+    db.session.add(question)
+    db.session.commit()
+    return generate_success_response_from_obj(obj=question, obj_name='question')
+
+
+@client.route('/answers/create', methods=['POST'])
+@login_required
+def create_answer():
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        question_id = required_parameter(request.form, 'question_id')
+        body = required_parameter(request.form, 'body')
+        question = required_model_instance_by_id(Question, question_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Answer
+    now = datetime.datetime.utcnow()
+    answer = Answer(user=current_user,
+                    body=body,
+                    question=question,
+                    created_ts=now)
+    db.session.add(answer)
+    db.session.commit()
+    return generate_success_response_from_obj(obj=answer, obj_name='answer')

@@ -102,16 +102,22 @@ class Constants(object):
 
     DEFAULT_BODY_STARS = "I gave {star_rating} stars."
 
-    REVIEW_RANK_DAYS_WEIGHT = 0.5
+    REVIEW_TYPE = 'Review'
+    QUESTION_TYPE = 'Question'
+
+    REVIEW_RANK_DAYS_WEIGHT = 0.1
+
     REVIEW_RANK_USER_LIKES_WEIGHT = 0.1
     REVIEW_RANK_USER_REVIEWS_WEIGHT = 0.05
     REVIEW_RANK_LIKES_WEIGHT = 1
     REVIEW_RANK_SHARES_WEIGHT = 2
+    REVIEW_RANK_COMMENTS_WEIGHT = 2
     REVIEW_RANK_REPORTS_WEIGHT = 5
     REVIEW_RANK_HAS_IMAGE_WEIGHT = 3
     REVIEW_RANK_HAS_VIDEO_WEIGHT = 5
     REVIEW_RANK_IS_VERIFIED_WEIGHT = 10
 
+    QUESTION_RANK_DAYS_WEIGHT = 0.01
     SHOPIFY_MAX_PRODUCTS_PER_PAGE = 250
     SHOPIFY_MAX_ORDERS_PER_PAGE = 250
 
@@ -133,7 +139,7 @@ class Config(object):
     EMAIL_HOST_USER = MAIL_USERNAME = "daniel@opinew.com"
     EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
 
-    OPINEW_API_SERVER = 'https://opinew.com'
+    OPINEW_API_SERVER = 'https://www.opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
 
     UPLOADED_USERIMAGES_DEST = os.path.join(basedir, 'media', 'user')
@@ -204,6 +210,7 @@ class Config(object):
     BABEL_DEFAULT_TIMEZONE = 'UTC'
 
 
+
 class ConfigTest(Config):
     MODE = Constants.MODE_TESTING
     WTF_CSRF_ENABLED = False
@@ -229,6 +236,7 @@ class ConfigTest(Config):
 
 class ConfigDev(Config):
     MODE = Constants.MODE_DEVELOPMENT
+    SERVER_NAME = 'localhost:5000'
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
@@ -242,8 +250,8 @@ class ConfigProd(Config):
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     STRIPE_PUBLISHABLE_API_KEY = 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'  # test key: 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
-    SERVER_NAME = 'opinew.com'
-    RESIZE_URL = 'https://opinew.com/media'
+    SERVER_NAME = 'www.opinew.com'
+    RESIZE_URL = 'https://www.opinew.com/media'
 
 
 config_factory = {

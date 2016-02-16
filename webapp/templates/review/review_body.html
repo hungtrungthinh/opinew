@@ -1,10 +1,14 @@
 <div class="review-body">
   {% if review.body %}
-    {% if review.body|length > g.constants.MAX_BODY_LENGTH and not request.args.body_full == 1 %}
+    {% if review.body|length > g.constants.MAX_BODY_LENGTH and not request.args.a %}
       <p id="review-less-{{ review.id }}">
         {{ review.body[:g.constants.MAX_BODY_LENGTH]|urlize(g.constants.DEFAULT_LINK_SHORT_SIZE, target='_blank') }}...
-        <a href="/review/{{ review.id }}?body_full=1" class="review-more-btn" data-review-id="{{ review.id }}"
-            onclick="showMoreReview(this); return false;">(more)</a>
+        <a href="/review/{{ review.id }}?a=1"
+           class="review-more-btn"
+           data-review-id="{{ review.id }}"
+           onclick="showMoreReview(this); return false;">
+           (more)
+        </a>
       </p>
 
       <p id="review-more-{{ review.id }}" hidden>

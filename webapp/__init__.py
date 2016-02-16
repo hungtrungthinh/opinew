@@ -10,6 +10,7 @@ from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
 from flask.ext.gravatar import Gravatar
 from flask.ext.babel import Babel
+from flask.ext.assets import Environment, Bundle
 from flask_resize import Resize
 from flask_mail import Mail
 from werkzeug.exceptions import default_exceptions
@@ -58,19 +59,32 @@ admin.add_view(AnalyticsView(name="Analytics", endpoint='analytics'))
 security = Security()
 api_manager = APIManager()
 compress = Compress()
-gravatar = Gravatar(size=100, rating='g', default='mm', force_default=False, use_ssl=True, base_url=None)
+gravatar = Gravatar(size=42, rating='g', default='mm', force_default=False, use_ssl=True, base_url=None)
 
 user_images = UploadSet('userimages', IMAGES)
 review_images = UploadSet('reviewimages', IMAGES)
 shop_images = UploadSet('shopimages', IMAGES)
 
 resize = Resize()
+assets = Environment()
+js_assets = Bundle('js/min/jquery-1.11.3.min.js', 'js/min/bootstrap.min.js', 'js/main.js',
+            filters='rjsmin', output='js/main.min.js')
+css_assets = Bundle('css/min/bootstrap.min.css', 'css/global.css',
+            filters='cssmin', output='css/global.min.css')
 
 
 def create_app(option):
-    app = FlaskOpinewExt(__name__)
+    app = FlaskOpinewExt(__name__, static_folder=None)
     config = config_factory.get(option)
     app.config.from_object(config)
+
+    # serve static files from subdomain
+    app.static_folder = 'static'
+    app.add_url_rule('/<path:filename>',
+                     endpoint='static',
+                     subdomain='static',
+                     view_func=app.send_static_file)
+
     from common import create_jinja_filters, random_pwd, verify_initialization
 
     create_jinja_filters(app)
@@ -92,6 +106,10 @@ def create_app(option):
     babel.init_app(app)
     from models import User, Role
     from webapp.forms import ExtendedRegisterForm
+
+    assets.init_app(app)
+    assets.register('js_all', js_assets)
+    assets.register('css_all', css_assets)
 
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
@@ -121,6 +139,7 @@ def create_app(option):
             g.constants = Constants
             g.config = app.config
             g.mode = app.config.get('MODE')
+            g.response_context = []
 
         @app.after_request
         def redirect_if_next(response_class):

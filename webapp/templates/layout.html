@@ -7,40 +7,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ page_title or g.constants.META_DEFAULT_TITLE }}</title>
   <meta name="keywords" content="reviews, photo reviews, image reviews, verified review, review plugin, review widget">
-  <link rel="shortcut icon" href="/static/icons/opinew32.ico"/>
+  <link id="favicon" rel="shortcut icon" href="{{ url_for('static', filename='icons/opinew32.ico') }}"/>
 
-  <!-- Add to homescreen for Chrome on Android -->
+  {# Add to homescreen for Chrome on Android#}
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='icons/android-desktop.png') }}">
 
-  <!-- Add to homescreen for Safari on iOS -->
+  {# Add to homescreen for Safari on iOS#}
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="{{ g.constants.PRODUCT_NAME }}">
   <link rel="apple-touch-icon-precomposed" href="{{ url_for('static', filename='icons/ios-desktop.png') }}">
 
-  <!-- SEO: If your mobile URL is different from the desktop URL, add a canonical link to the desktop page https://developers.google.com/webmasters/smartphone-sites/feature-phones -->
-  <link rel="canonical" href="{{ g.constatnts.META_CANONICAL_URL }}">
+  {# SEO: If your mobile URL is different from the desktop URL, add a canonical link to the desktop page https://developers.google.com/webmasters/smartphone-sites/feature-phones #}
+  <link rel="canonical" href="{{ g.constants.META_CANONICAL_URL }}">
 
   {# DNS Prefetch hints #}
   <link rel="dns-prefetch" href="maxcdn.bootstrapcdn.com">
   <link rel="dns-prefetch" href="ajax.googleapis.com">
   {# Hints for CURRENT page #}
-  <link rel="subresource" href="/static/js/main.js">
+  <link rel="subresource" href="{{ url_for('static', filename='js/main.min.js') }}">
   {# Hints for FUTURE navigation #}
-  <link rel="prefetch" href="/static/js/post_review.js">
+  <link rel="prefetch" href="{{ url_for('static', filename='js/post_review.js') }}">
   {# Chrome prerenders this ONE page in the background for INSTANT click - ONLY GET #}
-  <link rel="prerender" href="https://opinew.com{{ page_prerender or g.constants.META_DEFAULT_PRERENDER }}">
+  <link rel="prerender" href="https://www.opinew.com{{ page_prerender or g.constants.META_DEFAULT_PRERENDER }}">
 
   {# Apple icons for different devices #}
-  <link rel="apple-touch-icon" sizes="60x60" href="/static/icons/apple-touch-icon60.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="{{ url_for('static', filename='icons/apple-touch-icon60.png') }}">
   {# iphone default 60x60 #}
-  <link rel="apple-touch-icon" sizes="76x76" href="/static/icons/apple-touch-icon76.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="{{ url_for('static', filename='icons/apple-touch-icon76.png') }}">
   {# ipad #}
-  <link rel="apple-touch-icon" sizes="120x120" href="/static/icons/apple-touch-icon120.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='icons/apple-touch-icon120.png') }}">
   {# iphone-retina #}
-  <link rel="apple-touch-icon" sizes="152x152" href="/static/icons/apple-touch-icon152.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="/static/icons/apple-touch-icon192.png"/>
+  <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='icons/apple-touch-icon152.png') }}">
+  <link rel="apple-touch-icon" sizes="192x192"
+        href="{{ url_for('static', filename='icons/apple-touch-icon192.png') }}"/>
 
   {# Facebook's open graph #}
   <meta property="og:url" content="{{ page_url or request.url or g.constants.META_CANONICAL_URL }}"/>
@@ -55,53 +56,44 @@
   <link href="https://plus.google.com/+Opinew" rel="publisher"/>
 
   {#  Stylesheets #}
-  {% if g.mode == 'production' %}
-    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-  {% elif g.mode in ['development', 'testing'] %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}"/>
+  {% if not g.mode == 'production' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}" media="all"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" media="all"/>
+  {% else %}
+    {% assets "css_all" %}
+      <link rel="stylesheet" href="{{ ASSET_URL }}">
+    {% endassets %}
   {% endif %}
-  {% if g.mobile %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}"/>
-  {% endif %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}"/>
   {# Place per-page styles #}
   {% block style %}{% endblock %}
 
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  {# Include Google analytics if in production mode #}
+  {% if g.mode == 'production' %}
+    {% include "ga.html" %}
+  {% endif %}
 </head>
-<body>
-{% if g.mobile %}
-  {% include "mobile/navigation.html" %}
-{% else %}
-  {% include "navigation.html" %}
-{% endif %}
+<body {% block body_attributes %}{% endblock %}>
+{% include "navigation.html" %}
 {% include "flashed_messages.html" %}
+
 {# Main content of application is here #}
-<div id="content-wrapper">
-  {% block content %}{% endblock %}
-</div>
-{% if not g.mobile %}
-  <div class="spacer"></div>
-  {% include "footer.html" %}
-{% endif %}
+{% block content %}{% endblock %}
+<div class="spacer"></div>
+{% include "footer.html" %}
 {# /End of main content #}
-{% if g.mode == 'production' %}
-  <script defer src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-  <script defer src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-{% elif g.mode in ['development', 'testing'] %}
-  <script defer src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
-  <script defer src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
+
+{% if not g.mode == 'production' %}
+  <script src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% else %}
+  {% assets "js_all" %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %}
 {% endif %}
 {% include "fb_code.html" %}
-<script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
-{% if g.mobile %}
-  <script defer src="{{ url_for('static', filename='js/mobile.js') }}"></script>
-{% endif %}
 {# Place per-page scripts #}
 {% block script %}{% endblock %}
-{# Include Google analytics if in production mode #}
-{% if g.mode == 'production' %}
-  {% include "ga.html" %}
-{% endif %}
 </body>
 </html>

@@ -9,12 +9,12 @@ from flask import url_for, abort, redirect, request
 from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
+from flask_resize import resize
 
-from webapp import db, admin
+from webapp import db, admin, gravatar
 from webapp.exceptions import DbException
 from providers import stripe_payment
 from config import Constants
-from webapp import gravatar
 from webapp.common import generate_temp_password, random_pwd
 
 order_products_table = db.Table('order_products',
@@ -372,6 +372,12 @@ class ReviewShare(db.Model):
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
     review = db.relationship("Review", backref=db.backref("shares"))
 
+    def serialize(self):
+        return {
+            'action': True,
+            'count': len(self.review.shares)
+        }
+
 
 class UrlReferer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -685,6 +691,15 @@ class Comment(db.Model):
     def __repr__(self):
         return '<Comment %r... for %r by %r>' % (self.body[:10], self.review, self.user)
 
+    def serialize(self):
+        return {
+            'body': self.body,
+            'user': {
+                'name': self.user.name,
+                'image_url': self.user.image_url
+            }
+        }
+
 
 class Source(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -749,7 +764,13 @@ class ReviewRequest(db.Model):
         return token
 
 
-class Review(db.Model, Repopulatable):
+class RenderableObject(object):
+    @property
+    def object_type(self):
+        return self.__class__.__name__
+
+
+class Review(db.Model, Repopulatable, RenderableObject):
     id = db.Column(db.Integer, primary_key=True)
 
     body = db.Column(db.String)
@@ -1280,31 +1301,37 @@ class ProductUrl(db.Model, Repopulatable):
     product = db.relationship("Product", backref=db.backref("urls"))
 
 
-class Question(db.Model, Repopulatable):
+class Question(db.Model, Repopulatable, RenderableObject):
     id = db.Column(db.Integer, primary_key=True)
+    created_ts = db.Column(db.DateTime)
 
     body = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("questions"))
 
-    about_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    about_product = db.relationship("Product", backref=db.backref("questions"))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("questions"))
 
     click_count = db.Column(db.Integer, default=0)
     is_public = db.Column(db.Boolean, default=False)
 
+    @classmethod
+    def get_all_questions_for_product(cls, product_id):
+        return cls.query.filter_by(product_id=product_id).all()
+
 
 class Answer(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
+    created_ts = db.Column(db.DateTime)
 
     body = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("answers"))
 
-    to_question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
-    to_question = db.relationship("Question", backref=db.backref("answers"))
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
+    question = db.relationship("Question", backref=db.backref("answers"))
 
 
 class SentEmail(db.Model):

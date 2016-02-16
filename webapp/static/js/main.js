@@ -66,6 +66,13 @@ function showMoreReview(el) {
   return false;
 }
 
+function showMoreComments(el) {
+  var reviewId = $(el).data('review-id');
+  $(el).hide();
+  $("#comments-more-" + reviewId).slideDown();
+  return false;
+}
+
 $('#modal-lightbox').on('show.bs.modal', function (event) {
   var button = $(event.relatedTarget);
   var imageUrl = button.data('image-url');

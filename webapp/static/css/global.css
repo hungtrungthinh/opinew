@@ -36,7 +36,7 @@ html, body {
 }
 
 body {
-  background-color: #e8e8e8;
+  background-color: #f0f0f0;
 }
 
 a {
@@ -106,8 +106,8 @@ a {
 /* Reviews styles */
 
 .review-container {
-  -webkit-box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
-  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  -webkit-box-shadow: 0 1px 4px 0 rgba(0,0,0,0.14);
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.14);
   background-color: #fefefe;
   margin: 0 0 16px 0;
   border-radius: 2px;
@@ -126,7 +126,7 @@ a {
   margin: 8px;
 }
 
-.review-author-image {
+.author-image {
   max-height: 42px;
   max-width: 42px;
   float: left;
@@ -209,9 +209,40 @@ a {
   font-size: 1.5em;
 }
 
+.review-comments-container,
+.answers-container {
+  overflow: auto;
+  background-color: #f6f6f6;
+}
+
 #submit-review-form {
   font-size: 2em;
   height: 2em;
+}
+
+.comment-container {
+  overflow: auto;
+}
+
+.comments-show-more-container {
+
+}
+
+.question-body {
+  font-size: 2em;
+}
+
+.ask-form {
+  margin: 16px;
+}
+
+.ask-form-body {
+  height: 2em;
+  font-size: 2em;
+}
+
+.ask-btn {
+  height: 4em;
 }
 
 /* /END Review Styles */
@@ -227,10 +258,7 @@ a {
 
 .colors-bar {
   line-height: 0;
-  margin: -5px 0 0 0;
-  padding: 0;
-  position: relative;
-  z-index: 2;
+  font-size: 0;
 }
 
 .color-bar-element {

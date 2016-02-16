@@ -1,5 +1,4 @@
-//var OPINEW_URL = "http://localhost:5000";
-var OPINEW_URL = "https://opinew.com";
+var OPINEW_URL = "https://www.opinew.com";
 var OPINEW_PLUGIN_URL = OPINEW_URL + "/plugin";
 var OPINEW_STAR_PLUGIN_URL = OPINEW_URL + "/plugin-stars";
 var FUNNEL_STREAM_ID;
