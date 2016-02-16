@@ -4,7 +4,7 @@ import os
 import httplib
 from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, jsonify, send_file, Response, session
+    current_app, make_response, abort, jsonify, send_file, Response
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import API
@@ -79,6 +79,9 @@ def create_response_context(default_redirect_url_for):
     # Push the context
     g.response_context.append(ctx)
 
+@client.route('/<path:filename>', subdomain='static')
+def serve_static(filename):
+    return send_from_directory(os.path.join(basedir, 'webapp', 'static'), filename)
 
 @client.route('/install')
 @catch_exceptions

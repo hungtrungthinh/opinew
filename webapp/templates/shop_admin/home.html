@@ -58,14 +58,14 @@
           </div>
           {% if current_plan and current_plan.name == g.constants.PLAN_NAME_BASIC %}
             <div role="tabpanel" class="tab-pane" id="orders">
-              <img src="/static/img/ajax-loader.gif" alt="loading"/>
+              <img src="{{ url_for('static', filename='img/ajax-loader.gif') }}" alt="loading"/>
             </div>
           {% endif %}
           <div role="tabpanel" class="tab-pane" id="reviews">
-            <img src="/static/img/ajax-loader.gif" alt="loading"/>
+            <img src="{{ url_for('static', filename='img/ajax-loader.gif') }}" alt="loading"/>
           </div>
           <div role="tabpanel" class="tab-pane" id="questions">
-            <img src="/static/img/ajax-loader.gif" alt="loading"/>
+            <img src="{{ url_for('static', filename='img/ajax-loader.gif') }}" alt="loading"/>
           </div>
         </div>
         </div>

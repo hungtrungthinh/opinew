@@ -7,7 +7,7 @@
       <div class="row">
 
 
-        <img class="img-responsive" src="https://opinew.com/static/img/opinew_logo.png"
+        <img class="img-responsive" src="{{ url_for('static', filename='img/opinew_logo.png') }}"
              style="display: block;margin-left: auto;margin-right: auto " alt="Opinew Reviews">
         <h1 align="center">Take your company's reviews to the next level.</h1>
 
@@ -24,7 +24,7 @@
   <section class="text-center">
     <div class="row">
       <div class="col-md-5">
-        <img src="/static/img/marketing/multimedia.jpg" class="img-responsive" alt="Opinew reviews gives you rich multimedia content"/>
+        <img src="{{ url_for('static', filename='img/marketing/multimedia.jpg" class="img-responsive') }}" alt="Opinew reviews gives you rich multimedia content"/>
       </div>
       <div class="col-md-5 col-md-offset-1">
         <span class="glyphicon glyphicon-envelope glyphicon-5x" style="margin-right: 20px"></span>
@@ -50,7 +50,7 @@
     </div>
     <div  class="row">
       <div class="col-md-5">
-        <img src="/static/img/marketing/verified.jpg" class="img-responsive" alt="Opinew smart algorithms verify and authenticate the reviews"/>
+        <img src="{{ url_for('static', filename='img/marketing/verified.jpg') }}" class="img-responsive" alt="Opinew smart algorithms verify and authenticate the reviews"/>
       </div>
 
       <div class="col-md-5 col-md-offset-1">
@@ -70,7 +70,7 @@
     </div>
     <div  class="row">
       <div class="col-md-5">
-        <img src="/static/img/marketing/mobile.jpg" class="img-responsive" alt="Opinew reviews is mobile friendly and works on any website"/>
+        <img src="{{ url_for('static', filename='img/marketing/mobile.jpg" class="img-responsive') }}" alt="Opinew reviews is mobile friendly and works on any website"/>
       </div>
       <div class="col-md-5 col-md-offset-1">
         <span class="glyphicon glyphicon-phone glyphicon-5x"></span>
@@ -93,7 +93,7 @@
   <div id="pricing">
     <h2 class="text-center">Summary and pricing</h2>
     <div class="col-sm-12">
-      {% include "/pricing_plans/pricing_plans.html" %}
+      {% include "pricing_plans/pricing_plans.html" %}
       <!--/container-->
     </div>
   </div>
