@@ -2,16 +2,24 @@
 import os
 import sensitive
 from celery.schedules import crontab
+from flask.ext.babel import gettext
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Constants(object):
+    PRODUCT_NAME = gettext('Opinew')
     META_CANONICAL_URL = "https://opinew.com/"
-    META_DEFAULT_TITLE = "Opinew - The Best Photo and Video Reviews for Your Online Business"
-    META_DEFAULT_DESCRIPTION = "Increase your sales through smart and beautiful photo reviews with a simple plugin that works everywhere. Start your 30-day free trial today!"
+    META_DEFAULT_TITLE = gettext("Opinew - The Best Photo and Video Reviews for Your Online Business")
+    META_DEFAULT_DESCRIPTION = gettext("Increase your sales through smart and beautiful photo reviews with a simple plugin that works everywhere. Start your 30-day free trial today!")
     META_DEFAULT_IMAGE = "https://opinew.com/static/img/opinew_square.png"
     META_DEFAULT_PRERENDER = "/reviews"
+
+    COLOR_OPINEW_CHERRY = '#fb412d'
+    COLOR_OPINEW_ORANGE = '#fb8c2d'
+    COLOR_OPINEW_KIWI = '#22be44'
+    COLOR_OPINEW_AQUA = '#1c9298'
+    COLOR_OPINEW_BLUEBERRY = '#2c54a8'
 
     DEFAULT_SHOP_NAME = 'Online shop'
     DEFAULT_REVIEW_SUBJECT = "%s, tell others about your purchase from %s"
@@ -109,6 +117,8 @@ class Constants(object):
 
     DASHBOARD_ORDERS_LIMIT = 50
 
+    DEFAULT_LOCALE = 'en'
+
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),
@@ -189,6 +199,9 @@ class Config(object):
             'args': (),
         },
     }
+
+    BABEL_DEFAULT_LOCALE = Constants.DEFAULT_LOCALE
+    BABEL_DEFAULT_TIMEZONE = 'UTC'
 
 
 class ConfigTest(Config):

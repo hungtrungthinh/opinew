@@ -9,6 +9,7 @@ from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required
 from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
 from flask.ext.gravatar import Gravatar
+from flask.ext.babel import Babel
 from flask_resize import Resize
 from flask_mail import Mail
 from werkzeug.exceptions import default_exceptions
@@ -48,6 +49,7 @@ class AnalyticsView(BaseView):
 
 csrf = CsrfProtect()
 db = SQLAlchemy()
+babel = Babel()
 migrate = Migrate()
 
 mail = Mail()
@@ -87,6 +89,7 @@ def create_app(option):
     admin.init_app(app)
     mail.init_app(app)
     migrate.init_app(app, db)
+    babel.init_app(app)
     from models import User, Role
     from webapp.forms import ExtendedRegisterForm
 

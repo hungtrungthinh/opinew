@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+{% import "_macros.html" as macros %}
+
+{% block content %}
+  <section class="container-fluid">
+    <div class="container">
+      <div class="row">
+
+
+        <img class="img-responsive" src="https://opinew.com/static/img/opinew_logo.png"
+             style="display: block;margin-left: auto;margin-right: auto " alt="Opinew Reviews">
+        <h1 align="center">Take your company's reviews to the next level.</h1>
+
+
+      </div>
+
+    </div>
+    <!--/row-->
+
+    <!--/container-->
+  </section>
+
+  {% include "colors_bar.html" %}
+  <section class="text-center">
+    <div class="row">
+      <div class="col-md-5">
+        <img src="/static/img/marketing/multimedia.jpg" class="img-responsive" alt="Opinew reviews gives you rich multimedia content"/>
+      </div>
+      <div class="col-md-5 col-md-offset-1">
+        <span class="glyphicon glyphicon-envelope glyphicon-5x" style="margin-right: 20px"></span>
+        <span class="glyphicon glyphicon-comment glyphicon-5x"></span>
+
+        <h2>Automation</h2>
+
+        <p class="marketing-feature-expl">We will send automated emails to the
+          buyers to prompt
+          them to leave a review and help others in their buying decisions.
+          We will take care of
+          profanity filters and suggesting which reviews
+          will help you and your customers the most.
+        </p>
+        <span class="glyphicon glyphicon-camera glyphicon-5x" style="margin-right: 20px"></span>
+        <span class="glyphicon glyphicon-facetime-video glyphicon-5x"></span>
+
+        <h2>Rich multimedia content</h2>
+
+        <p class="marketing-feature-expl">Bring extra credibility to your reviews with photos and videos.</br>
+          Over a billion of them are posted everyday on services like Snapchat, Pinterest and Instagram.</p>
+      </div>
+    </div>
+    <div  class="row">
+      <div class="col-md-5">
+        <img src="/static/img/marketing/verified.jpg" class="img-responsive" alt="Opinew smart algorithms verify and authenticate the reviews"/>
+      </div>
+
+      <div class="col-md-5 col-md-offset-1">
+        <span class="glyphicon glyphicon-shopping-cart glyphicon-5x"></span>
+
+        <h2>High quality reviews, higher sales</h2>
+
+        <p class="marketing-feature-expl">Get better reviews for your products, driving conversions and
+          increasing sales by up to 20 percent.</p>
+
+        <span class="glyphicon glyphicon-check glyphicon-5x"></span>
+
+        <h2>Verified reviews</h2>
+        <p class="marketing-feature-expl">Reviews left by people who purchased them are shown as "Verified Reviews". Our
+          picture-based approach from our app only tightens the process.</p>
+      </div>
+    </div>
+    <div  class="row">
+      <div class="col-md-5">
+        <img src="/static/img/marketing/mobile.jpg" class="img-responsive" alt="Opinew reviews is mobile friendly and works on any website"/>
+      </div>
+      <div class="col-md-5 col-md-offset-1">
+        <span class="glyphicon glyphicon-phone glyphicon-5x"></span>
+        <h2 align="center">Mobile first</h2>
+        <p class="marketing-feature-expl">We focus on making the reviewing process on those devices as simple as
+          possible.
+        </p>
+        <br>
+        <span class="glyphicon glyphicon-thumbs-up glyphicon-5x"></span>
+        <h2 align="center">Works everywhere</h2>
+        <p class="marketing-feature-expl">Simple version works on ANY website, is feature-rich and looks great.</br>
+          Best can be installed on Shopify with Magento and others to come soon.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {% include "colors_bar.html" %}
+
+  <div id="pricing">
+    <h2 class="text-center">Summary and pricing</h2>
+    <div class="col-sm-12">
+      {% include "/pricing_plans/pricing_plans.html" %}
+      <!--/container-->
+    </div>
+  </div>
+{% endblock %}

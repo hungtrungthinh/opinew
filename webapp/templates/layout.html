@@ -1,6 +1,27 @@
 <!doctype html>
-<html class="no-js" lang="en-G">
+<html class="no-js" lang="en">
 <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title or g.constants.META_DEFAULT_TITLE }}</title>
+  <meta name="keywords" content="reviews, photo reviews, image reviews, verified review, review plugin, review widget">
+  <link rel="shortcut icon" href="/static/icons/opinew32.ico"/>
+
+  <!-- Add to homescreen for Chrome on Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='icons/android-desktop.png') }}">
+
+  <!-- Add to homescreen for Safari on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="{{ g.constants.PRODUCT_NAME }}">
+  <link rel="apple-touch-icon-precomposed" href="{{ url_for('static', filename='icons/ios-desktop.png') }}">
+
+  <!-- SEO: If your mobile URL is different from the desktop URL, add a canonical link to the desktop page https://developers.google.com/webmasters/smartphone-sites/feature-phones -->
+  <link rel="canonical" href="{{ g.constatnts.META_CANONICAL_URL }}">
+
   {# DNS Prefetch hints #}
   <link rel="dns-prefetch" href="maxcdn.bootstrapcdn.com">
   <link rel="dns-prefetch" href="ajax.googleapis.com">
@@ -10,14 +31,8 @@
   <link rel="prefetch" href="/static/js/post_review.js">
   {# Chrome prerenders this ONE page in the background for INSTANT click - ONLY GET #}
   <link rel="prerender" href="https://opinew.com{{ page_prerender or g.constants.META_DEFAULT_PRERENDER }}">
-  {# standart HTML Meta tags #}
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>{{ page_title or g.constants.META_DEFAULT_TITLE }}</title>
-  <meta name="description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
-  <meta name="keywords" content="reviews, photo reviews, image reviews, verified review, review plugin, review widget">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link id="favicon" rel="shortcut icon" href="/static/icons/opinew32.ico"/>
+
+  {# Apple icons for different devices #}
   <link rel="apple-touch-icon" sizes="60x60" href="/static/icons/apple-touch-icon60.png">
   {# iphone default 60x60 #}
   <link rel="apple-touch-icon" sizes="76x76" href="/static/icons/apple-touch-icon76.png">
@@ -26,14 +41,19 @@
   {# iphone-retina #}
   <link rel="apple-touch-icon" sizes="152x152" href="/static/icons/apple-touch-icon152.png">
   <link rel="apple-touch-icon" sizes="192x192" href="/static/icons/apple-touch-icon192.png"/>
-  {# Facebook's open graph things #}
+
+  {# Facebook's open graph #}
   <meta property="og:url" content="{{ page_url or request.url or g.constants.META_CANONICAL_URL }}"/>
   <meta property="og:title" content="{{ page_title or g.constants.META_DEFAULT_TITLE }}"/>
   <meta property="og:description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}"/>
   <meta property="og:image" content="{{ page_image or g.constants.META_DEFAULT_IMAGE }}"/>
+
   {# Set the theme color on android devices #}
-  <meta name="theme-color" content="#2c54a8">
-  <link href="https://plus.google.com/+Opinew" rel="publisher" />
+  <meta name="theme-color" content="{{ g.constants.COLOR_OPINEW_AQUA }}">
+
+  {# Google plus page #}
+  <link href="https://plus.google.com/+Opinew" rel="publisher"/>
+
   {#  Stylesheets #}
   {% if g.mode == 'production' %}
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
@@ -46,6 +66,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}"/>
   {# Place per-page styles #}
   {% block style %}{% endblock %}
+
   <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>

@@ -42,6 +42,27 @@ To see active connections:
     
     SELECT * FROM pg_stat_activity;
 
+## Translations
+Surround code to be translated with {{ gettext() }}
+
+To extract new strings:
+
+    pybabel extract -F babel.cfg -o messages.pot .
+
+To generate new language:
+
+    pybabel init -i messages.pot -d webapp/translations -l pl
+
+If any of these strings change, run:
+
+    pybabel update -i messages.pot -d webapp/translations
+
+Do the translations in `webapp/translations/bg/LC_MESSAGES`
+
+To compile:
+
+    pybabel compile -d webapp/translations
+
 ## Run
 Once everything is setup, just run with
 
