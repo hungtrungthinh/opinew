@@ -75,16 +75,9 @@ css_assets = Bundle('css/min/bootstrap.min.css', 'css/global.css',
 
 
 def create_app(option):
-    app = FlaskOpinewExt(__name__, static_folder=None)
+    app = FlaskOpinewExt(__name__)
     config = config_factory.get(option)
     app.config.from_object(config)
-
-    # serve static files from subdomain
-    app.static_folder = 'static'
-    app.add_url_rule('/<path:filename>',
-                     endpoint='static',
-                     subdomain='static',
-                     view_func=app.send_static_file)
 
     from common import create_jinja_filters, random_pwd, verify_initialization
 
@@ -93,9 +86,9 @@ def create_app(option):
     from webapp.client import client
     from webapp.media import media
 
-    app.register_blueprint(client, subdomain='www')
-    app.register_blueprint(api, url_prefix=Constants.API_V1_URL_PREFIX, subdomain='www')
-    app.register_blueprint(media, url_prefix=Constants.MEDIA_URL_PREFIX, subdomain='www')
+    app.register_blueprint(client)
+    app.register_blueprint(api, url_prefix=Constants.API_V1_URL_PREFIX)
+    app.register_blueprint(media, url_prefix=Constants.MEDIA_URL_PREFIX)
 
     compress.init_app(app)
     gravatar.init_app(app)
@@ -172,7 +165,8 @@ def create_app(option):
                                    'server-error@opinew.com',
                                    admins,
                                    'Your Application Failed',
-                                   credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')))
+                                   credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')),
+                                   secure=())
         mail_handler.setLevel(logging.ERROR)
         mail_handler.setFormatter(Formatter('''
 Time        : %(asctime)s

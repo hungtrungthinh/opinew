@@ -481,7 +481,7 @@ def shop_dashboard_questions(shop_id):
         flash('Not your shop')
         return redirect(url_for('client.shop_dashboard'))
     products = Product.query.filter_by(shop_id=shop_id).all()
-    questions = Question.query.filter(Question.about_product_id.in_([p.id for p in products])).all()
+    questions = Question.query.filter(Question.product_id.in_([p.id for p in products])).all()
     return render_template("shop_admin/questions.html", questions=questions)
 
 
