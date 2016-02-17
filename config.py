@@ -255,7 +255,7 @@ class ConfigProd(Config):
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     STRIPE_PUBLISHABLE_API_KEY = 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'  # test key: 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
-    SERVER_NAME = 'www.opinew.com'
+    SERVER_NAME = 'opinew.com'
     RESIZE_URL = 'https://www.opinew.com/media'
 
 

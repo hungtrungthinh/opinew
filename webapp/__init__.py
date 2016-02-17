@@ -93,9 +93,9 @@ def create_app(option):
     from webapp.client import client
     from webapp.media import media
 
-    app.register_blueprint(client)
-    app.register_blueprint(api, url_prefix=Constants.API_V1_URL_PREFIX)
-    app.register_blueprint(media, url_prefix=Constants.MEDIA_URL_PREFIX)
+    app.register_blueprint(client, subdomain='www')
+    app.register_blueprint(api, url_prefix=Constants.API_V1_URL_PREFIX, subdomain='www')
+    app.register_blueprint(media, url_prefix=Constants.MEDIA_URL_PREFIX, subdomain='www')
 
     compress.init_app(app)
     gravatar.init_app(app)
