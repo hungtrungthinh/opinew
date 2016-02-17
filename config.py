@@ -21,6 +21,12 @@ class Constants(object):
     COLOR_OPINEW_AQUA = '#1c9298'
     COLOR_OPINEW_BLUEBERRY = '#2c54a8'
 
+    ALERT_ERROR_LABEL = 'danger'
+    ALERT_WARNING_LABEL = 'warning'
+    ALERT_INFO_LABEL = 'info'
+    ALERT_SUCCESS_LABEL = 'success'
+    ALERT_PRIMARY_LABEL = 'primary'
+
     DEFAULT_SHOP_NAME = 'Online shop'
     DEFAULT_REVIEW_SUBJECT = "%s, tell others about your purchase from %s"
     DEFAULT_PRODUCT_NAME = 'Review Product'
@@ -208,7 +214,6 @@ class Config(object):
 
     BABEL_DEFAULT_LOCALE = Constants.DEFAULT_LOCALE
     BABEL_DEFAULT_TIMEZONE = 'UTC'
-
 
 
 class ConfigTest(Config):

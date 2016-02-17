@@ -1,6 +1,3 @@
-{% if g.config.DEBUG %}
-  <p style="color:red">Score: {{ obj.rank_score }}</p>
-{% endif %}
 {% if obj.object_type == g.constants.REVIEW_TYPE %}
   {% set review = obj %}
   {% include "review/review.html" %}

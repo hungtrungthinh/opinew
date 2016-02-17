@@ -5,6 +5,7 @@ import testing_constants
 import requests
 from flask import Flask, request, jsonify
 import datetime
+import httplib
 
 import webapp
 from webapp import db, common, mail
@@ -12,6 +13,7 @@ from webapp.models import User, Role, Shop
 from config import Constants, basedir
 import sensitive
 from repopulate import import_tables
+from jinja2 import filters
 
 from util.importers import import_shopify, import_yotpo
 
@@ -105,6 +107,34 @@ class TestFlaskApplication(TestCase):
 
     def logout(self):
         return self.desktop_client.get('/logout', follow_redirects=True)
+
+    def e(self, string):
+        """
+        HTML escape a string
+        :return: jinja escaped HTML
+        """
+        return filters.FILTERS['e'](string)
+
+    def assertStringInResponse(self, string, response):
+        """
+        Asserts a string is in the response
+        :param s: the string to check
+        :param r: the response
+        :return:
+        """
+        self.assertTrue(self.e(string) in response.data.decode('utf-8'))
+
+    def locationExpected(self, expected, response, code=httplib.FOUND):
+        """
+        Checking if the location returned after a redirect is as expected
+        :param expected:
+        :param response:
+        :return:
+        """
+        self.assertEquals(response.status_code, code)
+        if expected[-1] == '/':
+            expected = expected[:-1]
+        self.assertEquals(expected, response.location)
 
     @classmethod
     def refresh_db(cls):

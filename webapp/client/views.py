@@ -21,6 +21,7 @@ from providers import giphy
 from webapp.strategies import rank_objects_for_product
 from messages import SuccessMessages
 
+
 class ResponseContext(object):
     def __init__(self, is_async, default_redirect):
         self.is_async = is_async
@@ -52,7 +53,8 @@ def required_parameter(payload, param_name):
 def required_model_instance_by_id(model, instance_id):
     obj = model.query.filter_by(id=instance_id).first()
     verify_required_object(obj=obj,
-                           error_msg = ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance=model.__name__, id=instance_id),
+                           error_msg=ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance=model.__name__,
+                                                                                  id=instance_id),
                            error_code=httplib.BAD_REQUEST)
     return obj
 
@@ -78,6 +80,50 @@ def create_response_context(default_redirect_url_for):
 
     # Push the context
     g.response_context.append(ctx)
+
+
+@client.route('/kitchen-sink')
+@roles_required(Constants.ADMIN_ROLE)
+@login_required
+def kitchen_sink():
+    flash('This is dangerous', category=Constants.ALERT_ERROR_LABEL)
+    flash('Careful hello!!', category=Constants.ALERT_WARNING_LABEL)
+    flash('hello?', category=Constants.ALERT_INFO_LABEL)
+    flash('hello okay', category=Constants.ALERT_PRIMARY_LABEL)
+    flash('YES hello', category=Constants.ALERT_SUCCESS_LABEL)
+    return render_template('dev/kitchen_sink.html')
+
+
+@client.route('/')
+def index():
+    if 'mobile' in g and g.mobile:
+        if current_user.is_authenticated():
+            if current_user.has_role(Constants.REVIEWER_ROLE):
+                return redirect(url_for('client.user_profile', user_id=current_user.id))
+        else:
+            return render_template('index.html')
+            # return redirect(url_for('client.reviews'))
+
+    if current_user.is_authenticated():
+        if current_user.temp_password:
+            return redirect('/change')
+        if current_user.has_role(Constants.ADMIN_ROLE):
+            return redirect('/admin')
+        elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
+            return redirect(url_for('client.shop_dashboard'))
+        elif current_user.has_role(Constants.REVIEWER_ROLE):
+            return redirect(url_for('client.user_profile', user_id=current_user.id))
+    return render_template('index.html')
+
+
+@client.route('/terms')
+def terms_of_use():
+    return render_template('legal/terms_of_use.html', page_title="Terms of Use - ")
+
+
+@client.route('/privacy')
+def privacy_policy():
+    return render_template('legal/privacy_policy.html', page_title="Privacy Policy - ")
 
 
 @client.route('/install')
@@ -130,7 +176,7 @@ def install_shopify_step_one():
           '&scope={scopes}' \
           '&redirect_uri={redirect_uri}' \
           '&state={nonce}'.format(
-        shop=shop_domain, api_key=client_id, scopes=scopes, redirect_uri=redirect_uri, nonce=nonce)
+            shop=shop_domain, api_key=client_id, scopes=scopes, redirect_uri=redirect_uri, nonce=nonce)
     return redirect(url)
 
 
@@ -196,32 +242,11 @@ def shopify_plugin_callback():
     login_user(shop_owner)
     return redirect(url_for('client.shop_dashboard', first='1'))
 
+
 # Signals
 from flask.ext.security import user_registered
 
 user_registered.connect(User.post_registration_handler)
-
-
-@client.route('/')
-def index():
-    if 'mobile' in g and g.mobile:
-        if current_user.is_authenticated():
-            if current_user.has_role(Constants.REVIEWER_ROLE):
-                return redirect(url_for('client.user_profile', user_id=current_user.id))
-        else:
-            return render_template('index.html')
-            #return redirect(url_for('client.reviews'))
-
-    if current_user.is_authenticated():
-        if current_user.temp_password:
-            return redirect('/change')
-        if current_user.has_role(Constants.ADMIN_ROLE):
-            return redirect('/admin')
-        elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
-            return redirect(url_for('client.shop_dashboard'))
-        elif current_user.has_role(Constants.REVIEWER_ROLE):
-            return redirect(url_for('client.user_profile', user_id=current_user.id))
-    return render_template('index.html')
 
 
 @client.route('/', defaults={'review_request_token': ''})
@@ -344,14 +369,16 @@ def shop_dashboard_id(shop_id):
     plans = Plan.query.all()
     current_plan = None
     if shop.owner.customer and len(shop.owner.customer) > 0 and shop.owner.customer[0] and \
-        shop.owner.customer[0].subscription and len(shop.owner.customer[0].subscription) > 0 and \
-        shop.owner.customer[0].subscription[0]:
+            shop.owner.customer[0].subscription and len(shop.owner.customer[0].subscription) > 0 and \
+            shop.owner.customer[0].subscription[0]:
         current_plan = shop.owner.customer[0].subscription[0].plan
     if current_user.confirmed_at:
         # TODO: temporary fix for legacy users, we should always get the data from the subscription ts
-        expiry_days = (current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
+        expiry_days = (current_user.confirmed_at + datetime.timedelta(
+            days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
     else:
-        expiry_days = (current_user.customer[0].subscription[0].timestamp + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
+        expiry_days = (current_user.customer[0].subscription[0].timestamp + datetime.timedelta(
+            days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
                            review_request_form=review_request_form, platforms=platforms,
                            plans=plans, expiry_days=expiry_days, current_plan=current_plan)
@@ -576,7 +603,8 @@ def get_plugin_stars():
                         (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
                 not shop.owner.customer[0].last4:
             return '', 404
-        all_reviews = Review.query.filter_by(product_id=product.id, deleted=False).order_by(Review.created_ts.desc()).all()
+        all_reviews = Review.query.filter_by(product_id=product.id, deleted=False).order_by(
+            Review.created_ts.desc()).all()
         stars_list = [r.star_rating for r in all_reviews if r.star_rating]
         average_stars = sum(stars_list) / len(stars_list) if len(stars_list) else 0
     except (ParamException, DbException, AssertionError, AttributeError) as e:
@@ -725,7 +753,8 @@ def delete_review(review_id):
     review.deleted_ts = datetime.datetime.utcnow()
     db.session.add(review)
     db.session.commit()
-    return redirect(request.referrer or url_for('client.get_product', product_id=review.product_id) or url_for('client.index'))
+    return redirect(
+        request.referrer or url_for('client.get_product', product_id=review.product_id) or url_for('client.index'))
 
 
 @client.route('/reviews', defaults={'review_id': 0})
@@ -747,31 +776,6 @@ def view_review(review_id):
 def plugin_logout():
     logout_user()
     return redirect(request.referrer)
-
-
-@client.route('/faq')
-def faq():
-    return render_template('faq.html')
-
-
-@client.route('/about-us')
-def about_us():
-    return render_template('about_us.html', page_title="About us - ")
-
-
-@client.route('/support')
-def support():
-    return render_template('support.html', page_title="Support - ")
-
-
-@client.route('/terms')
-def terms_of_use():
-    return render_template('terms_of_use.html', page_title="Terms of Use - ")
-
-
-@client.route('/privacy')
-def privacy_policy():
-    return render_template('privacy_policy.html', page_title="Privacy Policy - ")
 
 
 @client.route('/robots.txt')
@@ -803,9 +807,11 @@ def sitemapxml():
     response.headers["Content-Type"] = "application/xml"
     return response
 
+
 @client.route('/opinew-simple')
 def render_simple_promo_page():
     return render_template('simple_promotional_page.html')
+
 
 @client.route('/render-order-review-email')
 def render_order_review_email():
@@ -1036,7 +1042,7 @@ def add_review_like(review_id):
     review = Review.query.filter_by(id=review_id).first()
     if not review:
         return jsonify({
-            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
+            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id)
         }), httplib.BAD_REQUEST
     review_like = ReviewLike.query.filter_by(review_id=review_id, user_id=current_user.id).first()
     if not review_like:
@@ -1063,7 +1069,7 @@ def add_review_report(review_id):
     review = Review.query.filter_by(id=review_id).first()
     if not review:
         return jsonify({
-            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
+            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id)
         }), httplib.BAD_REQUEST
     review_report = ReviewReport.query.filter_by(review_id=review_id, user_id=current_user.id).first()
     if not review_report:

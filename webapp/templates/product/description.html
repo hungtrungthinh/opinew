@@ -1,15 +1,13 @@
 <h2>
-  <a href="http://{{ product.url }}">{{ product.name }}</a><br>
-  <small>from <a href="{{ product.shop.domain }}">{{ product.shop.name }}</a></small>
+  <a href="{{ product.url }}">{{ product.name }}</a><br>
+  <small>{{ g.s.PRODUCT_FROM }} <a href="{{ product.shop.domain }}">{{ product.shop.name }}</a></small>
 </h2>
 <div>
   {% if product.short_description %}
     {% if product.image_url %}
       <div class="media-left media-top">
-        <a href="#">
-          <img class="media-object img-thumbnail" src="{{ product.image_url }}"
-               alt="{{ product.name }} image" style="max-height:120px">
-        </a>
+        <img class="media-object img-thumbnail product-image" src="{{ product.image_url }}"
+             alt="{{ product.name }} image">
       </div>
     {% endif %}
     <div class="media-body">

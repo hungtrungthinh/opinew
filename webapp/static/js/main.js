@@ -23,6 +23,14 @@ var EMOJIS = {
   ":flushed:": "1f633.png"
 };
 
+function renderMessageTemplate(message, category) {
+  return "<div class=\"alert alert-flash alert-" + category + "\"><button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button>" + message + "</div>"
+}
+
+function flashMessage(message, category) {
+  $('#flashed-messages').append(renderMessageTemplate(message, category));
+}
+
 $.ajaxSetup({
   beforeSend: function (xhr, settings) {
     if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
@@ -98,10 +106,7 @@ function sendAsync(url, successCallback) {
     successCallback(r);
   }).fail(function (r) {
     var error = r.responseJSON.error;
-    $('#product-post-status')
-        .addClass('alert-danger')
-        .html('<p><strong>Something went wrong</strong>: ' + error + '</p>')
-        .slideDown();
+    flashMessage(error, 'error');
   });
 }
 

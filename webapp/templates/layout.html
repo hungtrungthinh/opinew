@@ -26,9 +26,9 @@
   <link rel="dns-prefetch" href="maxcdn.bootstrapcdn.com">
   <link rel="dns-prefetch" href="ajax.googleapis.com">
   {# Hints for CURRENT page #}
-  <link rel="subresource" href="{{ url_for('static', filename='js/main.min.js') }}">
+  {# <link rel="subresource" href="{{ url_for('static', filename='js/main.min.js') }}">#}
   {# Hints for FUTURE navigation #}
-  <link rel="prefetch" href="{{ url_for('static', filename='js/post_review.js') }}">
+  {# <link rel="prefetch" href="{{ url_for('static', filename='js/post_review.js') }}">#}
   {# Chrome prerenders this ONE page in the background for INSTANT click - ONLY GET #}
   <link rel="prerender" href="https://www.opinew.com{{ page_prerender or g.constants.META_DEFAULT_PRERENDER }}">
 
@@ -68,20 +68,22 @@
   {% block style %}{% endblock %}
 
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  {# Include Google analytics if in production mode #}
+  {# Include Google analytics, fb code if in production mode #}
   {% if g.mode == 'production' %}
-    {% include "ga.html" %}
+    {% include "snippets/ga.html" %}
+    {% include "snippets/fb_code.html" %}
   {% endif %}
 </head>
 <body {% block body_attributes %}{% endblock %}>
-{% include "navigation.html" %}
-{% include "flashed_messages.html" %}
+{% include "navigation/navigation.html" %}
+{% include "snippets/flashed_messages.html" %}
 
 {# Main content of application is here #}
 {% block content %}{% endblock %}
-<div class="spacer"></div>
-{% include "footer.html" %}
 {# /End of main content #}
+
+{% include "snippets/footer.html" %}
+
 
 {% if not g.mode == 'production' %}
   <script src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
@@ -92,7 +94,7 @@
     <script type="text/javascript" src="{{ ASSET_URL }}"></script>
   {% endassets %}
 {% endif %}
-{% include "fb_code.html" %}
+
 {# Place per-page scripts #}
 {% block script %}{% endblock %}
 </body>

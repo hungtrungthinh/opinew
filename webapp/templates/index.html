@@ -1,301 +1,267 @@
 {% extends "layout.html" %}
 {% block style %}
-  <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium&amp;lang=en">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <link rel="stylesheet" href="https://code.getmdl.io/1.1.1/material.deep_purple-pink.min.css">
-  <link rel="stylesheet" href="{{ url_for('static',  filename='css/styles.css') }}">
+  <link href="{{ url_for('static', filename='css/landing-page.css') }}" rel="stylesheet">
+  <link href="http://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic,700italic" rel="stylesheet"
+        type="text/css">
+  <style>
+    .intro-header {
+      background: url({{ url_for('static', filename='img/marketing/stock_header.jpg') }}) no-repeat center center;
+      background-size: cover;
+    }
+  </style>
 {% endblock %}
-
-{% block body_attributes %}
-  class="mdl-demo mdl-color--grey-100 mdl-color-text--grey-700 mdl-base"
-{% endblock %}
-
 {% block content %}
-  <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
-    <header class="mdl-layout__header mdl-layout__header--scroll mdl-color--primary">
-      <div class="mdl-layout--large-screen-only mdl-layout__header-row">
-      </div>
-      <div class="mdl-layout--large-screen-only mdl-layout__header-row">
-        <h3>{{ gettext('Opinew') }}</h3>
-      </div>
-      <div class="mdl-layout--large-screen-only mdl-layout__header-row">
-      </div>
-      <div class="mdl-layout__tab-bar mdl-js-ripple-effect mdl-color--primary-dark">
-        <a href="#overview" class="mdl-layout__tab is-active">Overview</a>
-        <a href="#features" class="mdl-layout__tab">Features</a>
-        <a href="#features" class="mdl-layout__tab">Details</a>
-        <a href="#features" class="mdl-layout__tab">Technology</a>
-        <a href="#features" class="mdl-layout__tab">FAQ</a>
-        <button
-            class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored mdl-shadow--4dp mdl-color--accent"
-            id="add">
-          <i class="material-icons" role="presentation">add</i>
-          <span class="visuallyhidden">Add</span>
-        </button>
-      </div>
-    </header>
-    <main class="mdl-layout__content">
-      <div class="mdl-layout__tab-panel is-active" id="overview">
-        <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
-          <header
-              class="section__play-btn mdl-cell mdl-cell--3-col-desktop mdl-cell--2-col-tablet mdl-cell--4-col-phone mdl-color--teal-100 mdl-color-text--white">
-            <i class="material-icons">play_circle_filled</i>
-          </header>
-          <div class="mdl-card mdl-cell mdl-cell--9-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-            <div class="mdl-card__supporting-text">
-              <h4>Features</h4>
-              Dolore ex deserunt aute fugiat aute nulla ea sunt aliqua nisi cupidatat eu. Nostrud in laboris labore nisi
-              amet do dolor eu fugiat consectetur elit cillum esse.
-            </div>
-            <div class="mdl-card__actions">
-              <a href="#" class="mdl-button">Read our features</a>
-            </div>
-          </div>
-          <button class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon" id="btn1">
-            <i class="material-icons">more_vert</i>
-          </button>
-          <ul class="mdl-menu mdl-js-menu mdl-menu--bottom-right" for="btn1">
-            <li class="mdl-menu__item">Lorem</li>
-            <li class="mdl-menu__item" disabled>Ipsum</li>
-            <li class="mdl-menu__item">Dolor</li>
-          </ul>
-        </section>
-        <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
-          <div class="mdl-card mdl-cell mdl-cell--12-col">
-            <div class="mdl-card__supporting-text mdl-grid mdl-grid--no-spacing">
-              <h4 class="mdl-cell mdl-cell--12-col">Details</h4>
-              <div class="section__circle-container mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
-                <div class="section__circle-container__circle mdl-color--primary"></div>
-              </div>
-              <div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-                <h5>Lorem ipsum dolor sit amet</h5>
-                Dolore ex deserunt aute fugiat aute nulla ea sunt aliqua nisi cupidatat eu. Duis nulla tempor do aute et
-                eiusmod velit exercitation nostrud quis <a href="#">proident minim</a>.
-              </div>
-              <div class="section__circle-container mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
-                <div class="section__circle-container__circle mdl-color--primary"></div>
-              </div>
-              <div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-                <h5>Lorem ipsum dolor sit amet</h5>
-                Dolore ex deserunt aute fugiat aute nulla ea sunt aliqua nisi cupidatat eu. Duis nulla tempor do aute et
-                eiusmod velit exercitation nostrud quis <a href="#">proident minim</a>.
-              </div>
-              <div class="section__circle-container mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
-                <div class="section__circle-container__circle mdl-color--primary"></div>
-              </div>
-              <div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-                <h5>Lorem ipsum dolor sit amet</h5>
-                Dolore ex deserunt aute fugiat aute nulla ea sunt aliqua nisi cupidatat eu. Duis nulla tempor do aute et
-                eiusmod velit exercitation nostrud quis <a href="#">proident minim</a>.
-              </div>
-            </div>
-            <div class="mdl-card__actions">
-              <a href="#" class="mdl-button">Read our features</a>
-            </div>
-          </div>
-          <button class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon" id="btn2">
-            <i class="material-icons">more_vert</i>
-          </button>
-          <ul class="mdl-menu mdl-js-menu mdl-menu--bottom-right" for="btn2">
-            <li class="mdl-menu__item">Lorem</li>
-            <li class="mdl-menu__item" disabled>Ipsum</li>
-            <li class="mdl-menu__item">Dolor</li>
-          </ul>
-        </section>
-        <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
-          <div class="mdl-card mdl-cell mdl-cell--12-col">
-            <div class="mdl-card__supporting-text">
-              <h4>Technology</h4>
-              Dolore ex deserunt aute fugiat aute nulla ea sunt aliqua nisi cupidatat eu. Nostrud in laboris labore nisi
-              amet do dolor eu fugiat consectetur elit cillum esse. Pariatur occaecat nisi laboris tempor laboris
-              eiusmod qui id Lorem esse commodo in. Exercitation aute dolore deserunt culpa consequat elit labore
-              incididunt elit anim.
-            </div>
-            <div class="mdl-card__actions">
-              <a href="#" class="mdl-button">Read our features</a>
-            </div>
-          </div>
-          <button class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon" id="btn3">
-            <i class="material-icons">more_vert</i>
-          </button>
-          <ul class="mdl-menu mdl-js-menu mdl-menu--bottom-right" for="btn3">
-            <li class="mdl-menu__item">Lorem</li>
-            <li class="mdl-menu__item" disabled>Ipsum</li>
-            <li class="mdl-menu__item">Dolor</li>
-          </ul>
-        </section>
-        <section class="section--footer mdl-color--white mdl-grid">
-          <div class="section__circle-container mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
-            <div class="section__circle-container__circle mdl-color--accent section__circle--big"></div>
-          </div>
-          <div class="section__text mdl-cell mdl-cell--4-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-            <h5>Lorem ipsum dolor sit amet</h5>
-            Qui sint ut et qui nisi cupidatat. Reprehenderit nostrud proident officia exercitation anim et pariatur ex.
-          </div>
-          <div class="section__circle-container mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
-            <div class="section__circle-container__circle mdl-color--accent section__circle--big"></div>
-          </div>
-          <div class="section__text mdl-cell mdl-cell--4-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-            <h5>Lorem ipsum dolor sit amet</h5>
-            Qui sint ut et qui nisi cupidatat. Reprehenderit nostrud proident officia exercitation anim et pariatur ex.
-          </div>
-        </section>
-      </div>
-      <div class="mdl-layout__tab-panel" id="features">
-        <section class="section--center mdl-grid mdl-grid--no-spacing">
-          <div class="mdl-cell mdl-cell--12-col">
-            <h4>Features</h4>
-            Minim duis incididunt est cillum est ex occaecat consectetur. Qui sint ut et qui nisi cupidatat.
-            Reprehenderit nostrud proident officia exercitation anim et pariatur ex.
-            <ul class="toc">
-              <h4>Contents</h4>
-              <a href="#lorem1">Lorem ipsum</a>
-              <a href="#lorem2">Lorem ipsum</a>
-              <a href="#lorem3">Lorem ipsum</a>
-              <a href="#lorem4">Lorem ipsum</a>
-              <a href="#lorem5">Lorem ipsum</a>
-            </ul>
+  <!-- Header -->
+  <a name="about"></a>
+  <div class="intro-header">
+    <div class="container">
 
-            <h5 id="lorem1">Lorem ipsum dolor sit amet</h5>
-            Excepteur et pariatur officia veniam anim culpa cupidatat consequat ad velit culpa est non.
-            <ul>
-              <li>Nisi qui nisi duis commodo duis reprehenderit consequat velit aliquip.</li>
-              <li>Dolor consectetur incididunt in ipsum laborum non et irure pariatur excepteur anim occaecat officia
-                sint.
+      <div class="row">
+        <div class="col-lg-12">
+          <div class="intro-message">
+            <h1>{{ g.s.OPINEW }}</h1>
+            <h3>{{ g.s.OPINEW_MOTO }}</h3>
+            <hr class="intro-divider">
+            <ul class="list-inline intro-social-buttons">
+              <li>
+                <a href="{{ url_for('security.register', shop_owner=1) }}" class="btn btn-primary btn-lg"><i
+                    class="fa fa-github fa-fw"></i> <span class="network-name">{{ gettext('Start now') }}</span></a>
               </li>
-              <li>Lorem labore proident officia excepteur do.</li>
             </ul>
-
-            <p>
-              Sit qui est voluptate proident minim cillum in aliquip cupidatat labore pariatur id tempor id. Proident
-              occaecat occaecat sint mollit tempor duis dolor cillum anim. Dolore sunt ea mollit fugiat in aliqua
-              consequat nostrud aliqua ut irure in dolore. Proident aliqua culpa sint sint exercitation. Non proident
-              occaecat reprehenderit veniam et proident dolor id culpa ea tempor do dolor. Nulla adipisicing qui fugiat
-              id dolor. Nostrud magna voluptate irure veniam veniam labore ipsum deserunt adipisicing laboris amet eu
-              irure. Sunt dolore nisi velit sit id. Nostrud voluptate labore proident cupidatat enim amet Lorem officia
-              magna excepteur occaecat eu qui. Exercitation culpa deserunt non et tempor et non.
-            </p>
-            <p>
-              Do dolor eiusmod eu mollit dolore nostrud deserunt cillum irure esse sint irure fugiat exercitation. Magna
-              sit voluptate id in tempor elit veniam enim cupidatat ea labore elit. Aliqua pariatur eu nulla labore
-              magna dolore mollit occaecat sint commodo culpa. Eu non minim duis pariatur Lorem quis exercitation. Sunt
-              qui ex incididunt sit anim incididunt sit elit ad officia id.
-            </p>
-            <p id="lorem2">
-              Tempor voluptate ex consequat fugiat aliqua. Do sit et reprehenderit culpa deserunt culpa. Excepteur quis
-              minim mollit irure nulla excepteur enim quis in laborum. Aliqua elit voluptate ad deserunt nulla
-              reprehenderit adipisicing sint. Est in eiusmod exercitation esse commodo. Ea reprehenderit exercitation
-              veniam adipisicing minim nostrud. Veniam dolore ex ea occaecat non enim minim id ut aliqua adipisicing ad.
-              Occaecat excepteur aliqua tempor cupidatat aute dolore deserunt ipsum qui incididunt aliqua occaecat sit
-              quis. Culpa sint aliqua aliqua reprehenderit veniam irure fugiat ea ad.
-            </p>
-            <p>
-              Eu minim fugiat laborum irure veniam Lorem aliqua enim. Aliqua veniam incididunt consequat irure consequat
-              tempor do nisi deserunt. Elit dolore ad quis consectetur sint laborum anim magna do nostrud amet. Ea nulla
-              sit consequat quis qui irure dolor. Sint deserunt excepteur consectetur magna irure. Dolor tempor
-              exercitation dolore pariatur incididunt ut laboris fugiat ipsum sunt veniam aute sunt labore. Non dolore
-              sit nostrud eu ad excepteur cillum eu ex Lorem duis.
-            </p>
-            <p>
-              Id occaecat velit non ipsum occaecat aliqua quis ut. Eiusmod est magna non esse est ex incididunt aute
-              ullamco. Cillum excepteur sint ipsum qui quis velit incididunt amet. Qui deserunt anim enim laborum cillum
-              reprehenderit duis mollit amet ad officia enim. Minim sint et quis aliqua aliqua do minim officia dolor
-              deserunt ipsum laboris. Nulla nisi voluptate consectetur est voluptate et amet. Occaecat ut quis
-              adipisicing ad enim. Magna est magna sit duis proident veniam reprehenderit fugiat reprehenderit enim
-              velit ex. Ullamco laboris culpa irure aliquip ad Lorem consequat veniam ad ipsum eu. Ipsum culpa dolore
-              sunt officia laborum quis.
-            </p>
-
-            <h5 id="lorem3">Lorem ipsum dolor sit amet</h5>
-
-            <p id="lorem4">
-              Eiusmod nulla aliquip ipsum reprehenderit nostrud non excepteur mollit amet esse est est dolor. Dolore
-              quis pariatur sit consectetur veniam esse ullamco duis Lorem qui enim ut veniam. Officia deserunt minim
-              duis laborum dolor in velit pariatur commodo ullamco eu. Aute adipisicing ad duis labore laboris do mollit
-              dolor cillum sunt aliqua ullamco. Esse tempor quis cillum consequat reprehenderit. Adipisicing proident
-              anim eu sint elit aliqua anim dolore cupidatat fugiat aliquip qui.
-            </p>
-            <p id="lorem5">
-              Nisi eiusmod esse cupidatat excepteur exercitation ipsum reprehenderit nostrud deserunt aliqua ullamco.
-              Anim est irure commodo eiusmod pariatur officia. Est dolor ipsum excepteur magna aliqua ad veniam irure
-              qui occaecat eiusmod aute fugiat commodo. Quis mollit incididunt amet sit minim velit eu fugiat voluptate
-              excepteur. Sit minim id pariatur ex cupidatat cupidatat nostrud nostrud ipsum.
-            </p>
-            <p>
-              Enim ea officia excepteur ad veniam id reprehenderit eiusmod esse mollit consequat. Esse non aute ullamco
-              Lorem aliqua qui dolore irure eiusmod aute aliqua proident labore aliqua. Ipsum voluptate voluptate
-              exercitation laborum deserunt nulla elit aliquip et minim ex veniam. Duis cupidatat aute sunt officia
-              mollit dolor ad elit ad aute labore nostrud duis pariatur. In est sint voluptate consectetur velit ea non
-              labore. Ut duis ea aliqua consequat nulla laboris fugiat aute id culpa proident. Minim eiusmod laboris
-              enim Lorem nisi excepteur mollit voluptate enim labore reprehenderit officia mollit.
-            </p>
-            <p>
-              Cupidatat labore nisi ut sunt voluptate quis sunt qui ad Lorem esse nisi. Ex esse velit ullamco incididunt
-              occaecat dolore veniam tempor minim adipisicing amet. Consequat in exercitation est elit anim consequat
-              cillum sint labore cillum. Aliquip mollit laboris ad labore anim.
-            </p>
           </div>
-        </section>
+        </div>
       </div>
-      <footer class="mdl-mega-footer">
-        <div class="mdl-mega-footer--middle-section">
-          <div class="mdl-mega-footer--drop-down-section">
-            <input class="mdl-mega-footer--heading-checkbox" type="checkbox" checked>
-            <h1 class="mdl-mega-footer--heading">Features</h1>
-            <ul class="mdl-mega-footer--link-list">
-              <li><a href="#">About</a></li>
-              <li><a href="#">Terms</a></li>
-              <li><a href="#">Partners</a></li>
-              <li><a href="#">Updates</a></li>
-            </ul>
-          </div>
-          <div class="mdl-mega-footer--drop-down-section">
-            <input class="mdl-mega-footer--heading-checkbox" type="checkbox" checked>
-            <h1 class="mdl-mega-footer--heading">Details</h1>
-            <ul class="mdl-mega-footer--link-list">
-              <li><a href="#">Spec</a></li>
-              <li><a href="#">Tools</a></li>
-              <li><a href="#">Resources</a></li>
-            </ul>
-          </div>
-          <div class="mdl-mega-footer--drop-down-section">
-            <input class="mdl-mega-footer--heading-checkbox" type="checkbox" checked>
-            <h1 class="mdl-mega-footer--heading">Technology</h1>
-            <ul class="mdl-mega-footer--link-list">
-              <li><a href="#">How it works</a></li>
-              <li><a href="#">Patterns</a></li>
-              <li><a href="#">Usage</a></li>
-              <li><a href="#">Products</a></li>
-              <li><a href="#">Contracts</a></li>
-            </ul>
-          </div>
-          <div class="mdl-mega-footer--drop-down-section">
-            <input class="mdl-mega-footer--heading-checkbox" type="checkbox" checked>
-            <h1 class="mdl-mega-footer--heading">FAQ</h1>
-            <ul class="mdl-mega-footer--link-list">
-              <li><a href="#">Questions</a></li>
-              <li><a href="#">Answers</a></li>
-              <li><a href="#">Contact us</a></li>
-            </ul>
-          </div>
-        </div>
-        <div class="mdl-mega-footer--bottom-section">
-          <div class="mdl-logo">
-            More Information
-          </div>
-          <ul class="mdl-mega-footer--link-list">
-            <li><a href="https://developers.google.com/web/starter-kit/">Web Starter Kit</a></li>
-            <li><a href="#">Help</a></li>
-            <li><a href="#">Privacy and Terms</a></li>
-          </ul>
-        </div>
-      </footer>
-    </main>
+    </div>
+    <!-- /.container -->
+
   </div>
-{% endblock %}
+  <!-- /.intro-header -->
 
-{% block script %}
-  <script src="https://code.getmdl.io/1.1.1/material.min.js"></script>
-{% endblock %}
+  <!-- Page Content -->
 
+  <a name="features"></a>
+  <div class="content-section-b">
+
+    <div class="container">
+      <div class="row text-center">
+        <a target="_blank" class="btn btn-lg btn-success" href="https://apps.shopify.com/opinew">
+          <h3>
+            {{ gettext('Have a shop running on') }}<br>
+            <img class="img-responsive marketing-img-shopify"
+                 src="{{ url_for('static', filename='img/marketing/shopify.png') }}"
+                 alt="Shopify"/>?
+          </h3>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="content-section-a">
+
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-5 col-sm-6">
+          <hr class="section-heading-spacer">
+          <div class="clearfix"></div>
+          <h2 class="section-heading">{{ gettext("Get reviews that drive sales") }}</h2>
+          <p class="lead">{{ gettext("Get better reviews for your products, driving conversions and increasing sales by <strong>20 percent</strong>. We will send automated emails to your customers to prompt them to leave a review. Then, our smart system suggests which reviews will help you and your customers the most.") }}</p>
+        </div>
+        <div class="col-lg-5 col-lg-offset-2 col-sm-6">
+          <img src="{{ url_for('static', filename='img/marketing/verified.jpg') }}" class="img-responsive"
+               alt="{{ gettext('Opinew smart algorithms verify and authenticate the reviews') }}"/>
+        </div>
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-a -->
+
+  <div class="content-section-b">
+
+    <div class="container">
+
+      <div class="row">
+        <div class="col-lg-5 col-lg-offset-1 col-sm-push-6  col-sm-6">
+          <hr class="section-heading-spacer">
+          <div class="clearfix"></div>
+          <h2 class="section-heading">{{ gettext("Enrich your reviews with photos and videos") }}</h2>
+          <p class="lead">{{ gettext("Bring extra credibility to your reviews with photos and videos. Over a billion of them are posted everyday on services like Snapchat, Pinterest and Instagram.") }}</p>
+        </div>
+        <div class="col-lg-5 col-sm-pull-6  col-sm-6">
+          <img class="img-responsive" src="{{ url_for('static', filename='img/marketing/multimedia.jpg') }}"
+               alt="{{ gettext('Opinew reviews gives you rich multimedia content') }}">
+
+        </div>
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-b -->
+
+  <div class="content-section-a">
+
+    <div class="container">
+
+      <div class="row">
+        <div class="col-lg-5 col-sm-6">
+          <hr class="section-heading-spacer">
+          <div class="clearfix"></div>
+          <h2 class="section-heading">{{ gettext("Works everywhere, Mobile-first") }}</h2>
+          <p class="lead">{{ gettext("Our plugin works on <strong>any</strong> website, feature-rich and looks great. We understand the role of mobile in our world and we have focused on making the reviewing process on them as simple as possible.") }}
+          </p>
+        </div>
+        <div class="col-lg-5 col-lg-offset-2 col-sm-6">
+          <img src="{{ url_for('static', filename='img/marketing/mobile.jpg') }}" class="img-responsive"
+               alt="{{ gettext('Opinew reviews is mobile friendly and works on any website') }}"/>
+        </div>
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-a -->
+
+  <a name="our-clients"></a>
+  <div class="content-section-b">
+
+    <div class="container">
+
+      <div class="row">
+        <h2 class="text-center section-heading">{{ gettext("You deserve better reviews") }}</h2>
+        <div class="text-center">
+          <img src="{{ url_for('static', filename='img/opinew_logo.png') }}" class="img-responsive marketing-logo"
+               alt="{{ gettext('Opinew reviews logo') }}"/>
+          <p class="lead">{{ gettext("Check out our customers already benefiting from high-quality reviews") }}</p>
+        </div>
+        <div class="row">
+          <div class="col-md-4">
+            <a target="_blank" href="http://www.fatburnextreme.com/product-category/training-events/#opinew-plugin">
+              <img src="{{ url_for('static', filename='img/marketing/fatburn.jpg') }}" class="img-responsive"
+                   alt="{{ gettext('Opinew reviews plugin on Fatburn Extreme website') }}"/>
+            </a>
+          </div>
+          <div class="col-md-4">
+            <a target="_blank" href="https://www.opinew.com/product/625">
+              <img src="{{ url_for('static', filename='img/marketing/bk.jpg') }}" class="img-responsive"
+                   alt="{{ gettext('Opinew reviews plugin on Beauty Kitchen website') }}"/>
+            </a>
+          </div>
+          <div class="col-md-4">
+            <a target="_blank"
+               href="https://www.ragefistmafia.com/products/fight-me-ragefist-mafia-3-4-sleeve-red-white-shirt-mens?variant=15409789187#opinew-plugin">
+              <img src="{{ url_for('static', filename='img/marketing/ragefist.jpg') }}" class="img-responsive"
+                   alt="{{ gettext('Opinew reviews plugin on Ragefist mafia website') }}"/>
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+      <!-- /.container -->
+
+    </div>
+    <!-- /.content-section-b -->
+  </div>
+
+
+  <a name="about-us"></a>
+  <div class="content-section-a">
+
+    <div class="container">
+      <div class="row">
+        <h2 class="text-center">{{ gettext('Are you ready to get more sales?') }}
+          <a class="btn btn-lg btn-primary"
+             href="/register?shop_owner=1">{{ gettext('Use the best reviews on the planet!') }}</a>
+        </h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- /.container -->
+  <div class="content-section-b">
+
+    <div class="container">
+
+      <div class="row">
+        <h2 class="text-center section-heading">{{ gettext("Who we are") }}</h2>
+        <div class="col-lg-5 col-lg-offset-1 col-sm-push-6  col-sm-6">
+          <img alt="Daniel photo" class="about-us-picture img-circle"
+               src="{{ url_for('static', filename='img/marketing/dani.jpg') }}"/>
+
+          <p class="text-center lead">{{ gettext("Daniel Tsvetkov") }}
+
+          <p>{{ gettext("Daniel spent the summer of 2014 as a tech intern at Google, at the heart of
+                    the Silicon Valley in Mountain View where he caught the entrepreneurial spirit of the Valley so much
+                    he formed Opinew. Along with his passion for creating things, Daniel brings to Opinew his experience
+                    of the web and visualizations technologies to make it friendly for anyone, anywhere.") }}
+        </div>
+        <div class="col-lg-5 col-sm-pull-6  col-sm-6">
+          <img alt="Tomasz photo" class="about-us-picture img-circle"
+               src="{{ url_for('static', filename='img/marketing/tom.jpg') }}"/>
+
+          <p class="text-center lead">{{ gettext("Tomasz Sadowski") }}
+
+          <p>{{ gettext("Tomasz works with the Scottish Institute for Enterprise and has an extensive
+                    network of business contacts all around the world. His respect for the good software engineering
+                    practices gained at Verint and experience with Big Data is helping Opinew get in shape for the big
+                    days. Tomasz loves helping people find what they need which gives Opinew its guiding light.") }}
+        </div>
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-a -->
+
+  <a name="faq"></a>
+  <div class="content-section-a">
+
+    <div class="container">
+      <div class="row">
+        <h2 class="text-center"> {{ gettext('Help your customers discover you') }}
+          <a class="btn btn-lg btn-primary"
+             href="/register?shop_owner=1">{{ gettext('Use the best reviews on the planet!') }}</a>
+        </h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- /.container -->
+
+
+  <div class="content-section-b">
+
+    <div class="container">
+
+      <div class="row">
+        <h2 class="text-center section-heading">{{ gettext("Frequently Asked Questions") }}</h2>
+        {% include "marketing/faq.html" %}
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-b -->
+
+  <a name="pricing"></a>
+  <div class="content-section-a">
+
+    <div class="container">
+
+      <div class="row">
+        <h2 class="text-center section-heading">{{ gettext("Pricing") }}</h2>
+        {% include "pricing_plans/pricing_plans.html" %}
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-a -->
+{% endblock %}

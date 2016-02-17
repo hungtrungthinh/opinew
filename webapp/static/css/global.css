@@ -77,24 +77,39 @@ a {
   border-color: #1e3a75;
 }
 
-.btn-danger {
+/* Alerts */
+.alert-error, .alert-danger {
   background-color: #fb412d;
   border-color: #e13a28;
+  color: #eee;
 }
 
-.btn-danger:hover {
-  background-color: #c83424;
-  border-color: #af2d1f;
-}
-
-.btn-warning {
+.alert-warning {
   background-color: #fb8c2d;
   border-color: #e17e28;
+  color: #eee;
 }
 
-.btn-warning:hover {
-  background-color: #c87024;
-  border-color: #af621f;
+.alert-primary {
+  background-color: #1c9298;
+  border-color: #198388;
+  color: #eee;
+}
+
+.alert-success {
+  background-color: #22be44;
+  border-color: #1eab3d;
+  color: #eee;
+}
+
+.alert-info {
+  background-color: #2c54a8;
+  border-color: #274b97;
+  color: #eee;
+}
+
+.alert {
+  border-radius: 0;
 }
 
 .well {
@@ -103,11 +118,29 @@ a {
 
 /* /END Overriding default styles to match branding */
 
+/* Flashed messages overriding */
+
+.flash-container {
+  position: absolute;
+  top: 50px;
+  z-index: 10;
+  width: 100%;
+}
+
+.alert-flash {
+  width: 60%;
+  margin: 10px auto;
+}
+
+/* /END Flashed messages overriding */
+
+
+
 /* Reviews styles */
 
 .review-container {
-  -webkit-box-shadow: 0 1px 4px 0 rgba(0,0,0,0.14);
-  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.14);
+  -webkit-box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
   background-color: #fefefe;
   margin: 0 0 16px 0;
   border-radius: 2px;
@@ -253,7 +286,7 @@ a {
 }
 
 .spacer {
-  height: 20px;
+  height: 60px;
 }
 
 .colors-bar {
@@ -360,10 +393,6 @@ footer .nav > li > a:hover {
   overflow: hidden;
 }
 
-.navbar {
-  background-color: initial;
-}
-
 .nav-shop-owner-role-label {
   padding-left: 10px;
   top: -6px;
@@ -454,7 +483,7 @@ footer .nav > li > a:hover {
 }
 
 .nav-register-btn {
-  color: white;
+  color: white !important;
 }
 
 .nav-register-btn:hover {
@@ -667,4 +696,18 @@ footer .nav > li > a:hover {
 .pricing-plan-btn {
   color: white;
   background-color: #337ab7;
+}
+
+.marketing-logo {
+  display: block;
+  margin: 0 auto;
+}
+
+.marketing-img-shopify {
+  height: 50px;
+  display: inline;
+}
+
+.product-image {
+  max-height: 120px;
 }

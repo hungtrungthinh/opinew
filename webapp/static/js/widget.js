@@ -14,7 +14,7 @@ if (pluginElement) {
 
 function insertPlugin(url) {
   pluginElement.innerHTML =
-      '<iframe style="border:0; width:100%; height:700px;" src="' + url + '" id="opinew-plugin-iframe">' + '</iframe>';
+      '<a name="opinew-plugin"></a><iframe style="border:0; width:100%; height:700px;" src="' + url + '" id="opinew-plugin-iframe">' + '</iframe>';
 }
 
 function loadPlugin() {

@@ -1,3 +1,4 @@
+import logging
 from flaskopinewext import FlaskOpinewExt
 from flask import g, request, redirect, flash, session
 from flask_admin import Admin, BaseView
@@ -15,8 +16,8 @@ from flask_resize import Resize
 from flask_mail import Mail
 from werkzeug.exceptions import default_exceptions
 from config import config_factory, Constants
+from assets import strings
 from flask.ext.compress import Compress
-import logging
 from logging.handlers import SMTPHandler
 from logging import Formatter
 from user_agents import parse
@@ -140,9 +141,12 @@ def create_app(option):
             g.config = app.config
             g.mode = app.config.get('MODE')
             g.response_context = []
+            g.s = strings
 
         @app.after_request
         def redirect_if_next(response_class):
+            if request.endpoint == 'static':
+                response_class.headers['Access-Control-Allow-Origin'] = '*'
             payload = request.args if request.method == 'GET' else request.form
             if 'api_next' in payload:
                 if not response_class.status_code == 200:
