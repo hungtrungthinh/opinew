@@ -1,4 +1,6 @@
 <div>
-  <h2>{{ g.s.DASHBOARD_SCHEDULED_TITLE }}</h2>
-  <p>{{ g.s.DASHBOARD_SCHEDULED_DESC }}</p>
+  <h2>{{ g.s.DASHBOARD_QUESTIONS_TITLE }}</h2>
+  {% for question in questions %}
+    {% include "question/question.html" %}
+  {% endfor %}
 </div>

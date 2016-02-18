@@ -114,6 +114,7 @@ def get_incoming_messages(shop):
         }
     ]
 
+
 def get_scheduled_tasks(shop):
     scheduled_tasks = []
     for order in shop.orders:
@@ -128,3 +129,22 @@ def get_scheduled_tasks(shop):
                 }
                 scheduled_tasks.append(obj)
     return sorted(scheduled_tasks, key=lambda x: x['eta'])
+
+
+def get_reviews(shop):
+    reviews = []
+    for product in shop.products:
+        reviews += models.Review.query.filter_by(product=product).all()
+    return reviews
+
+
+def get_analytics(shop):
+    analytics = shop.get_stats()
+    return analytics
+
+
+def get_questions(shop):
+    questions = []
+    for product in shop.products:
+        questions += models.Question.query.filter_by(product=product).all()
+    return questions

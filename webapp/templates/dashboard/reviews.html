@@ -1,4 +1,7 @@
 <div>
-  <h2>{{ g.s.DASHBOARD_SCHEDULED_TITLE }}</h2>
-  <p>{{ g.s.DASHBOARD_SCHEDULED_DESC }}</p>
+  <h2>{{ g.s.DASHBOARD_REVIEWS_TITLE }}</h2>
+  <p>There are {{ reviews|length }} reviews.</p>
+  {% for review in reviews %}
+    {% include "review/review.html" %}
+  {% endfor %}
 </div>

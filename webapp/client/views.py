@@ -15,13 +15,13 @@ from webapp.models import Review, Shop, Platform, User, Product, Order, Notifica
     ReviewFeature, UrlReferer, Comment, Answer
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages, RequirementException
-from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
+from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm
 from config import Constants, basedir
 from providers import giphy
-from webapp.strategies import rank_objects_for_product, get_scheduled_tasks, get_incoming_messages
+from webapp.strategies import rank_objects_for_product, get_scheduled_tasks, get_incoming_messages, get_reviews, \
+    get_analytics, get_questions
 from messages import SuccessMessages
 from werkzeug.routing import BuildError
-from assets import strings
 
 
 def verify_requirements(*redirect_url_for):
@@ -424,11 +424,16 @@ def shop_dashboard_id(shop_id):
     dashboard_tabs = Constants.DASHBOARD_TABS
     incoming_messages = get_incoming_messages(shop)
     scheduled_tasks = get_scheduled_tasks(shop)
+    reviews = get_reviews(shop)
+    questions = get_questions(shop)
+    stats = get_analytics(shop)
     return render_template('dashboard/dashboard.html',
                            shop=shop,
                            dashboard_tabs=dashboard_tabs,
                            incoming_messages=incoming_messages,
-                           scheduled_tasks=scheduled_tasks)
+                           scheduled_tasks=scheduled_tasks,
+                           reviews=reviews,
+                           stats=stats)
 
 
 @client.route('/setup-plugin')
