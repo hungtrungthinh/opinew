@@ -1,4 +1,8 @@
 <div>
   <h2>{{ g.s.DASHBOARD_SCHEDULED_TITLE }}</h2>
-  <p>{{ g.s.DASHBOARD_SCHEDULED_DESC }}</p>
+  <p class="lead">{{ g.s.DASHBOARD_SCHEDULED_DESC }}</p>
+  <p>There are {{ scheduled_tasks|length }} tasks scheduled.</p>
+  {% for task in scheduled_tasks %}
+    {% include "dashboard/scheduled_task.html" %}
+  {% endfor %}
 </div>

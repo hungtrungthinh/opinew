@@ -3,6 +3,7 @@ import os
 import sensitive
 from celery.schedules import crontab
 from flask.ext.babel import gettext
+from assets import strings
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -130,6 +131,37 @@ class Constants(object):
     DASHBOARD_ORDERS_LIMIT = 50
 
     DEFAULT_LOCALE = 'en'
+
+    DASHBOARD_TABS = [
+        {
+            'name': strings.DASHBOARD_INCOMING_TAB_NAME,
+            'icon': 'inbox'
+        },
+        {
+            'name': strings.DASHBOARD_SCHEDULED_TAB_NAME,
+            'icon': 'time'
+        },
+        {
+            'name': strings.DASHBOARD_REVIEWS_TAB_NAME,
+            'icon': 'comment'
+        },
+        {
+            'name': strings.DASHBOARD_QUESTIONS_TAB_NAME,
+            'icon': 'question-sign'
+        },
+        {
+            'name': strings.DASHBOARD_ANALYTICS_TAB_NAME,
+            'icon': 'dashboard'
+        },
+        {
+            'name': strings.DASHBOARD_ACCOUNT_TAB_NAME,
+            'icon': 'briefcase'
+        },
+        {
+            'name': strings.DASHBOARD_SETTINGS_TAB_NAME,
+            'icon': 'wrench'
+        }
+    ]
 
 
 class Config(object):

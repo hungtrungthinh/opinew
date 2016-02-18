@@ -1,6 +1,6 @@
 <div>
   <h2>{{ g.s.DASHBOARD_INCOMING_TITLE }}</h2>
-  <p>{{ g.s.DASHBOARD_INCOMING_DESC }}</p>
+  <p class="lead">{{ g.s.DASHBOARD_INCOMING_DESC }}</p>
   {% for message in incoming_messages %}
     {% include "dashboard/incoming_message.html" %}
   {% endfor %}

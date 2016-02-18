@@ -1,6 +1,7 @@
 from __future__ import division
 import datetime
 from webapp import models
+from flask import url_for
 from flask.ext.security import current_user
 from config import Constants
 
@@ -90,3 +91,40 @@ def rank_objects_for_product(product_id):
         'average_stars': average_stars,
         'main_star_distribution': star_distribution
     }
+
+def get_incoming_messages(shop):
+    return [
+        {
+            'url': url_for('client.setup_plugin'),
+            'icon': 'copy',
+            'icon_bg_color': Constants.COLOR_OPINEW_KIWI,
+            'title': 'Set up plugin on your shop'
+        },
+        {
+            'url': "javascript:showTab('#account');",
+            'icon': 'briefcase',
+            'icon_bg_color': Constants.COLOR_OPINEW_AQUA,
+            'title': 'Set up billing'
+        },
+        {
+            'url': url_for('security.change_password'),
+            'icon': 'pencil',
+            'icon_bg_color': Constants.COLOR_OPINEW_AQUA,
+            'title': 'Change your password'
+        }
+    ]
+
+def get_scheduled_tasks(shop):
+    scheduled_tasks = []
+    for order in shop.orders:
+        for task in order.tasks:
+            if task.status == "PENDING":
+                obj = {
+                    'title': task.method,
+                    'icon': 'envelope',
+                    'eta': task.eta,
+                    'user': order.user,
+                    'products': order.products
+                }
+                scheduled_tasks.append(obj)
+    return sorted(scheduled_tasks, key=lambda x: x['eta'])

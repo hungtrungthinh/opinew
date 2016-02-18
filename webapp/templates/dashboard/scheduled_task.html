@@ -1,0 +1,15 @@
+<div class="incoming-message">
+  <div class="incoming-message-title">
+    <span class="message-action-image" style="background-color: {{ task.icon_bg_color }}">
+      <span class="glyphicon glyphicon-{{ task.icon }} message-action-icon"></span>
+    </span>
+    <strong>{{ task.title }}</strong>
+    <p>Estimated: {{ task.eta|timeto }}</p>
+    <p>{{ task.user.email }} bought:</p>
+    <ul>
+      {% for product in task.products %}
+        <li>{{ product.name }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>

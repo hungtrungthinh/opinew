@@ -18,7 +18,7 @@ from webapp.exceptions import ParamException, DbException, ApiException, Excepti
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
 from providers import giphy
-from webapp.strategies import rank_objects_for_product
+from webapp.strategies import rank_objects_for_product, get_scheduled_tasks, get_incoming_messages
 from messages import SuccessMessages
 from werkzeug.routing import BuildError
 from assets import strings
@@ -421,60 +421,14 @@ def shop_dashboard_id(shop_id):
     shop = get_required_model_instance_by_id(Shop, shop_id)
     verify_required_condition(condition=shop.owner_id == current_user.id,
                               error_msg=ExceptionMessages.NOT_YOUR_INSTANCE.format(instance='shop'))
-    dashboard_tabs = [
-        {
-            'name': strings.DASHBOARD_INCOMING_TAB_NAME,
-            'icon': 'inbox'
-        },
-        {
-            'name': strings.DASHBOARD_SCHEDULED_TAB_NAME,
-            'icon': 'time'
-        },
-        {
-            'name': strings.DASHBOARD_REVIEWS_TAB_NAME,
-            'icon': 'comment'
-        },
-        {
-            'name': strings.DASHBOARD_QUESTIONS_TAB_NAME,
-            'icon': 'question-sign'
-        },
-        {
-            'name': strings.DASHBOARD_ANALYTICS_TAB_NAME,
-            'icon': 'dashboard'
-        },
-        {
-            'name': strings.DASHBOARD_ACCOUNT_TAB_NAME,
-            'icon': 'briefcase'
-        },
-        {
-            'name': strings.DASHBOARD_SETTINGS_TAB_NAME,
-            'icon': 'wrench'
-        }
-    ]
-    incoming_messages = [
-        {
-            'url': url_for('client.setup_plugin'),
-            'icon': 'copy',
-            'icon_bg_color': Constants.COLOR_OPINEW_KIWI,
-            'title': 'Set up plugin on your shop'
-        },
-        {
-            'url': "javascript:showTab('#account');",
-            'icon': 'briefcase',
-            'icon_bg_color': Constants.COLOR_OPINEW_AQUA,
-            'title': 'Set up billing'
-        },
-        {
-            'url': url_for('security.change_password'),
-            'icon': 'pencil',
-            'icon_bg_color': Constants.COLOR_OPINEW_AQUA,
-            'title': 'Change your password'
-        }
-    ]
+    dashboard_tabs = Constants.DASHBOARD_TABS
+    incoming_messages = get_incoming_messages(shop)
+    scheduled_tasks = get_scheduled_tasks(shop)
     return render_template('dashboard/dashboard.html',
                            shop=shop,
                            dashboard_tabs=dashboard_tabs,
-                           incoming_messages=incoming_messages)
+                           incoming_messages=incoming_messages,
+                           scheduled_tasks=scheduled_tasks)
 
 
 @client.route('/setup-plugin')
