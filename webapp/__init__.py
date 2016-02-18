@@ -22,6 +22,7 @@ from logging.handlers import SMTPHandler
 from logging import Formatter
 from user_agents import parse
 from werkzeug.datastructures import ImmutableTypeConversionDict
+from exceptions import RequirementException
 
 
 class MyHomeView(AdminIndexView):

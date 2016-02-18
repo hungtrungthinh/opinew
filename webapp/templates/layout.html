@@ -79,7 +79,9 @@
 {% include "snippets/flashed_messages.html" %}
 
 {# Main content of application is here #}
+<div class="min-content-height">
 {% block content %}{% endblock %}
+</div>
 {# /End of main content #}
 
 {% include "snippets/footer.html" %}

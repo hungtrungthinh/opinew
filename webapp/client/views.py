@@ -2,7 +2,7 @@ from __future__ import division
 import datetime
 import os
 import httplib
-from werkzeug.datastructures import MultiDict
+from functools import wraps
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort, jsonify, send_file, Response
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
@@ -14,45 +14,105 @@ from webapp.models import Review, Shop, Platform, User, Product, Order, Notifica
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
     ReviewFeature, UrlReferer, Comment, Answer
 from webapp.common import param_required, catch_exceptions, get_post_payload
-from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages
+from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages, RequirementException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
 from providers import giphy
 from webapp.strategies import rank_objects_for_product
 from messages import SuccessMessages
+from werkzeug.routing import BuildError
+from assets import strings
 
 
-class ResponseContext(object):
-    def __init__(self, is_async, default_redirect):
-        self.is_async = is_async
-        self.default_redirect = default_redirect
+def verify_requirements(*redirect_url_for):
+    """
+    Wraps a response object by verifying that all required conditions pass
+    :param f:
+    :return:
+    """
+    def outer_wrapper(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            # Create a response context - is it asyncrounous call (e.g. from ajax)
+            payload = request.args if request.method in ['GET'] else request.form
+            is_async = payload.get('async')
+
+            # get as many default redirects as possible
+            default_redirects = []
+            for redirect_url in redirect_url_for:
+                try:
+                    default_redirects.append(url_for(redirect_url))
+                except BuildError:
+                    # well, this url_for was invalid, don't break everything, move on
+                    pass
+
+            # decide which exceptions to catch
+            if current_app.debug:
+                exception_list = (RequirementException, )
+            else:
+                exception_list = (Exception, )
+            try:
+                return f(*args, **kwargs)
+            except exception_list as e:
+                error_message = e.message or ExceptionMessages.UNKNOWN_ERROR
+                error_code = e.error_code if hasattr(e, 'error_code') else httplib.BAD_REQUEST
+                error_category = e.error_category if hasattr(e, 'error_category') else Constants.ALERT_ERROR_LABEL
+
+                # If it an async request - then return jsonified response
+                if is_async:
+                    return jsonify({"error": error_message}), error_code
+                flash(error_message, category=error_category)
+
+                # try to avoid 1 level deep infinite loop redirect
+                referer_redirect = request.referrer if not request.referrer == request.path else None
+                ctx_redirect = None
+                for default_redirect in default_redirects:
+                    ctx_redirect = default_redirect if not default_redirect == request.path else None
+                    if ctx_redirect:
+                        break
+                return redirect(referer_redirect or
+                                ctx_redirect or
+                                url_for('client.index'))
+        return wrapper
+    return outer_wrapper
 
 
-class RequirementException(Exception):
-    def __init__(self, response):
-        self.response = response
+def verify_required_condition(condition, error_msg, error_code=httplib.BAD_REQUEST, error_category=Constants.ALERT_ERROR_LABEL):
+    """
+    Makes sure that the required condition is truthy. Otherwise raises a response error which is either
+    jsonified response (if the resource has been required async) or flashing.
+    :param condition: the condition
+    :param error_msg: the error message to display
+    :param error_code: the error code to return
+    :return:
+    """
+    if not condition:
+        raise RequirementException(message=error_msg, error_code=error_code, error_category=error_category)
 
 
-def verify_required_object(obj, error_msg, error_code):
-    if not obj:
-        ctx = g.response_context.pop()
-        if ctx.is_async:
-            raise RequirementException(response=(jsonify({"error": error_msg}), httplib.BAD_REQUEST))
-        flash(error_msg)
-        raise RequirementException(response=redirect(request.referrer or ctx.default_redirect))
-
-
-def required_parameter(payload, param_name):
+def get_required_parameter(payload, param_name):
+    """
+    Verifies and returns a parameter from a payload
+    :param payload: the payload to check
+    :param param_name: the parameter name
+    :return:
+    """
     obj = payload.get(param_name)
-    verify_required_object(obj=obj,
-                           error_msg=ExceptionMessages.MISSING_PARAM.format(param=param_name),
-                           error_code=httplib.BAD_REQUEST)
+    verify_required_condition(condition=obj is not None,
+                              error_msg=ExceptionMessages.MISSING_PARAM.format(param=param_name),
+                              error_code=httplib.BAD_REQUEST)
     return obj
 
 
-def required_model_instance_by_id(model, instance_id):
+def get_required_model_instance_by_id(model, instance_id):
+    """
+    Verifies and returns a model instance that is identified by id
+    :param model: the Model to check
+    :param instance_id: the instance id
+    :return: a model instance by id
+    """
     obj = model.query.filter_by(id=instance_id).first()
-    verify_required_object(obj=obj,
+    verify_required_condition(condition=obj is not None,
                            error_msg=ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance=model.__name__,
                                                                                   id=instance_id),
                            error_code=httplib.BAD_REQUEST)
@@ -65,21 +125,6 @@ def generate_success_response_from_obj(obj, obj_name):
         return jsonify(obj.serialize()), httplib.CREATED
     flash(SuccessMessages.SUCCESS_CREATING_OBJECT.format(object_name=obj_name))
     return redirect(request.referrer or ctx.default_redirect)
-
-
-def create_response_context(default_redirect_url_for):
-    # Create a response context
-    if request.method in ['GET']:
-        payload = request.args
-    else:
-        payload = request.form
-    ctx = ResponseContext(
-            is_async=payload.get('async'),
-            default_redirect=url_for(default_redirect_url_for)
-    )
-
-    # Push the context
-    g.response_context.append(ctx)
 
 
 @client.route('/kitchen-sink')
@@ -96,23 +141,6 @@ def kitchen_sink():
 
 @client.route('/')
 def index():
-    if 'mobile' in g and g.mobile:
-        if current_user.is_authenticated():
-            if current_user.has_role(Constants.REVIEWER_ROLE):
-                return redirect(url_for('client.user_profile', user_id=current_user.id))
-        else:
-            return render_template('index.html')
-            # return redirect(url_for('client.reviews'))
-
-    if current_user.is_authenticated():
-        if current_user.temp_password:
-            return redirect('/change')
-        if current_user.has_role(Constants.ADMIN_ROLE):
-            return redirect('/admin')
-        elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
-            return redirect(url_for('client.shop_dashboard'))
-        elif current_user.has_role(Constants.REVIEWER_ROLE):
-            return redirect(url_for('client.user_profile', user_id=current_user.id))
     return render_template('index.html')
 
 
@@ -350,38 +378,110 @@ def shop_dashboard():
     return render_template('shop_admin/choose_shop.html', shops=shops, shop_form=shop_form, platforms=platforms)
 
 
+# @client.route('/dashboard', defaults={'shop_id': 0})
+# @client.route('/dashboard/<int:shop_id>')
+# @login_required
+# @roles_required(Constants.SHOP_OWNER_ROLE)
+# def shop_dashboard_id(shop_id):
+#     shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
+#     if not shop:
+#         flash('Not your shop')
+#         return redirect(url_for('client.shop_dashboard'))
+#     if shop.platform and shop.platform.name == 'shopify':
+#         code = render_template('user_setup/shopify_code.html', shop=shop)
+#     else:
+#         code = render_template('user_setup/code.html', shop=shop)
+#     shop_form = ShopForm(MultiDict(shop.__dict__))
+#     review_request_form = ReviewRequestForm()
+#     platforms = Platform.query.all()
+#     plans = Plan.query.all()
+#     current_plan = None
+#     if shop.owner.customer and len(shop.owner.customer) > 0 and shop.owner.customer[0] and \
+#             shop.owner.customer[0].subscription and len(shop.owner.customer[0].subscription) > 0 and \
+#             shop.owner.customer[0].subscription[0]:
+#         current_plan = shop.owner.customer[0].subscription[0].plan
+#     if current_user.confirmed_at:
+#         # TODO: temporary fix for legacy users, we should always get the data from the subscription ts
+#         expiry_days = (current_user.confirmed_at + datetime.timedelta(
+#             days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
+#     else:
+#         expiry_days = (current_user.customer[0].subscription[0].timestamp + datetime.timedelta(
+#             days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
+#     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
+#                            review_request_form=review_request_form, platforms=platforms,
+#                            plans=plans, expiry_days=expiry_days, current_plan=current_plan)
+
+
 @client.route('/dashboard', defaults={'shop_id': 0})
 @client.route('/dashboard/<int:shop_id>')
-@login_required
+@verify_requirements('client.reviews')
 @roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
 def shop_dashboard_id(shop_id):
-    shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
-    if not shop:
-        flash('Not your shop')
-        return redirect(url_for('client.shop_dashboard'))
-    if shop.platform and shop.platform.name == 'shopify':
-        code = render_template('user_setup/shopify_code.html', shop=shop)
-    else:
-        code = render_template('user_setup/code.html', shop=shop)
-    shop_form = ShopForm(MultiDict(shop.__dict__))
-    review_request_form = ReviewRequestForm()
-    platforms = Platform.query.all()
-    plans = Plan.query.all()
-    current_plan = None
-    if shop.owner.customer and len(shop.owner.customer) > 0 and shop.owner.customer[0] and \
-            shop.owner.customer[0].subscription and len(shop.owner.customer[0].subscription) > 0 and \
-            shop.owner.customer[0].subscription[0]:
-        current_plan = shop.owner.customer[0].subscription[0].plan
-    if current_user.confirmed_at:
-        # TODO: temporary fix for legacy users, we should always get the data from the subscription ts
-        expiry_days = (current_user.confirmed_at + datetime.timedelta(
-            days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
-    else:
-        expiry_days = (current_user.customer[0].subscription[0].timestamp + datetime.timedelta(
-            days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
-    return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
-                           review_request_form=review_request_form, platforms=platforms,
-                           plans=plans, expiry_days=expiry_days, current_plan=current_plan)
+    shop = get_required_model_instance_by_id(Shop, shop_id)
+    verify_required_condition(condition=shop.owner_id == current_user.id,
+                              error_msg=ExceptionMessages.NOT_YOUR_INSTANCE.format(instance='shop'))
+    dashboard_tabs = [
+        {
+            'name': strings.DASHBOARD_INCOMING_TAB_NAME,
+            'icon': 'inbox'
+        },
+        {
+            'name': strings.DASHBOARD_SCHEDULED_TAB_NAME,
+            'icon': 'time'
+        },
+        {
+            'name': strings.DASHBOARD_REVIEWS_TAB_NAME,
+            'icon': 'comment'
+        },
+        {
+            'name': strings.DASHBOARD_QUESTIONS_TAB_NAME,
+            'icon': 'question-sign'
+        },
+        {
+            'name': strings.DASHBOARD_ANALYTICS_TAB_NAME,
+            'icon': 'dashboard'
+        },
+        {
+            'name': strings.DASHBOARD_ACCOUNT_TAB_NAME,
+            'icon': 'briefcase'
+        },
+        {
+            'name': strings.DASHBOARD_SETTINGS_TAB_NAME,
+            'icon': 'wrench'
+        }
+    ]
+    incoming_messages = [
+        {
+            'url': url_for('client.setup_plugin'),
+            'icon': 'copy',
+            'icon_bg_color': Constants.COLOR_OPINEW_KIWI,
+            'title': 'Set up plugin on your shop'
+        },
+        {
+            'url': "javascript:showTab('#account');",
+            'icon': 'briefcase',
+            'icon_bg_color': Constants.COLOR_OPINEW_AQUA,
+            'title': 'Set up billing'
+        },
+        {
+            'url': url_for('security.change_password'),
+            'icon': 'pencil',
+            'icon_bg_color': Constants.COLOR_OPINEW_AQUA,
+            'title': 'Change your password'
+        }
+    ]
+    return render_template('dashboard/dashboard.html',
+                           shop=shop,
+                           dashboard_tabs=dashboard_tabs,
+                           incoming_messages=incoming_messages)
+
+
+@client.route('/setup-plugin')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def setup_plugin():
+    return 'okay'
 
 
 @client.route('/change-subscription', methods=['POST'])
@@ -1091,8 +1191,8 @@ def add_review_report(review_id):
 
 @client.route('/review-feature', defaults={'review_id': None})
 @client.route('/review-feature/<review_id>')
-@login_required
 @roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
 def add_review_feature(review_id):
     review = Review.query.filter_by(id=review_id).first()
     if not review:
@@ -1130,14 +1230,10 @@ def add_review_feature(review_id):
 
 @client.route('/review-share', defaults={'review_id': None})
 @client.route('/review-share/<review_id>')
+@verify_requirements('client.reviews')
 def add_review_share(review_id):
-    create_response_context(default_redirect_url_for='client.reviews')
-
     # Verify required objects
-    try:
-        review = required_model_instance_by_id(Review, review_id)
-    except RequirementException as e:
-        return e.response
+    review = get_required_model_instance_by_id(Review, review_id)
 
     # Create Review Share
     now = datetime.datetime.utcnow()
@@ -1151,15 +1247,11 @@ def add_review_share(review_id):
 
 
 @client.route('/ref')
+@verify_requirements
 def add_referer():
-    create_response_context(default_redirect_url_for='client.index')
-
     # Verify required objects
-    try:
-        url = required_parameter(request.form, 'url')
-        q = required_parameter(request.form, 'q')
-    except RequirementException as e:
-        return e.response
+    url = get_required_parameter(request.form, 'url')
+    q = get_required_parameter(request.form, 'q')
 
     # Create UrlReferrer object
     now = datetime.datetime.utcnow()
@@ -1174,17 +1266,13 @@ def add_referer():
 
 
 @client.route('/comments/create', methods=['POST'])
+@verify_requirements('client.reviews')
 @login_required
 def create_comment():
-    create_response_context(default_redirect_url_for='client.reviews')
-
     # Verify required objects
-    try:
-        review_id = required_parameter(request.form, 'review_id')
-        body = required_parameter(request.form, 'body')
-        review = required_model_instance_by_id(Review, review_id)
-    except RequirementException as e:
-        return e.response
+    review_id = get_required_parameter(request.form, 'review_id')
+    body = get_required_parameter(request.form, 'body')
+    review = get_required_model_instance_by_id(Review, review_id)
 
     # Create Comment
     now = datetime.datetime.utcnow()
@@ -1198,17 +1286,13 @@ def create_comment():
 
 
 @client.route('/questions/create', methods=['POST'])
+@verify_requirements('client.reviews')
 @login_required
 def create_question():
-    create_response_context(default_redirect_url_for='client.reviews')
-
     # Verify required objects
-    try:
-        product_id = required_parameter(request.form, 'product_id')
-        body = required_parameter(request.form, 'body')
-        product = required_model_instance_by_id(Product, product_id)
-    except RequirementException as e:
-        return e.response
+    product_id = get_required_parameter(request.form, 'product_id')
+    body = get_required_parameter(request.form, 'body')
+    product = get_required_model_instance_by_id(Product, product_id)
 
     # Create Question
     now = datetime.datetime.utcnow()
@@ -1222,17 +1306,13 @@ def create_question():
 
 
 @client.route('/answers/create', methods=['POST'])
+@verify_requirements('client.reviews')
 @login_required
 def create_answer():
-    create_response_context(default_redirect_url_for='client.reviews')
-
     # Verify required objects
-    try:
-        question_id = required_parameter(request.form, 'question_id')
-        body = required_parameter(request.form, 'body')
-        question = required_model_instance_by_id(Question, question_id)
-    except RequirementException as e:
-        return e.response
+    question_id = get_required_parameter(request.form, 'question_id')
+    body = get_required_parameter(request.form, 'body')
+    question = get_required_model_instance_by_id(Question, question_id)
 
     # Create Answer
     now = datetime.datetime.utcnow()
