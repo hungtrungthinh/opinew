@@ -104,6 +104,7 @@ class Constants(object):
 
     PLAN_NAME_BASIC = 'basic'
     PLAN_NAME_SIMPLE = 'simple'
+    PLAN_NAME_SHOPIFY_SIMPLE = 'shopify_simple'
 
     FUNNEL_STREAM_ACTIONS = ['glimpse', 'fully_seen', 'mouse_hover', 'mouse_click', 'mouse_scroll']
 
@@ -158,6 +159,18 @@ class Constants(object):
             'icon': 'wrench'
         }
     ]
+
+    NEXT_ACTION_ID_SETUP_YOUR_SHOP = 'SHOP_SETUP'
+    NEXT_ACTION_SETUP_YOUR_SHOP_ICON = 'copy'
+    NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR = COLOR_OPINEW_KIWI
+
+    NEXT_ACTION_ID_SETUP_BILLING = 'SETUP_BILLING'
+    NEXT_ACTION_SETUP_BILLING_ICON = 'copy'
+    NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR = COLOR_OPINEW_KIWI
+
+    NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD = 'CHANGE_PASSWORD'
+    NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON = 'pencil'
+    NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR = COLOR_OPINEW_AQUA
 
 
 class Config(object):

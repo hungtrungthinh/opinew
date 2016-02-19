@@ -21,7 +21,7 @@ DASHBOARD_ANALYTICS_TAB_NAME = gettext("analytics")
 DASHBOARD_ACCOUNT_TAB_NAME = gettext("account")
 DASHBOARD_SETTINGS_TAB_NAME = gettext("settings")
 
-DASHBOARD_INCOMING_TITLE = gettext("Incoming messages")
+DASHBOARD_INCOMING_TITLE = gettext("Next Actions")
 DASHBOARD_INCOMING_DESC = gettext("These are actions to be taken now")
 DASHBOARD_SCHEDULED_TITLE = gettext("Scheduled")
 DASHBOARD_SCHEDULED_DESC = gettext("These are actions that are scheduled by Opinew or you")
@@ -29,3 +29,10 @@ DASHBOARD_REVIEWS_TITLE = gettext("Reviews")
 DASHBOARD_ANALYTICS_TITLE = gettext("Analytics")
 DASHBOARD_ACCOUNT_TITLE = gettext("Account")
 DASHBOARD_SETTINGS_TITLE = gettext("Settings")
+
+WORKING_ON_ANALYTICS = gettext("We are working on pretier analytics.")
+
+# These will be put in db so don't translate
+NEXT_ACTION_SETUP_YOUR_SHOP = 'Set up the plugin on your shop'
+NEXT_ACTION_SETUP_BILLING = 'Set up billing'
+NEXT_ACTION_CHANGE_YOUR_PASSWORD = 'Change your password'

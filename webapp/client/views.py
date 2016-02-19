@@ -141,6 +141,15 @@ def kitchen_sink():
 
 @client.route('/')
 def index():
+    if current_user.is_authenticated():
+        if current_user.temp_password:
+            return redirect('/change')
+        if current_user.has_role(Constants.ADMIN_ROLE):
+            return redirect('/admin')
+        elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
+            return redirect(url_for('client.shop_dashboard'))
+        elif current_user.has_role(Constants.REVIEWER_ROLE):
+            return redirect(url_for('client.user_profile', user_id=current_user.id))
     return render_template('index.html')
 
 
@@ -240,7 +249,7 @@ def shopify_plugin_callback():
     shop_owner, is_new = User.get_or_create_by_email(shop_owner_email,
                                                      role_name=Constants.SHOP_OWNER_ROLE,
                                                      name=shop_owner_name,
-                                                     plan_name=Constants.PLAN_NAME_BASIC)
+                                                     plan_name=Constants.PLAN_NAME_SHOPIFY_SIMPLE)
     if is_new:
         db.session.add(shop_owner)
         db.session.commit()
@@ -268,7 +277,7 @@ def shopify_plugin_callback():
     # Login shop_user
     shop_owner = User.query.filter_by(id=shop_owner_id).first()
     login_user(shop_owner)
-    return redirect(url_for('client.shop_dashboard', first='1'))
+    return redirect(url_for('client.setup_plugin', shop_id=shop.id))
 
 
 # Signals

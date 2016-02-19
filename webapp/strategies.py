@@ -94,27 +94,7 @@ def rank_objects_for_product(product_id):
 
 
 def get_incoming_messages(shop):
-    # return shop.incoming_messges
-    return [
-        {
-            'url': url_for('client.setup_plugin', shop_id=shop.id),
-            'icon': 'copy',
-            'icon_bg_color': Constants.COLOR_OPINEW_KIWI,
-            'title': 'Set up plugin on your shop'
-        },
-        {
-            'url': "javascript:showTab('#account');",
-            'icon': 'briefcase',
-            'icon_bg_color': Constants.COLOR_OPINEW_AQUA,
-            'title': 'Set up billing'
-        },
-        {
-            'url': url_for('security.change_password'),
-            'icon': 'pencil',
-            'icon_bg_color': Constants.COLOR_OPINEW_AQUA,
-            'title': 'Change your password'
-        }
-    ]
+    return shop.next_actions
 
 
 def get_scheduled_tasks(shop):

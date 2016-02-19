@@ -16,6 +16,7 @@ from webapp.exceptions import DbException
 from providers import stripe_payment
 from config import Constants
 from webapp.common import generate_temp_password, random_pwd
+from assets import strings
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
@@ -153,6 +154,41 @@ class User(db.Model, UserMixin, Repopulatable):
                         subject=email_subject)
             task = Task.create(method=tasks.send_email, args=args)
             db.session.add(task)
+
+            # set new next action
+            now = datetime.datetime.utcnow()
+            im1 = NextAction(
+                shop=user.shop,
+                timestamp=now,
+                identifier=Constants.NEXT_ACTION_ID_SETUP_YOUR_SHOP,
+                title=strings.NEXT_ACTION_SETUP_YOUR_SHOP,
+                url=url_for('client.setup_plugin', shop_id=user.shop.id),
+                icon=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON,
+                icon_bg_color=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR
+            )
+            db.session.add(im1)
+
+            im2 = NextAction(
+                timestamp=now,
+                shop=user.shop,
+                identifier=Constants.NEXT_ACTION_ID_SETUP_BILLING,
+                title=strings.NEXT_ACTION_SETUP_BILLING,
+                url="javascript:showTab('#account');",
+                icon=Constants.NEXT_ACTION_SETUP_BILLING_ICON,
+                icon_bg_color=Constants.NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR
+            )
+            db.session.add(im2)
+
+            im3 = NextAction(
+                timestamp=now,
+                shop=user.shop,
+                identifier=Constants.NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD,
+                title=strings.NEXT_ACTION_CHANGE_YOUR_PASSWORD,
+                url=url_for('security.change_password'),
+                icon=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON,
+                icon_bg_color=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR
+            )
+            db.session.add(im3)
         db.session.commit()
 
     @classmethod
@@ -1354,17 +1390,18 @@ class SentEmail(db.Model):
     funnel_stream = db.relationship("FunnelStream", backref=db.backref("sent_email", uselist=False))
 
 
-class IncomingMessages(db.Model):
+class NextAction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     timestamp = db.Column(db.DateTime)
+    identifier = db.Column(db.String)
     title = db.Column(db.String)
     url = db.Column(db.String)
     icon = db.Column(db.String)
     icon_bg_color = db.Column(db.String)
 
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
-    shop = db.relationship("Shop", backref=db.backref("incoming_messages"))
+    shop = db.relationship("Shop", backref=db.backref("next_actions"))
 
 
 class FunnelStream(db.Model):
@@ -1444,5 +1481,5 @@ admin.add_view(AdminModelView(Task, db.session))
 admin.add_view(AdminModelView(SentEmail, db.session))
 admin.add_view(AdminModelView(Source, db.session))
 admin.add_view(AdminModelView(FunnelStream, db.session))
-admin.add_view(AdminModelView(IncomingMessages, db.session))
+admin.add_view(AdminModelView(NextAction, db.session))
 admin.add_view(AdminModelView(UrlReferer, db.session))
