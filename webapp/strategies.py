@@ -94,7 +94,7 @@ def rank_objects_for_product(product_id):
 
 
 def get_incoming_messages(shop):
-    return shop.next_actions
+    return models.NextAction.query.filter_by(shop=shop, is_completed=False).all()
 
 
 def get_scheduled_tasks(shop):

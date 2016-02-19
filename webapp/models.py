@@ -157,38 +157,40 @@ class User(db.Model, UserMixin, Repopulatable):
 
             # set new next action
             now = datetime.datetime.utcnow()
-            im1 = NextAction(
-                shop=user.shop,
-                timestamp=now,
-                identifier=Constants.NEXT_ACTION_ID_SETUP_YOUR_SHOP,
-                title=strings.NEXT_ACTION_SETUP_YOUR_SHOP,
-                url=url_for('client.setup_plugin', shop_id=user.shop.id),
-                icon=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON,
-                icon_bg_color=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR
-            )
-            db.session.add(im1)
+            shop = user.shops[0] if user.shops else None
+            if shop:
+                im1 = NextAction(
+                    shop=shop,
+                    timestamp=now,
+                    identifier=Constants.NEXT_ACTION_ID_SETUP_YOUR_SHOP,
+                    title=strings.NEXT_ACTION_SETUP_YOUR_SHOP,
+                    url=url_for('client.setup_plugin', shop_id=shop.id),
+                    icon=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON,
+                    icon_bg_color=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR
+                )
+                db.session.add(im1)
 
-            im2 = NextAction(
-                timestamp=now,
-                shop=user.shop,
-                identifier=Constants.NEXT_ACTION_ID_SETUP_BILLING,
-                title=strings.NEXT_ACTION_SETUP_BILLING,
-                url="javascript:showTab('#account');",
-                icon=Constants.NEXT_ACTION_SETUP_BILLING_ICON,
-                icon_bg_color=Constants.NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR
-            )
-            db.session.add(im2)
+                im2 = NextAction(
+                    timestamp=now,
+                    shop=shop,
+                    identifier=Constants.NEXT_ACTION_ID_SETUP_BILLING,
+                    title=strings.NEXT_ACTION_SETUP_BILLING,
+                    url="javascript:showTab('#account');",
+                    icon=Constants.NEXT_ACTION_SETUP_BILLING_ICON,
+                    icon_bg_color=Constants.NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR
+                )
+                db.session.add(im2)
 
-            im3 = NextAction(
-                timestamp=now,
-                shop=user.shop,
-                identifier=Constants.NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD,
-                title=strings.NEXT_ACTION_CHANGE_YOUR_PASSWORD,
-                url=url_for('security.change_password'),
-                icon=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON,
-                icon_bg_color=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR
-            )
-            db.session.add(im3)
+                im3 = NextAction(
+                    timestamp=now,
+                    shop=shop,
+                    identifier=Constants.NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD,
+                    title=strings.NEXT_ACTION_CHANGE_YOUR_PASSWORD,
+                    url=url_for('security.change_password'),
+                    icon=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON,
+                    icon_bg_color=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR
+                )
+                db.session.add(im3)
         db.session.commit()
 
     @classmethod

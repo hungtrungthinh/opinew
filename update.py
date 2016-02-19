@@ -21,7 +21,6 @@ for shop in shops:
             completed_ts=now
     )
     db.session.add(im1)
-
     is_c_2 = shop.owner.customer[0].last4 is not None
     is_c_ts_2 = now if is_c_2 else None
     im2 = models.NextAction(
@@ -36,7 +35,6 @@ for shop in shops:
             completed_ts=is_c_ts_2
     )
     db.session.add(im2)
-
     is_c_3 = shop.owner.temp_password is not None
     is_c_ts_3 = now if is_c_3 else None
     im3 = models.NextAction(
