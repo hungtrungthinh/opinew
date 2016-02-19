@@ -144,6 +144,7 @@ class Config(object):
     EMAIL_USE_TLS = MAIL_USE_TLS = True
     EMAIL_HOST_USER = MAIL_USERNAME = "daniel@opinew.com"
     EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
+    SECURITY_EMAIL_SENDER = 'team@opinew.com'
 
     OPINEW_API_SERVER = 'https://www.opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
