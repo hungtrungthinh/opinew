@@ -1,6 +1,6 @@
 <!doctype html>
 <html class="no-js" lang="en">
-<head>
+<head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# article: http://ogp.me/ns/article#">
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
@@ -8,6 +8,7 @@
   <title>{{ page_title or g.constants.META_DEFAULT_TITLE }}</title>
   <meta name="keywords" content="reviews, photo reviews, image reviews, verified review, review plugin, review widget">
   <link id="favicon" rel="shortcut icon" href="{{ url_for('static', filename='icons/opinew32.ico') }}"/>
+  <link rel="alternate" href="https://www.opinew.com/" hreflang="x-default" />
 
   {# Add to homescreen for Chrome on Android#}
   <meta name="mobile-web-app-capable" content="yes">
@@ -44,10 +45,21 @@
         href="{{ url_for('static', filename='icons/apple-touch-icon192.png') }}"/>
 
   {# Facebook's open graph #}
-  <meta property="og:url" content="{{ page_url or request.url or g.constants.META_CANONICAL_URL }}"/>
   <meta property="og:title" content="{{ page_title or g.constants.META_DEFAULT_TITLE }}"/>
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="{{ page_url or request.url or g.constants.META_CANONICAL_URL }}"/>
   <meta property="og:description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}"/>
   <meta property="og:image" content="{{ page_image or g.constants.META_DEFAULT_IMAGE }}"/>
+  <meta property="og:site_name" content="{{ g.constants.PRODUCT_NAME }}" />
+  <meta property="fb:app_id" content="1636982329849520" />
+
+  {# Twitter card data #}
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@opinew">
+  <meta name="twitter:title" content="{{ page_title or g.constants.META_DEFAULT_TITLE }}">
+  <meta name="twitter:description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
+  <meta name="twitter:creator" content="@opinew">
+  <meta name="twitter:image" content="{{ page_image or g.constants.META_DEFAULT_IMAGE }}">
 
   {# Set the theme color on android devices #}
   <meta name="theme-color" content="{{ g.constants.COLOR_OPINEW_AQUA }}">
@@ -60,6 +72,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}" media="all"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" media="all"/>
   {% else %}
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
     {% assets "css_all" %}
       <link rel="stylesheet" href="{{ ASSET_URL }}">
     {% endassets %}
@@ -86,12 +99,13 @@
 
 {% include "snippets/footer.html" %}
 
-
 {% if not g.mode == 'production' %}
   <script src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
   <script src="{{ url_for('static', filename='js/bootstrap.js') }}"></script>
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% else %}
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
   {% assets "js_all" %}
     <script type="text/javascript" src="{{ ASSET_URL }}"></script>
   {% endassets %}

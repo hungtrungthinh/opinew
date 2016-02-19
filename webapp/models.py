@@ -1354,6 +1354,19 @@ class SentEmail(db.Model):
     funnel_stream = db.relationship("FunnelStream", backref=db.backref("sent_email", uselist=False))
 
 
+class IncomingMessages(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+    title = db.Column(db.String)
+    url = db.Column(db.String)
+    icon = db.Column(db.String)
+    icon_bg_color = db.Column(db.String)
+
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    shop = db.relationship("Shop", backref=db.backref("incoming_messages"))
+
+
 class FunnelStream(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -1431,4 +1444,5 @@ admin.add_view(AdminModelView(Task, db.session))
 admin.add_view(AdminModelView(SentEmail, db.session))
 admin.add_view(AdminModelView(Source, db.session))
 admin.add_view(AdminModelView(FunnelStream, db.session))
+admin.add_view(AdminModelView(IncomingMessages, db.session))
 admin.add_view(AdminModelView(UrlReferer, db.session))

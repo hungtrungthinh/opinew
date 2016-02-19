@@ -92,10 +92,12 @@ def rank_objects_for_product(product_id):
         'main_star_distribution': star_distribution
     }
 
+
 def get_incoming_messages(shop):
+    # return shop.incoming_messges
     return [
         {
-            'url': url_for('client.setup_plugin'),
+            'url': url_for('client.setup_plugin', shop_id=shop.id),
             'icon': 'copy',
             'icon_bg_color': Constants.COLOR_OPINEW_KIWI,
             'title': 'Set up plugin on your shop'
@@ -141,10 +143,3 @@ def get_reviews(shop):
 def get_analytics(shop):
     analytics = shop.get_stats()
     return analytics
-
-
-def get_questions(shop):
-    questions = []
-    for product in shop.products:
-        questions += models.Question.query.filter_by(product=product).all()
-    return questions

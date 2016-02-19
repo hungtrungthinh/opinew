@@ -146,10 +146,6 @@ class Constants(object):
             'icon': 'comment'
         },
         {
-            'name': strings.DASHBOARD_QUESTIONS_TAB_NAME,
-            'icon': 'question-sign'
-        },
-        {
             'name': strings.DASHBOARD_ANALYTICS_TAB_NAME,
             'icon': 'dashboard'
         },

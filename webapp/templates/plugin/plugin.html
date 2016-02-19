@@ -41,7 +41,8 @@
         <h3>Leave a review and help others!</h3>
       {% else %}
         {% if product_objs.average_stars %}
-          <div class="row" style="display:flex;justify-content:center;align-items:center;">
+          <div class="row" style="display:flex;justify-content:center;align-items:center;"  itemscope itemtype="http://schema.org/Thing">
+            <h3 itemprop="name">{{ product.name }}</h3>
             {% include "product/star_summary.html" %}
           </div>
         {% endif %}

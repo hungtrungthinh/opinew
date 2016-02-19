@@ -19,7 +19,7 @@ from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, Exten
 from config import Constants, basedir
 from providers import giphy
 from webapp.strategies import rank_objects_for_product, get_scheduled_tasks, get_incoming_messages, get_reviews, \
-    get_analytics, get_questions
+    get_analytics
 from messages import SuccessMessages
 from werkzeug.routing import BuildError
 
@@ -425,7 +425,6 @@ def shop_dashboard_id(shop_id):
     incoming_messages = get_incoming_messages(shop)
     scheduled_tasks = get_scheduled_tasks(shop)
     reviews = get_reviews(shop)
-    questions = get_questions(shop)
     stats = get_analytics(shop)
     return render_template('dashboard/dashboard.html',
                            shop=shop,
@@ -436,11 +435,14 @@ def shop_dashboard_id(shop_id):
                            stats=stats)
 
 
-@client.route('/setup-plugin')
+@client.route('/setup-plugin/<int:shop_id>')
+@verify_requirements('client.dashboard')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
-def setup_plugin():
-    return 'okay'
+def setup_plugin(shop_id):
+    shop = get_required_model_instance_by_id(Shop, shop_id)
+    return render_template('user_setup/shopify.html',
+                           shop=shop)
 
 
 @client.route('/change-subscription', methods=['POST'])

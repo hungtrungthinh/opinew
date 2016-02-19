@@ -20,5 +20,11 @@
       </p>
     {% endif %}
   {% endif %}
-  <em class="pull-right text-muted review-date"> — {{ review.created_ts.strftime('%d %b, %Y') }}</em><br>
+  <em class="pull-right text-muted review-date"> —
+    <meta itemprop="datePublished" content="review.created_ts.strftime('%Y-%m-%d')">
+    {{ review.created_ts.strftime('%d %b, %Y') }}
+  </em><br>
+  <span itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+    <meta itemprop="name" content="Opinew">
+  </span>
 </div>

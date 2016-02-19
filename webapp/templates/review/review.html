@@ -1,4 +1,7 @@
-<div class="review-container">
+<div class="review-container" itemscope itemtype="http://schema.org/Review">
+  <div hidden itemprop="itemReviewed" itemscope itemtype="http://schema.org/Thing">
+    <span itemprop="name">{{ review.product.name }}</span>
+  </div>
   <div class="review-header">
     {% include "review/review_star_rating.html" %}
     {% include "review/review_author.html" %}

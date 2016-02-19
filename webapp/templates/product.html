@@ -6,7 +6,8 @@
       <div class="col-xs-12 col-md-10 col-md-offset-1">
         {% include "product/description.html" %}
         {% include "product/star_summary.html" %}
-        {% include "product/interactions.html" %}
+{#      TODO: INCLUDE QUESTIONS #}
+{#        {% include "product/interactions.html" %}#}
         {% for obj in product_objs.objs_list %}
           {% include "product/render_object.html" %}
         {% endfor %}

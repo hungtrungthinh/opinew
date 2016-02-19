@@ -1,7 +1,7 @@
 {% if product_objs.average_stars %}
   <div class="row" style="display:flex;justify-content:center;align-items:center;">
     {% set average_stars = product_objs.average_stars %}
-    <div style="font-size: 2em; margin-bottom:20px;">
+    <div itemprop="aggregateRating" itemscope itemtype="http://schema.org/AggregateRating" style="font-size: 2em; margin-bottom:20px;">
       <span
           class="star-rating {% if 1 > average_stars > 0 %}star-half {% endif %}{% if average_stars >= 1 %}star-active{% endif %}">☆</span>
       <span
@@ -12,8 +12,13 @@
           class="star-rating {% if 4 > average_stars > 3 %}star-half {% endif %}{% if average_stars >= 4 %}star-active{% endif %}">☆</span>
       <span
           class="star-rating {% if 5 > average_stars > 4 %}star-half {% endif %}{% if average_stars == 5 %}star-active{% endif %}">☆</span>
-      <span style="color: #fb8c2d">  {{ average_stars|round(1) }}/5</span>
-      from {{ product_objs.total_reviews }} reviews
+      <span style="color: #fb8c2d">
+        <meta itemprop="worstRating" content="1"/>
+        <span itemprop="ratingValue">{{ average_stars|round(1) }}</span>
+        /
+        <span itemprop="bestRating">5</span>
+      </span>
+      from <span itemprop="ratingCount">{{ product_objs.total_reviews }}</span> reviews
     </div>
   </div>
 {% endif %}
