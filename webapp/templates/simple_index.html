@@ -1,0 +1,140 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# article: http://ogp.me/ns/article#">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title or g.constants.META_DEFAULT_TITLE }}</title>
+  <meta name="keywords" content="reviews, photo reviews, image reviews, verified review, review plugin, review widget">
+  <link id="favicon" rel="shortcut icon" href="{{ url_for('static', filename='icons/opinew32.ico') }}"/>
+  <link rel="alternate" href="https://www.opinew.com/" hreflang="x-default"/>
+
+  {# Add to homescreen for Chrome on Android#}
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='icons/android-desktop.png') }}">
+
+  {# Add to homescreen for Safari on iOS#}
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="{{ g.constants.PRODUCT_NAME }}">
+  <link rel="apple-touch-icon-precomposed" href="{{ url_for('static', filename='icons/ios-desktop.png') }}">
+
+  {# SEO: If your mobile URL is different from the desktop URL, add a canonical link to the desktop page https://developers.google.com/webmasters/smartphone-sites/feature-phones #}
+  <link rel="canonical" href="{{ g.constants.META_CANONICAL_URL }}">
+
+  {# DNS Prefetch hints #}
+  <link rel="dns-prefetch" href="maxcdn.bootstrapcdn.com">
+  <link rel="dns-prefetch" href="ajax.googleapis.com">
+  {# Hints for CURRENT page #}
+  {# <link rel="subresource" href="{{ url_for('static', filename='js/main.min.js') }}">#}
+  {# Hints for FUTURE navigation #}
+  {# <link rel="prefetch" href="{{ url_for('static', filename='js/post_review.js') }}">#}
+  {# Chrome prerenders this ONE page in the background for INSTANT click - ONLY GET #}
+  <link rel="prerender" href="https://www.opinew.com{{ page_prerender or g.constants.META_DEFAULT_PRERENDER }}">
+
+  {# Apple icons for different devices #}
+  <link rel="apple-touch-icon" sizes="60x60" href="{{ url_for('static', filename='icons/apple-touch-icon60.png') }}">
+  {# iphone default 60x60 #}
+  <link rel="apple-touch-icon" sizes="76x76" href="{{ url_for('static', filename='icons/apple-touch-icon76.png') }}">
+  {# ipad #}
+  <link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='icons/apple-touch-icon120.png') }}">
+  {# iphone-retina #}
+  <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='icons/apple-touch-icon152.png') }}">
+  <link rel="apple-touch-icon" sizes="192x192"
+        href="{{ url_for('static', filename='icons/apple-touch-icon192.png') }}"/>
+
+  {# Facebook's open graph #}
+  <meta property="og:title" content="{{ page_title or g.constants.META_DEFAULT_TITLE }}"/>
+  <meta property="og:type" content="article"/>
+  <meta property="og:url" content="{{ page_url or request.url or g.constants.META_CANONICAL_URL }}"/>
+  <meta property="og:description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}"/>
+  <meta property="og:image" content="{{ page_image or g.constants.META_DEFAULT_IMAGE }}"/>
+  <meta property="og:site_name" content="{{ g.constants.PRODUCT_NAME }}"/>
+  <meta property="fb:app_id" content="1636982329849520"/>
+
+  {# Twitter card data #}
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@opinew">
+  <meta name="twitter:title" content="{{ page_title or g.constants.META_DEFAULT_TITLE }}">
+  <meta name="twitter:description" content="{{ page_description or g.constants.META_DEFAULT_DESCRIPTION }}">
+  <meta name="twitter:creator" content="@opinew">
+  <meta name="twitter:image" content="{{ page_image or g.constants.META_DEFAULT_IMAGE }}">
+
+  {# Set the theme color on android devices #}
+  <meta name="theme-color" content="{{ g.constants.COLOR_OPINEW_AQUA }}">
+
+  {# Google plus page #}
+  <link href="https://plus.google.com/+Opinew" rel="publisher"/>
+
+  {#  Stylesheets #}
+  <style type="text/css">
+    body {
+      margin: 40px auto;
+      max-width: 650px;
+      line-height: 1.6;
+      font-size: 18px;
+      color: #444;
+      background-color: #EEE;
+      padding: 0 10px;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.2
+    }
+  </style>
+  {# Place per-page styles #}
+  {% block style %}{% endblock %}
+
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body {% block body_attributes %}{% endblock %}>
+{% include "snippets/flashed_messages.html" %}
+
+{# Main content of application is here #}
+<header>
+  <h1>Opinew - Photo and Video Reviews for Your Website</h1>
+
+  <aside>
+    We know you are busy - so are we. We could have put a big marketing image of some dude and a 'Hi' message like
+    this <a href="https://www.yotpo.com/" rel="nofollow">other guy</a> but instead, we are going to play it bold and
+    provide you with actionable content instead. If you already know why reviews are important, just <a
+      href="#our-review-plugin">see why we give you the best ones</a>
+  </aside>
+</header>
+
+<h2>User Generated Content matters</h2>
+<p>In other words - <em>customer reviews</em>. They are important to your business as they increase sales and
+  trustability. Think of it as <em>an electronic word of mouth</em>.
+<p>Consumers shopping on-line cannot touch or smell products, as would be possible in traditional retail outlets, so
+  their purchase judgments must be based on the product information presented on the Web site. On-line sellers seek to
+  overcome this limitation by giving consumers the opportunity to share product evaluations on-line
+
+<p>But there are a lot of pains associated with managing your own review system:
+<ul>
+  <li>Asking your customers by manually sending a lot of emails.
+  <li>Making sure that reviews are coming from real people (not bots, hackers or other malicious users of the Internet)
+  <li>Making sure that these real people are the same ones who have actually purchased your product (marking reviews as
+    verified)
+  <li>Removing spam, haters and the so called trolls.
+  <li>Sorting the good reviews from the bad reviews but keeping it fair at the same time.
+  <li>Finally, reading the reviews and putting the best ones on top
+</ul>
+
+<a name="our-review-plugin"></a>
+<h2>Our Review Plugin</h2>
+{% include "review/review.html" %}
+<h2>Pricing</h2>
+
+{# /End of main content #}
+
+{# Include Google analytics, fb code if in production mode #}
+{% if g.mode == 'production' %}
+  {% include "snippets/ga.html" %}
+  {% include "snippets/fb_code.html" %}
+{% endif %}
+
+{# Place per-page scripts #}
+{% block script %}{% endblock %}
+</body>
+</html>

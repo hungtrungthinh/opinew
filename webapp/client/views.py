@@ -450,7 +450,10 @@ def shop_dashboard_id(shop_id):
 @login_required
 def setup_plugin(shop_id):
     shop = get_required_model_instance_by_id(Shop, shop_id)
+    # TODO: import product url
+    product_page_url = shop.products[0].url if shop.products else None
     return render_template('user_setup/shopify.html',
+                           product_page_url=product_page_url,
                            shop=shop)
 
 
@@ -1293,3 +1296,16 @@ def create_answer():
     db.session.add(answer)
     db.session.commit()
     return generate_success_response_from_obj(obj=answer, obj_name='answer')
+
+
+@client.route('/simple')
+def simple_index():
+    review = Review.query.first()
+    return render_template('simple_index.html', review=review)
+
+
+@client.route('/shopify_manual_verification')
+@login_required
+def shopify_manual_verification():
+    # TODO: update next_action
+    return redirect(url_for('client.shop_dashboard'))

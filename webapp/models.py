@@ -1298,9 +1298,9 @@ class Product(db.Model, Repopulatable):
 
     @property
     def url(self):
-        for url in self.urls:
-            if not url.is_regex:
-                return url.url
+        for u in self.urls:
+            if not u.is_regex:
+                return u.url
 
     @classmethod
     def get_by_id(cls, product_id):
@@ -1399,6 +1399,9 @@ class NextAction(db.Model):
     url = db.Column(db.String)
     icon = db.Column(db.String)
     icon_bg_color = db.Column(db.String)
+
+    is_completed = db.Column(db.Boolean, default=False)
+    completed_ts = db.Column(db.DateTime)
 
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship("Shop", backref=db.backref("next_actions"))
