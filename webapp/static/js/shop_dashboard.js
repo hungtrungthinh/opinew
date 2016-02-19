@@ -42,12 +42,6 @@ function getPage(page, callback) {
   });
 }
 
-for (var i = 0; i < pages.length; i++) {
-  var page = pages[i];
-  var callback = callbacks[i];
-  getPage(page, callback);
-}
-
 $('#shop-form').bind('submit', function (e) {
   var $form = $(this);
   var formData = {};

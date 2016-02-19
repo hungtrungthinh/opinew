@@ -1304,6 +1304,12 @@ def simple_index():
     return render_template('simple_index.html', review=review)
 
 
+@client.route('/simple-add-review')
+def simple_add_review():
+    return render_template('simple_add_review.html')
+
+
+
 @client.route('/shopify_manual_verification')
 @login_required
 def shopify_manual_verification():
