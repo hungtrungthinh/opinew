@@ -149,6 +149,7 @@
     }
 
     button, .btn {
+      box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
       font-family: sans-serif;
       cursor: pointer;
       display: inline-block;
@@ -156,6 +157,7 @@
       margin-bottom: 0;
       font-size: 18px;
       border-radius: 2px;
+      border: 0;
     }
 
     button:focus {
@@ -167,14 +169,12 @@
     }
 
     .btn-default {
-      background-color: #f0f0f0;
-      border: 1px solid #aaa;
+      background-color: #eee;
       color: #444;
     }
 
     .btn-primary {
       background-color: #1c9298;
-      border: 1px solid #198388;
       color: #eee;
     }
 
@@ -204,6 +204,15 @@
     .clearfix {
       *zoom: 1;
     }
+
+    header {
+      margin: 16px 0;
+    }
+
+    .small {
+      font-size: 12px;
+      text-decoration: none;
+    }
   </style>
   {# Place per-page styles #}
   {% block style %}{% endblock %}
@@ -214,18 +223,18 @@
 {% include "snippets/flashed_messages.html" %}
 
 {# Main content of application is here #}
+<header>
+  <h1>Add review</h1>
+  <div class="colors-bar">
+    <div class="color-bar-element color-bar-element-primary opinew-aqua"></div>
+    <div class="color-bar-element opinew-kiwi"></div>
+    <div class="color-bar-element opinew-orange"></div>
+    <div class="color-bar-element opinew-cherry"></div>
+  </div>
+</header>
 <div class="container">
-  <header>
-    <h1>Add review</h1>
-    <div class="colors-bar">
-      <div class="color-bar-element color-bar-element-primary opinew-aqua"></div>
-      <div class="color-bar-element opinew-kiwi"></div>
-      <div class="color-bar-element opinew-orange"></div>
-      <div class="color-bar-element opinew-cherry"></div>
-    </div>
-  </header>
-
-  <p>How do you like the battery of your new <strong>Lenovo</strong> laptop?</p>
+  <p>How do you like the <strong>battery</strong> of your new <strong>Lenovo laptop</strong>?</p>
+  <a href="#" class="small pull-right">Choose a different question...</a>
   <form action="{{ url_for('client.add_review') }}" method="post">
     <textarea name="text" class="validate[required,length[6,300]] feedback-input" id="comment"
               placeholder="Comment"></textarea>

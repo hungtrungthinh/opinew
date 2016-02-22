@@ -98,6 +98,7 @@
       padding: 16px 32px;
       border-radius: 2px;
       box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+      margin: 0 0 16px 0;
     }
 
     .colors-bar {
@@ -131,6 +132,148 @@
       background-color: #1c9298;
     }
 
+    textarea {
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14);
+      width: 100%;
+      height: 100px;
+      font-family: 'Lora', serif;
+      margin: 16px auto;
+      line-height: 1.6;
+      font-size: 18px;
+      padding: 8px;
+      border-radius: 2px;
+      resize: none;
+      box-sizing: border-box;
+      border: 1px solid #aaa;
+    }
+
+    textarea:focus {
+      outline: 0;
+      border-color: #1c9298;
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14), 0 0 8px rgba(28, 146, 152, 0.8);
+    }
+
+    button, .btn {
+      box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+      font-family: sans-serif;
+      cursor: pointer;
+      display: inline-block;
+      padding: 8px 16px;
+      margin-bottom: 0;
+      font-size: 14px;
+      border-radius: 2px;
+    }
+
+    button:focus {
+      outline: 0;
+    }
+
+    button:active {
+      background-color: #198388;
+    }
+
+    .btn-default {
+      background-color: #f0f0f0;
+      border: 1px solid #aaa;
+      color: #444;
+    }
+
+    .btn-primary {
+      background-color: #1c9298;
+      border: 1px solid #198388;
+      color: #eee;
+    }
+
+    .inputfile {
+      width: 0;
+      height: 0;
+      opacity: 0;
+      overflow: hidden;
+      position: absolute;
+      z-index: -1;
+    }
+
+    .pull-right {
+      float: right;
+    }
+
+    .clearfix:before,
+    .clearfix:after {
+      content: " ";
+      display: table;
+    }
+
+    .clearfix:after {
+      clear: both;
+    }
+
+    .clearfix {
+      *zoom: 1;
+    }
+
+    blockquote {
+      margin: 0;
+    }
+
+    blockquote > p {
+      margin: 0;
+    }
+
+    .person-name {
+      color: #888;
+      font-size: 0.8em;
+      float: right;
+      line-height: 8px;
+      margin: 8px;
+    }
+
+    .person-img {
+      border-radius: 50%;
+      height: 24px;
+      width: auto;
+      float: right;
+    }
+
+    .fab {
+      border: 0;
+      box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+      height: 64px;
+      width: 64px;
+      background-color: #1c9298;
+      border-radius: 50%;
+      position: fixed;
+      bottom: 48px;
+      right: 48px;
+      text-align: center;
+      padding: 0;
+    }
+
+    .fab-text {
+      color: #eee;
+      font-size: 32px;
+      line-height: 64px;
+    }
+
+    .search-box {
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14);
+      width: 100%;
+      height: 48px;
+      font-family: 'Lora', serif;
+      margin: 16px auto;
+      line-height: 1.6;
+      font-size: 24px;
+      padding: 24px;
+      border-radius: 2px;
+      resize: none;
+      box-sizing: border-box;
+      border: 1px solid #aaa;
+    }
+
+    .search-box:focus {
+      outline: 0;
+      border-color: #1c9298;
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14), 0 0 8px rgba(28, 146, 152, 0.8);
+    }
   </style>
   {# Place per-page styles #}
   {% block style %}{% endblock %}
@@ -142,7 +285,7 @@
 
 {# Main content of application is here #}
 <header>
-  <h1>Opinew - Photo and Video Reviews for Your Website</h1>
+  <h1>Reviews about <strong>Lenovo laptop</strong></h1>
   <div class="colors-bar">
     <div class="color-bar-element color-bar-element-primary opinew-aqua"></div>
     <div class="color-bar-element opinew-kiwi"></div>
@@ -150,38 +293,20 @@
     <div class="color-bar-element opinew-cherry"></div>
   </div>
 </header>
-
-<div class="container">
-  <p>We know you are busy - so are we. If you already know why reviews are important, just <a
-      href="#our-review-plugin">see why we give you the best ones</a></p>
-  <h2>User Generated Content matters</h2>
-  <p>In other words - <em>customer reviews</em>. They are important to your business as they increase sales and
-    trust. Think of it as <em>an electronic word of mouth</em>.
-
-  <p>Consumers shopping on-line cannot touch or smell products, as would be possible in traditional retail outlets, so
-    their purchase judgments must be based on the product information presented on the Web site. On-line sellers seek to
-    overcome this limitation by giving consumers the opportunity to share product evaluations on-line
-
-
-    <a name="our-review-plugin"></a>
-  <h2>Our Review Plugin</h2>
-  <p>We pride ourselves to be more than your average review system in the following ways:
-  <ol>
-    <li>First of all, we make sure that reviews are coming from real people (not bots, hackers or other malicious users
-      of the Internet)
-    <li>We automatically ask your customers to leave you a review by sending them emails. By asking them specific
-      questions about the product, they are much more likely to leave you feedback.
-    <li>We also make sure that these real people are the same ones who have actually purchased your product by marking
-      reviews as verified.
-    <li>We remove spam, haters and the so called trolls.
-    <li>We let your customers express themselves with photos, videos and other interactive content. This makes reviews
-      more visually pleasing to your other customers.
-    <li>Finally we rank the high quality reviews above the low quality ones while keeping it fair at the same time.
-  </ol>
-
-  <h2>How it looks like?</h2>
-  <h2>Pricing</h2>
-</div>
+<input type="text" class="search-box" placeholder="What would you like to know?" />
+{% for review in reviews %}
+  <div class="container">
+    <blockquote>
+      <p>{{ review.body }}</p>
+    </blockquote>
+    <img class="person-img" src="{{ review.user_image_url }}" alt="{{ review.user_name }} profile image"/>
+    <p class="person-name">{{ review.user_name }}</p>
+    <div class="clearfix"></div>
+  </div>
+{% endfor %}
+<button class="fab">
+  <span class="fab-text">+</span>
+</button>
 {# /End of main content #}
 
 {# Include Google analytics, fb code if in production mode #}

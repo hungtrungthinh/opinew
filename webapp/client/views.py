@@ -1309,6 +1309,11 @@ def simple_add_review():
     return render_template('simple_add_review.html')
 
 
+@client.route('/simple-plugin')
+def simple_plugin():
+    reviews = Review.query.all()[:10]
+    return render_template('simple_plugin.html', reviews=reviews)
+
 
 @client.route('/shopify_manual_verification')
 @login_required
