@@ -3,21 +3,23 @@ var OPINEW_PLUGIN_URL = OPINEW_URL + "/plugin";
 var OPINEW_STAR_PLUGIN_URL = OPINEW_URL + "/plugin-stars";
 var FUNNEL_STREAM_ID;
 
-var pluginElement = window.document.getElementById("opinew-plugin");
+document.addEventListener("DOMContentLoaded", function (event) {
+  var opinewPluginElement = window.document.getElementById("opinew-plugin");
 
-if (pluginElement) {
-  var opinewShopId = pluginElement.getAttribute('data-opinew-shop-id');
-  var opinewProductPlatformId = pluginElement.getAttribute('data-platform-product-id');
-  var productLocation = window.location.protocol + '//' + window.location.host + window.location.pathname;
-  loadPlugin();
-}
+  if (opinewPluginElement) {
+    var opinewShopId = opinewPluginElement.getAttribute('data-opinew-shop-id');
+    var opinewProductPlatformId = opinewPluginElement.getAttribute('data-platform-product-id');
+    var productLocation = window.location.protocol + '//' + window.location.host + window.location.pathname;
+    loadPlugin(opinewShopId, opinewProductPlatformId, productLocation, opinewPluginElement);
+  }
+});
 
-function insertPlugin(url) {
-  pluginElement.innerHTML =
+function insertPlugin(url, opinewPluginElement) {
+  opinewPluginElement.innerHTML =
       '<a name="opinew-plugin"></a><iframe style="border:0; width:100%; height:700px;" src="' + url + '" id="opinew-plugin-iframe">' + '</iframe>';
 }
 
-function loadPlugin() {
+function loadPlugin(opinewShopId, opinewProductPlatformId, productLocation, opinewPluginElement) {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', OPINEW_URL + '/get-next-funnel-stream');
   xhr.send(null);
@@ -30,7 +32,7 @@ function loadPlugin() {
       } else {
         finalUrl = finalUrl + '&get_by=url&product_url=' + productLocation;
       }
-      insertPlugin(finalUrl);
+      insertPlugin(finalUrl, opinewPluginElement);
     }
   }
 
