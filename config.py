@@ -2,14 +2,30 @@
 import os
 import sensitive
 from celery.schedules import crontab
+from flask.ext.babel import gettext
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Constants(object):
-    META_DEFAULT_TITLE = "Opinew"
-    META_DEFAULT_DESCRIPTION = "Opinew is the photo review platform for the new generation"
+    PRODUCT_NAME = gettext('Opinew')
+    META_CANONICAL_URL = "https://opinew.com/"
+    META_DEFAULT_TITLE = gettext("Opinew - The Best Photo and Video Reviews for Your Online Business")
+    META_DEFAULT_DESCRIPTION = gettext("Increase your sales through smart and beautiful photo reviews with a simple plugin that works everywhere. Start your 30-day free trial today!")
+    META_DEFAULT_IMAGE = "https://opinew.com/static/img/opinew_square.png"
     META_DEFAULT_PRERENDER = "/reviews"
+
+    COLOR_OPINEW_CHERRY = '#fb412d'
+    COLOR_OPINEW_ORANGE = '#fb8c2d'
+    COLOR_OPINEW_KIWI = '#22be44'
+    COLOR_OPINEW_AQUA = '#1c9298'
+    COLOR_OPINEW_BLUEBERRY = '#2c54a8'
+
+    ALERT_ERROR_LABEL = 'danger'
+    ALERT_WARNING_LABEL = 'warning'
+    ALERT_INFO_LABEL = 'info'
+    ALERT_SUCCESS_LABEL = 'success'
+    ALERT_PRIMARY_LABEL = 'primary'
 
     DEFAULT_SHOP_NAME = 'Online shop'
     DEFAULT_REVIEW_SUBJECT = "%s, tell others about your purchase from %s"
@@ -40,6 +56,8 @@ class Constants(object):
     YOUTUBE_WATCH_LINK = 'https://www.youtube.com/watch?v='
     YOUTUBE_SHORT_LINK = 'https://youtu.be/'
     YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/{youtube_video_id}'
+    DEFAULT_LINK_SHORT_SIZE = 42
+    DEFAULT_ANONYMOUS_USER_NAME = "Anonymous"
 
     HTML_TO_INLINE_FILENAMES = ["review_order.html",
                                 "shop_marketing.html",
@@ -97,21 +115,47 @@ class Constants(object):
 
     FUNNEL_STREAM_ACTIONS = ['glimpse', 'fully_seen', 'mouse_hover', 'mouse_click', 'mouse_scroll']
 
+    DEFAULT_BODY_STARS = "I gave {star_rating} stars."
+
+    REVIEW_TYPE = 'Review'
+    QUESTION_TYPE = 'Question'
+
+    REVIEW_RANK_DAYS_WEIGHT = 0.1
+
+    REVIEW_RANK_USER_LIKES_WEIGHT = 0.1
+    REVIEW_RANK_USER_REVIEWS_WEIGHT = 0.05
+    REVIEW_RANK_LIKES_WEIGHT = 1
+    REVIEW_RANK_SHARES_WEIGHT = 2
+    REVIEW_RANK_COMMENTS_WEIGHT = 2
+    REVIEW_RANK_REPORTS_WEIGHT = 5
+    REVIEW_RANK_HAS_IMAGE_WEIGHT = 3
+    REVIEW_RANK_HAS_VIDEO_WEIGHT = 5
+    REVIEW_RANK_IS_VERIFIED_WEIGHT = 10
+
+    QUESTION_RANK_DAYS_WEIGHT = 0.01
+    SHOPIFY_MAX_PRODUCTS_PER_PAGE = 250
+    SHOPIFY_MAX_ORDERS_PER_PAGE = 250
+
+    DASHBOARD_ORDERS_LIMIT = 50
+
+    DEFAULT_LOCALE = 'en'
+
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),
               ("Tomasz Sadowski", 'tomsz.sadowski@gmail.com')]
 
     # Double assignment because of celery
-    EMAIL_HOST = MAIL_SERVER = "smtpout.europe.secureserver.net"
+    EMAIL_HOST = MAIL_SERVER = "smtp-relay.gmail.com"
     SERVER_EMAIL = 'celery-error@opinew.com'  # celery
     MAIL_DEFAULT_SENDER = ('Opinew Reviews', 'team@opinew.com')
-    EMAIL_PORT = MAIL_PORT = 465
-    EMAIL_USE_SSL = MAIL_USE_SSL = True
-    EMAIL_HOST_USER = MAIL_USERNAME = "team@opinew.com"
+    EMAIL_PORT = MAIL_PORT = 587
+    EMAIL_USE_TLS = MAIL_USE_TLS = True
+    EMAIL_HOST_USER = MAIL_USERNAME = "daniel@opinew.com"
     EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
+    SECURITY_EMAIL_SENDER = 'team@opinew.com'
 
-    OPINEW_API_SERVER = 'https://opinew.com'
+    OPINEW_API_SERVER = 'https://www.opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
 
     UPLOADED_USERIMAGES_DEST = os.path.join(basedir, 'media', 'user')
@@ -122,6 +166,10 @@ class Config(object):
 
     UPLOADED_SHOPIMAGES_DEST = os.path.join(basedir, 'media', 'shop')
     UPLOADED_SHOPIMAGES_URL = '/media/shop/'
+
+    RESIZE_URL = '/media'
+    RESIZE_ROOT = os.path.join(basedir, 'media',)
+    RESIZE_CACHE = os.path.join(basedir, 'media','cache')
 
     SHOPIFY_APP_API_KEY = sensitive.SHOPIFY_APP_API_KEY
     SHOPIFY_APP_SECRET = sensitive.SHOPIFY_APP_SECRET
@@ -174,6 +222,9 @@ class Config(object):
         },
     }
 
+    BABEL_DEFAULT_LOCALE = Constants.DEFAULT_LOCALE
+    BABEL_DEFAULT_TIMEZONE = 'UTC'
+
 
 class ConfigTest(Config):
     MODE = Constants.MODE_TESTING
@@ -195,13 +246,17 @@ class ConfigTest(Config):
     CELERY_RESULT_BACKEND = 'cache'
     CELERY_CACHE_BACKEND = 'memory'
 
+    RESIZE_NOOP = True
+
 
 class ConfigDev(Config):
     MODE = Constants.MODE_DEVELOPMENT
+    SERVER_NAME = 'localhost:5000'
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     HOST = '0.0.0.0'
+    RESIZE_URL = 'http://localhost:5000/media'
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION
@@ -210,7 +265,8 @@ class ConfigProd(Config):
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     STRIPE_PUBLISHABLE_API_KEY = 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'  # test key: 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
-    SERVER_NAME = 'opinew.com'
+    SERVER_NAME = 'www.opinew.com'
+    RESIZE_URL = 'https://www.opinew.com/media'
 
 
 config_factory = {

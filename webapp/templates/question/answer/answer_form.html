@@ -1,0 +1,16 @@
+{% if current_user.is_authenticated() %}
+  <div class="answer-form">
+    <img class="img-circle author-image" src="{{ current_user.image_url }}"
+         alt="{{ current_user.name }} profile image"/>
+    <form method="post" action="/answers/create" class="answer-question-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="question_id" value="{{ question.id }}">
+      <div class="input-group">
+        <input class="form-control" name="body" placeholder="Answer..."/>
+        <span class="input-group-btn">
+          <button class="btn btn-default">Answer</button>
+        </span>
+      </div>
+    </form>
+  </div>
+{% endif %}

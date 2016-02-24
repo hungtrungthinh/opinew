@@ -1,0 +1,7 @@
+<a href="/review-feature/{{ review.id }}"
+   onclick="featureReview(this, '{{ review.id }}'); return false;"
+   title="Feature"
+   class="btn btn-interaction {% if review.is_featured_by_current_user %}btn-warning{% else %}btn-default{% endif %}"
+>
+  <span class="glyphicon glyphicon-star"></span>
+</a>

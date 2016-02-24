@@ -1,21 +1,129 @@
+from __future__ import division
 import datetime
 import os
 import httplib
 from werkzeug.datastructures import MultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, jsonify, send_file, Response, session
+    current_app, make_response, abort, jsonify, send_file, Response
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import API
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
-    Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy
+    Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
+    ReviewFeature, UrlReferer, Comment, Answer
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm, ReviewRequestForm
 from config import Constants, basedir
 from providers import giphy
+from webapp.strategies import rank_objects_for_product
+from messages import SuccessMessages
+
+
+class ResponseContext(object):
+    def __init__(self, is_async, default_redirect):
+        self.is_async = is_async
+        self.default_redirect = default_redirect
+
+
+class RequirementException(Exception):
+    def __init__(self, response):
+        self.response = response
+
+
+def verify_required_object(obj, error_msg, error_code):
+    if not obj:
+        ctx = g.response_context.pop()
+        if ctx.is_async:
+            raise RequirementException(response=(jsonify({"error": error_msg}), httplib.BAD_REQUEST))
+        flash(error_msg)
+        raise RequirementException(response=redirect(request.referrer or ctx.default_redirect))
+
+
+def required_parameter(payload, param_name):
+    obj = payload.get(param_name)
+    verify_required_object(obj=obj,
+                           error_msg=ExceptionMessages.MISSING_PARAM.format(param=param_name),
+                           error_code=httplib.BAD_REQUEST)
+    return obj
+
+
+def required_model_instance_by_id(model, instance_id):
+    obj = model.query.filter_by(id=instance_id).first()
+    verify_required_object(obj=obj,
+                           error_msg=ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance=model.__name__,
+                                                                                  id=instance_id),
+                           error_code=httplib.BAD_REQUEST)
+    return obj
+
+
+def generate_success_response_from_obj(obj, obj_name):
+    ctx = g.response_context.pop()
+    if ctx.is_async:
+        return jsonify(obj.serialize()), httplib.CREATED
+    flash(SuccessMessages.SUCCESS_CREATING_OBJECT.format(object_name=obj_name))
+    return redirect(request.referrer or ctx.default_redirect)
+
+
+def create_response_context(default_redirect_url_for):
+    # Create a response context
+    if request.method in ['GET']:
+        payload = request.args
+    else:
+        payload = request.form
+    ctx = ResponseContext(
+            is_async=payload.get('async'),
+            default_redirect=url_for(default_redirect_url_for)
+    )
+
+    # Push the context
+    g.response_context.append(ctx)
+
+
+@client.route('/kitchen-sink')
+@roles_required(Constants.ADMIN_ROLE)
+@login_required
+def kitchen_sink():
+    flash('This is dangerous', category=Constants.ALERT_ERROR_LABEL)
+    flash('Careful hello!!', category=Constants.ALERT_WARNING_LABEL)
+    flash('hello?', category=Constants.ALERT_INFO_LABEL)
+    flash('hello okay', category=Constants.ALERT_PRIMARY_LABEL)
+    flash('YES hello', category=Constants.ALERT_SUCCESS_LABEL)
+    return render_template('dev/kitchen_sink.html')
+
+
+@client.route('/')
+def index():
+    if 'mobile' in g and g.mobile:
+        if current_user.is_authenticated():
+            if current_user.has_role(Constants.REVIEWER_ROLE):
+                return redirect(url_for('client.user_profile', user_id=current_user.id))
+        else:
+            return render_template('index.html')
+            # return redirect(url_for('client.reviews'))
+
+    if current_user.is_authenticated():
+        if current_user.temp_password:
+            return redirect('/change')
+        if current_user.has_role(Constants.ADMIN_ROLE):
+            return redirect('/admin')
+        elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
+            return redirect(url_for('client.shop_dashboard'))
+        elif current_user.has_role(Constants.REVIEWER_ROLE):
+            return redirect(url_for('client.user_profile', user_id=current_user.id))
+    return render_template('index.html')
+
+
+@client.route('/terms')
+def terms_of_use():
+    return render_template('legal/terms_of_use.html', page_title="Terms of Use - ")
+
+
+@client.route('/privacy')
+def privacy_policy():
+    return render_template('legal/privacy_policy.html', page_title="Privacy Policy - ")
 
 
 @client.route('/install')
@@ -68,7 +176,7 @@ def install_shopify_step_one():
           '&scope={scopes}' \
           '&redirect_uri={redirect_uri}' \
           '&state={nonce}'.format(
-        shop=shop_domain, api_key=client_id, scopes=scopes, redirect_uri=redirect_uri, nonce=nonce)
+            shop=shop_domain, api_key=client_id, scopes=scopes, redirect_uri=redirect_uri, nonce=nonce)
     return redirect(url)
 
 
@@ -134,32 +242,11 @@ def shopify_plugin_callback():
     login_user(shop_owner)
     return redirect(url_for('client.shop_dashboard', first='1'))
 
+
 # Signals
 from flask.ext.security import user_registered
 
 user_registered.connect(User.post_registration_handler)
-
-
-@client.route('/')
-def index():
-    if 'mobile' in g and g.mobile:
-        if current_user.is_authenticated():
-            if current_user.has_role(Constants.REVIEWER_ROLE):
-                return redirect(url_for('client.user_profile', user_id=current_user.id))
-        else:
-            return render_template('index.html')
-            #return redirect(url_for('client.reviews'))
-
-    if current_user.is_authenticated():
-        if current_user.temp_password:
-            return redirect('/change')
-        if current_user.has_role(Constants.ADMIN_ROLE):
-            return redirect('/admin')
-        elif current_user.has_role(Constants.SHOP_OWNER_ROLE):
-            return redirect(url_for('client.shop_dashboard'))
-        elif current_user.has_role(Constants.REVIEWER_ROLE):
-            return redirect(url_for('client.user_profile', user_id=current_user.id))
-    return render_template('index.html')
 
 
 @client.route('/', defaults={'review_request_token': ''})
@@ -282,14 +369,16 @@ def shop_dashboard_id(shop_id):
     plans = Plan.query.all()
     current_plan = None
     if shop.owner.customer and len(shop.owner.customer) > 0 and shop.owner.customer[0] and \
-        shop.owner.customer[0].subscription and len(shop.owner.customer[0].subscription) > 0 and \
-        shop.owner.customer[0].subscription[0]:
+            shop.owner.customer[0].subscription and len(shop.owner.customer[0].subscription) > 0 and \
+            shop.owner.customer[0].subscription[0]:
         current_plan = shop.owner.customer[0].subscription[0].plan
     if current_user.confirmed_at:
         # TODO: temporary fix for legacy users, we should always get the data from the subscription ts
-        expiry_days = (current_user.confirmed_at + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
+        expiry_days = (current_user.confirmed_at + datetime.timedelta(
+            days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
     else:
-        expiry_days = (current_user.customer[0].subscription[0].timestamp + datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
+        expiry_days = (current_user.customer[0].subscription[0].timestamp + datetime.timedelta(
+            days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
                            review_request_form=review_request_form, platforms=platforms,
                            plans=plans, expiry_days=expiry_days, current_plan=current_plan)
@@ -331,12 +420,16 @@ def change_subscription():
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def shop_dashboard_orders(shop_id):
+    start = int(request.args.get('start', 0))
+    end = start + Constants.DASHBOARD_ORDERS_LIMIT
+    if start and not end > start > 0:
+        return ''
     now = datetime.datetime.utcnow()
     shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
     if not shop:
         flash('Not your shop')
         return redirect(url_for('client.shop_dashboard'))
-    orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()
+    orders = Order.query.filter_by(shop_id=shop_id).order_by(Order.purchase_timestamp.desc()).all()[start:end]
     return render_template("shop_admin/orders.html", orders=orders, now=now)
 
 
@@ -388,7 +481,7 @@ def shop_dashboard_questions(shop_id):
         flash('Not your shop')
         return redirect(url_for('client.shop_dashboard'))
     products = Product.query.filter_by(shop_id=shop_id).all()
-    questions = Question.query.filter(Question.about_product_id.in_([p.id for p in products])).all()
+    questions = Question.query.filter(Question.product_id.in_([p.id for p in products])).all()
     return render_template("shop_admin/questions.html", questions=questions)
 
 
@@ -439,6 +532,61 @@ def get_plugin():
         signup_form = ExtendedRegisterForm()
         login_form = LoginForm()
         shop_id = param_required('shop_id', request.args)
+        if not shop_id:
+            return '', 404
+        get_by = param_required('get_by', request.args)
+        if get_by == 'url':
+            product_url = param_required('product_url', request.args)
+            product = Product.find_product_by_url(product_url, shop_id)
+        elif get_by == 'platform_id':
+            platform_product_id = param_required('platform_product_id', request.args)
+            product = Product.query.filter_by(shop_id=shop_id, platform_product_id=platform_product_id).first()
+        else:
+            return '', 404
+        shop = product.shop
+        if shop.owner and \
+                shop.owner.customer and \
+                shop.owner.customer[0] and \
+                shop.owner.confirmed_at and \
+                        (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
+                not shop.owner.customer[0].last4:
+            return '', 404
+
+        product_objs = rank_objects_for_product(product.id)
+        next_arg = request.url
+        # TODO: deprecate plugin_views
+        product.plugin_views += 1
+        funnel_stream_id = request.args.get('funnel_stream_id')
+        if funnel_stream_id:
+            funnel_stream = FunnelStream.query.filter_by(id=funnel_stream_id).first()
+            if funnel_stream:
+                funnel_stream.shop = shop
+                funnel_stream.product = product
+                funnel_stream.plugin_load_ts = datetime.datetime.utcnow()
+                funnel_stream.plugin_loaded_from_ip = request.remote_addr
+                db.session.add(funnel_stream)
+                db.session.commit()
+    except (ParamException, DbException, AssertionError, AttributeError) as e:
+        return '', 404
+    return render_template('plugin/plugin.html',
+                           product=product,
+                           product_objs=product_objs,
+                           signup_form=signup_form,
+                           login_form=login_form,
+                           review_form=review_form,
+                           review_image_form=review_image_form,
+                           next_arg=next_arg,
+                           in_plugin=True,
+                           funnel_stream_id=funnel_stream_id,
+                           show_recaptcha=show_recaptcha)
+
+
+@client.route('/plugin-stars')
+def get_plugin_stars():
+    try:
+        shop_id = param_required('shop_id', request.args)
+        if not shop_id:
+            return '', 404
         get_by = param_required('get_by', request.args)
         if get_by == 'url':
             product_url = param_required('product_url', request.args)
@@ -455,34 +603,16 @@ def get_plugin():
                         (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
                 not shop.owner.customer[0].last4:
             return '', 404
-
-        if current_user and current_user.is_authenticated():
-            own_review = Review.query.filter_by(product_id=product.id, user=current_user, deleted=False).order_by(Review.created_ts.desc()).first()
-        else:
-            own_review = None
-        all_reviews = Review.query.filter_by(product_id=product.id, approved_by_shop=True, deleted=False).order_by(Review.created_ts.desc()).all()
-        featured_reviews = [fr for fr in all_reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
-        rest_reviews = [r for r in all_reviews if r not in featured_reviews and not r == own_review]
-        next_arg = request.url
-        # TODO: deprecate plugin_views
-        product.plugin_views += 1
-        funnel_stream_id = request.args.get('funnel_stream_id')
-        if funnel_stream_id:
-            funnel_stream = FunnelStream.query.filter_by(id=funnel_stream_id).first()
-            if funnel_stream:
-                funnel_stream.shop = shop
-                funnel_stream.product = product
-                funnel_stream.plugin_load_ts = datetime.datetime.utcnow()
-                funnel_stream.plugin_loaded_from_ip = request.remote_addr
-                db.session.add(funnel_stream)
-                db.session.commit()
+        all_reviews = Review.query.filter_by(product_id=product.id, deleted=False).order_by(
+            Review.created_ts.desc()).all()
+        stars_list = [r.star_rating for r in all_reviews if r.star_rating]
+        average_stars = sum(stars_list) / len(stars_list) if len(stars_list) else 0
     except (ParamException, DbException, AssertionError, AttributeError) as e:
         return '', 404
-    return render_template('plugin/plugin.html', product=product, rest_reviews=rest_reviews,
-                           signup_form=signup_form, login_form=login_form, review_form=review_form,
-                           review_image_form=review_image_form, next_arg=next_arg,
-                           own_review=own_review, featured_reviews=featured_reviews, in_plugin=True,
-                           funnel_stream_id=funnel_stream_id, show_recaptcha=show_recaptcha)
+    return render_template('plugin/plugin_stars.html',
+                           product=product,
+                           average_stars=average_stars,
+                           all_reviews=all_reviews)
 
 
 @client.route('/update-funnel')
@@ -519,22 +649,15 @@ def update_funnel():
 def get_product(product_id):
     try:
         product = Product.get_by_id(product_id)
-        if current_user and current_user.is_authenticated():
-            own_review = Review.query.filter_by(product_id=product_id, user=current_user, deleted=False).order_by(
-                Review.created_ts.desc()).first()
-        else:
-            own_review = None
-        reviews = Review.query.filter_by(product_id=product_id, deleted=False).order_by(Review.created_ts.desc()).all()
-        featured_reviews = [fr for fr in reviews if fr.featured and fr.featured.action == 1 and not fr == own_review]
-        reviews = [r for r in reviews if r not in featured_reviews and not r == own_review]
+        product_objs = rank_objects_for_product(product_id)
     except (ParamException, DbException) as e:
         flash(e.message)
         return redirect(request.referrer)
-    return render_template('product.html', page_title="%s Reviews - " % product.name,
-                           product=product,
-                           reviews=reviews,
-                           own_review=own_review,
-                           featured_reviews=featured_reviews)
+    return render_template('product.html',
+                           product_objs=product_objs,
+                           page_image=product.image_url,
+                           page_title="%s Reviews - Opinew" % product.name,
+                           product=product)
 
 
 @client.route('/read-notification')
@@ -561,7 +684,13 @@ def add_review():
     ctx = {}
     # Check if product_id is requested
     if 'product_id' in request.args:
-        ctx['product'] = Product.query.filter_by(id=request.args.get('product_id')).first()
+        product_id = request.args.get('product_id')
+        ctx['product'] = Product.query.filter_by(id=product_id).first()
+        if current_user and current_user.is_authenticated():
+            # Check if review by this user exists for this product
+            existing_review = Review.query.filter_by(product_id=product_id, user_id=current_user.id).first()
+            if existing_review:
+                return redirect(url_for('client.edit_review', review_id=existing_review.id))
     # Check if it's a review request and that the correct token is there
     ctx['show_recaptcha'] = not current_user.is_authenticated()
     if 'review_request_id' in request.args and 'review_request_token' in request.args:
@@ -624,16 +753,22 @@ def delete_review(review_id):
     review.deleted_ts = datetime.datetime.utcnow()
     db.session.add(review)
     db.session.commit()
-    return redirect(request.referrer or url_for('client.get_product', product_id=review.product_id) or url_for('client.index'))
+    return redirect(
+        request.referrer or url_for('client.get_product', product_id=review.product_id) or url_for('client.index'))
 
 
-@client.route('/review', defaults={'review_id': 0})
-@client.route('/review/<int:review_id>')
-@roles_required(Constants.SHOP_OWNER_ROLE)
-@login_required
+@client.route('/reviews', defaults={'review_id': 0})
+@client.route('/reviews/<int:review_id>')
 def view_review(review_id):
-    review = Review.query.filter_by(review_id)
-    return render_template('shop_admin/view_review.html', review=review)
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        flash(ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id))
+        return redirect(request.referrer or url_for('client.index'))
+    return render_template('shop_admin/view_review.html',
+                           review=review,
+                           page_title='Review by %s about %s' % (review.user_name, review.product.name),
+                           page_description=review.body,
+                           page_image=review.image_url)
 
 
 @client.route('/plugin-logout')
@@ -641,31 +776,6 @@ def view_review(review_id):
 def plugin_logout():
     logout_user()
     return redirect(request.referrer)
-
-
-@client.route('/faq')
-def faq():
-    return render_template('faq.html')
-
-
-@client.route('/about-us')
-def about_us():
-    return render_template('about_us.html', page_title="About us - ")
-
-
-@client.route('/support')
-def support():
-    return render_template('support.html', page_title="Support - ")
-
-
-@client.route('/terms')
-def terms_of_use():
-    return render_template('terms_of_use.html', page_title="Terms of Use - ")
-
-
-@client.route('/privacy')
-def privacy_policy():
-    return render_template('privacy_policy.html', page_title="Privacy Policy - ")
 
 
 @client.route('/robots.txt')
@@ -697,9 +807,11 @@ def sitemapxml():
     response.headers["Content-Type"] = "application/xml"
     return response
 
+
 @client.route('/opinew-simple')
 def render_simple_promo_page():
     return render_template('simple_promotional_page.html')
+
 
 @client.route('/render-order-review-email')
 def render_order_review_email():
@@ -785,7 +897,6 @@ def update_order():
 
     db.session.commit()
     return redirect(url_for('client.shop_dashboard'))
-
 
 
 @client.route('/review-notification', defaults={'order_id': None})
@@ -927,3 +1038,213 @@ def unsubscribe():
     db.session.add(user)
     db.session.commit()
     return "%s has been successfully unsubscribed." % email
+
+
+@client.route('/review-like', defaults={'review_id': None})
+@client.route('/review-like/<review_id>')
+@login_required
+def add_review_like(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        return jsonify({
+            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id)
+        }), httplib.BAD_REQUEST
+    review_like = ReviewLike.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+    if not review_like:
+        now = datetime.datetime.utcnow()
+        new_action = True
+        review_like = ReviewLike(review_id=review_id, user_id=current_user.id, timestamp=now)
+        db.session.add(review_like)
+    else:
+        new_action = False
+        db.session.delete(review_like)
+    db.session.commit()
+    if request.args.get('async'):
+        return jsonify({
+            'action': new_action,
+            'count': len(review.likes)
+        })
+    return redirect(request.referrer or url_for('client.reviews'))
+
+
+@client.route('/review-report', defaults={'review_id': None})
+@client.route('/review-report/<review_id>')
+@login_required
+def add_review_report(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        return jsonify({
+            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id)
+        }), httplib.BAD_REQUEST
+    review_report = ReviewReport.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+    if not review_report:
+        now = datetime.datetime.utcnow()
+        new_action = True
+        review_report = ReviewReport(review_id=review_id, user_id=current_user.id, timestamp=now)
+        db.session.add(review_report)
+    else:
+        new_action = False
+        db.session.delete(review_report)
+    db.session.commit()
+    if request.args.get('async'):
+        return jsonify({
+            'action': new_action,
+            'count': len(review.reports)
+        })
+    return redirect(request.referrer or url_for('client.reviews'))
+
+
+@client.route('/review-feature', defaults={'review_id': None})
+@client.route('/review-feature/<review_id>')
+@login_required
+@roles_required(Constants.SHOP_OWNER_ROLE)
+def add_review_feature(review_id):
+    review = Review.query.filter_by(id=review_id).first()
+    if not review:
+        return jsonify({
+            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
+        }), httplib.BAD_REQUEST
+    if not (review.product and review.product.shop):
+        return jsonify({
+            "error": ExceptionMessages.CANT_FEATURE_THAT_REVIEW
+        }), httplib.BAD_REQUEST
+    review_shop = review.product.shop
+    if review_shop not in current_user.shops:
+        return jsonify({
+            "error": ExceptionMessages.CANT_FEATURE_THAT_REVIEW
+        }), httplib.UNAUTHORIZED
+    review_feature = ReviewFeature.query.filter_by(review_id=review_id).first()
+    if not review_feature:
+        now = datetime.datetime.utcnow()
+        new_action = True
+        review_feature = ReviewFeature(review_id=review_id, user_id=current_user.id, timestamp=now)
+        db.session.add(review_feature)
+    else:
+        new_action = False
+        db.session.delete(review_feature)
+    db.session.commit()
+    if request.args.get('async'):
+        return jsonify({
+            'action': new_action,
+            'count': 1 if review.featured else 0
+        })
+    return redirect(request.referrer or url_for('client.reviews'))
+
+
+# TODO: From below - refactored with new quick verification functions (see top of file). Refactor the ones above too.
+
+@client.route('/review-share', defaults={'review_id': None})
+@client.route('/review-share/<review_id>')
+def add_review_share(review_id):
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        review = required_model_instance_by_id(Review, review_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Review Share
+    now = datetime.datetime.utcnow()
+    review_share = ReviewShare(timestamp=now, review=review)
+    if current_user.is_authenticated():
+        review_share.user = current_user
+    db.session.add(review_share)
+    db.session.commit()
+
+    return generate_success_response_from_obj(obj=review_share, obj_name='Review Share')
+
+
+@client.route('/ref')
+def add_referer():
+    create_response_context(default_redirect_url_for='client.index')
+
+    # Verify required objects
+    try:
+        url = required_parameter(request.form, 'url')
+        q = required_parameter(request.form, 'q')
+    except RequirementException as e:
+        return e.response
+
+    # Create UrlReferrer object
+    now = datetime.datetime.utcnow()
+    ref = UrlReferer(url=url, q=q, timestamp=now)
+    if current_user.is_authenticated():
+        ref.user = current_user
+    db.session.add(ref)
+    db.session.commit()
+    if url.startswith('http://') or url.startswith('https://'):
+        return redirect(url)
+    return redirect('http://' + url)
+
+
+@client.route('/comments/create', methods=['POST'])
+@login_required
+def create_comment():
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        review_id = required_parameter(request.form, 'review_id')
+        body = required_parameter(request.form, 'body')
+        review = required_model_instance_by_id(Review, review_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Comment
+    now = datetime.datetime.utcnow()
+    comment = Comment(user=current_user,
+                      body=body,
+                      review=review,
+                      created_ts=now)
+    db.session.add(comment)
+    db.session.commit()
+    return generate_success_response_from_obj(obj=comment, obj_name='comment')
+
+
+@client.route('/questions/create', methods=['POST'])
+@login_required
+def create_question():
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        product_id = required_parameter(request.form, 'product_id')
+        body = required_parameter(request.form, 'body')
+        product = required_model_instance_by_id(Product, product_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Question
+    now = datetime.datetime.utcnow()
+    question = Question(user=current_user,
+                        body=body,
+                        product=product,
+                        created_ts=now)
+    db.session.add(question)
+    db.session.commit()
+    return generate_success_response_from_obj(obj=question, obj_name='question')
+
+
+@client.route('/answers/create', methods=['POST'])
+@login_required
+def create_answer():
+    create_response_context(default_redirect_url_for='client.reviews')
+
+    # Verify required objects
+    try:
+        question_id = required_parameter(request.form, 'question_id')
+        body = required_parameter(request.form, 'body')
+        question = required_model_instance_by_id(Question, question_id)
+    except RequirementException as e:
+        return e.response
+
+    # Create Answer
+    now = datetime.datetime.utcnow()
+    answer = Answer(user=current_user,
+                    body=body,
+                    question=question,
+                    created_ts=now)
+    db.session.add(answer)
+    db.session.commit()
+    return generate_success_response_from_obj(obj=answer, obj_name='answer')

@@ -1,0 +1,7 @@
+<a href="/review-report/{{ review.id }}"
+   onclick="reportReview(this, '{{ review.id }}'); return false;"
+   title="Report"
+   class="btn btn-interaction {% if review.is_reported_by_current_user %}btn-danger{% else %}btn-default{% endif %}">
+  <span class="glyphicon glyphicon-flag"></span>
+  <span class="count">{{ review.reports|length }}</span>
+</a>

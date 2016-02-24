@@ -1,4 +1,4 @@
-EMAIL_PASSWORD = "Opinu@m4d4f4k4!"
+EMAIL_PASSWORD = "Kazano4estnoVsi4koMiENared!"
 
 ADMIN_PASSWORD = "Opinu@m4d4f4k4!"
 TEST_REVIEWER_PASSWORD = "1-4m_4_r3v13w3r%"

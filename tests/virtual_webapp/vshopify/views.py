@@ -26,6 +26,20 @@ def orders():
     }]})
 
 
+@vshopify.route('/admin/orders/count.json')
+def orders_count():
+    return jsonify({
+        'count': 1
+    })
+
+
+@vshopify.route('/admin/products/count.json')
+def products_count():
+    return jsonify({
+        'count': 1
+    })
+
+
 @vshopify.route('/admin/products.json')
 def products():
     return jsonify({'products': [{

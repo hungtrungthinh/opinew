@@ -1,0 +1,28 @@
+<div class="review-comments-container">
+  <div class="review-comments">
+    {% if review.comments|length > 1 and not request.args.a %}
+      {# Shrink comments other than the last one #}
+      <div hidden id="comments-more-{{ review.id }}">
+        {% for comment in review.comments[:-1] %}
+          {% include "review/comments/comment.html" %}
+        {% endfor %}
+      </div>
+      <div class="comments-show-more-container">
+        <a href="/reviews/{{ review.id }}?a=1"
+           data-review-id="{{ review.id }}"
+           onclick="showMoreComments(this); return false;">
+          Show all {{ review.comments|length }} comments
+        </a>
+      </div>
+      {% set comment = review.comments[-1] %}
+      {% include "review/comments/comment.html" %}
+    {% else %}
+      {# Display all comments #}
+      {% for comment in review.comments %}
+        {% include "review/comments/comment.html" %}
+      {% endfor %}
+    {% endif %}
+    {% include "review/comments/create_form.html" %}
+  </div>
+  <div class="clearfix"></div>
+</div>

@@ -102,16 +102,32 @@ class API(object):
         response = r.json()
         return response.get('shop', {})
 
-    def get_products(self):
-        r = requests.get("%s/admin/products.json" % self.url_prefix,
+    def get_products_count(self):
+        r = requests.get("%s/admin/products/count.json" % self.url_prefix,
+                         headers={'X-Shopify-Access-Token': self.access_token})
+        if not r.status_code == 200:
+            raise ApiException(r.text, r.status_code)
+        response = r.json()
+        return response.get('count', 0)
+
+    def get_products(self, limit=Constants.SHOPIFY_MAX_PRODUCTS_PER_PAGE, page=1):
+        r = requests.get("%s/admin/products.json?limit=%s&page=%s" % (self.url_prefix, limit, page),
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
             raise ApiException(r.text, r.status_code)
         response = r.json()
         return response.get('products', [])
 
-    def get_orders(self):
-        r = requests.get("%s/admin/orders.json?status=any" % self.url_prefix,
+    def get_orders_count(self):
+        r = requests.get("%s/admin/orders/count.json?status=any" % self.url_prefix,
+                         headers={'X-Shopify-Access-Token': self.access_token})
+        if not r.status_code == 200:
+            raise ApiException(r.text, r.status_code)
+        response = r.json()
+        return response.get('count', 0)
+
+    def get_orders(self, limit=Constants.SHOPIFY_MAX_PRODUCTS_PER_PAGE, page=1):
+        r = requests.get("%s/admin/orders.json?status=any&limit=%s&page=%s" % (self.url_prefix, limit, page),
                          headers={'X-Shopify-Access-Token': self.access_token})
         if not r.status_code == 200:
             raise ApiException(r.text, r.status_code)

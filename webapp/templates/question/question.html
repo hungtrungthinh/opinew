@@ -1,0 +1,9 @@
+<div class="review-container">
+  {% include "question/question_body.html" %}
+  <div class="answers-container">
+    {% for answer in question.answers %}
+      {% include "question/answer/answer.html" %}
+    {% endfor %}
+    {% include "question/answer/answer_form.html" %}
+  </div>
+</div>

@@ -36,7 +36,6 @@ function getPage(page, callback) {
   $.ajax("/dashboard/" + shop_id + "/" + page, {
     success: function (r) {
       $('#' + page).html(r);
-      loadAsync();
       if (callback)
         callback();
     }

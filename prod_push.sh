@@ -46,6 +46,7 @@ pushprod() {
                                       find ./media -type f -exec chmod 664 {} \; &&
                                       find ./webapp/static -type f -exec chmod 664 {} \; &&
                                       sudo chown -R www-data ./media &&
+                                      sudo chown -R www-data ./webapp/static &&
                                       (screen -S celery -X quit && screen -S celery -d -m ./run_celery.sh) ||
                                             screen -S celery -d -m ./run_celery.sh &&
                                       (screen -S beat -X quit && screen -S beat -d -m ./run_celery_beat.sh) ||
@@ -79,4 +80,4 @@ send_update() {
     fi
 }
 
-send_update opinew_api.com
+send_update opinew.com

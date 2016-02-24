@@ -9,7 +9,7 @@ Create python virtual environment, install required packages and populate the da
 1. Install the following packages (ubuntu 12.04 and 14.04):
 
     sudo apt-get update
-    sudo apt-get install git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev amqp-tools
+    sudo apt-get install git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev amqp-tools libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk
 
 
 1. Set up a virtual environment
@@ -41,6 +41,27 @@ To manually update the table via SQL
 To see active connections:
     
     SELECT * FROM pg_stat_activity;
+
+## Translations
+Surround code to be translated with {{ gettext() }}
+
+To extract new strings:
+
+    pybabel extract -F babel.cfg -o messages.pot .
+
+To generate new language:
+
+    pybabel init -i messages.pot -d webapp/translations -l pl
+
+If any of these strings change, run:
+
+    pybabel update -i messages.pot -d webapp/translations
+
+Do the translations in `webapp/translations/bg/LC_MESSAGES`
+
+To compile:
+
+    pybabel compile -d webapp/translations
 
 ## Run
 Once everything is setup, just run with

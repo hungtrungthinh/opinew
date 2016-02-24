@@ -1,0 +1,7 @@
+<a href="/review-like/{{ review.id }}"
+   onclick="likeReview(this, '{{ review.id }}'); return false;"
+   title="Helpful"
+   class="btn btn-interaction {% if review.is_liked_by_current_user %}btn-success{% else %}btn-default{% endif %}">
+  <span class="glyphicon glyphicon-thumbs-up"></span>
+  <span class="count">{{ review.likes|length }}</span>
+</a>

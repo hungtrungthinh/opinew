@@ -4,8 +4,9 @@ import base64
 import hmac
 import hashlib
 import datetime
+import httplib
 from freezegun import freeze_time
-from flask import url_for
+from flask import url_for, current_app
 from flask.ext.security.utils import verify_password
 from webapp import db
 from webapp.models import User, Shop, Product, Order, ReviewRequest, Customer, UserLegacy, Role
@@ -13,6 +14,7 @@ from tests import testing_constants
 from config import Constants
 from tests.framework import TestFlaskApplication, expect_mail
 from config import Config
+from assets import strings
 
 
 class TestClient(TestFlaskApplication):
@@ -186,38 +188,37 @@ class TestClient(TestFlaskApplication):
     #     db.session.commit()
 
     def test_get_index(self):
-        response_actual = self.desktop_client.get("/")
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue("<h1 align=\"center\">Take your company's reviews to the next level.</h1>" in response_actual.data.decode('utf-8'))
+        response_actual = self.desktop_client.get(url_for('client.index'))
+        self.assertEquals(response_actual.status_code, httplib.OK)
+        self.assertStringInResponse(strings.OPINEW, response_actual)
+        self.assertStringInResponse(strings.OPINEW_MOTO, response_actual)
 
     def test_get_index_admin(self):
         self.login(self.admin_user.email, self.admin_password)
-        response_actual = self.desktop_client.get("/")
-        location_expected = 'http://' + self.app.config.get('SERVER_NAME') + '/admin'
-        self.assertEquals(response_actual.status_code, 302)
-        self.assertEquals(location_expected, response_actual.location)
+        response_actual = self.desktop_client.get(url_for('client.index'))
+        location_expected = url_for('admin.index')
+        self.locationExpected(location_expected, response_actual)
         self.logout()
 
     def test_get_index_shop_owner(self):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
-        response_actual = self.desktop_client.get("/")
+        response_actual = self.desktop_client.get(url_for('client.index'))
         location_expected = url_for('client.shop_dashboard')
-        self.assertEquals(response_actual.status_code, 302)
-        self.assertEquals(location_expected, response_actual.location)
+        self.locationExpected(location_expected, response_actual)
         self.logout()
 
     def test_get_index_reviewer(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.desktop_client.get("/")
+        response_actual = self.desktop_client.get(url_for('client.index'))
         location_expected = url_for('client.user_profile', user_id=self.reviewer_user.id)
-        self.assertEquals(response_actual.status_code, 302)
-        self.assertEquals(location_expected, response_actual.location)
+        self.locationExpected(location_expected, response_actual)
         self.logout()
 
     def test_get_index_mobile(self):
-        response_actual = self.mobile_client.get("/")
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue("<h1 align=\"center\">Take your company's reviews to the next level.</h1>" in response_actual.data.decode('utf-8'))
+        response_actual = self.mobile_client.get(url_for('client.index'))
+        self.assertEquals(response_actual.status_code, httplib.OK)
+        self.assertStringInResponse(strings.OPINEW, response_actual)
+        self.assertStringInResponse(strings.OPINEW_MOTO, response_actual)
 
     def test_get_index_mobile_logged_in(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
@@ -226,12 +227,6 @@ class TestClient(TestFlaskApplication):
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
         self.logout()
-
-    ##
-    def test_get_index_mobile_not_logged_in_reviews(self):
-        response_actual = self.mobile_client.get(url_for('client.reviews'))
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<footer' not in response_actual.data)
 
     def test_get_index_mobile_product_page(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
@@ -279,15 +274,14 @@ class TestClient(TestFlaskApplication):
 
     def test_render_add_review_to_product(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.desktop_client.get(url_for('client.add_review'), query_string={"product_id": 1})
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('<a href="/product/1">Ear rings</a>' in response_actual.data)
+        response_actual = self.desktop_client.get(url_for('client.add_review'), query_string={"product_id": 3})
+        self.assertEquals(response_actual.status_code, httplib.OK)
         self.logout()
 
     @freeze_time(testing_constants.ORDER_NOW)
     def test_plugin_404(self):
         response_actual = self.desktop_client.get(url_for('client.get_plugin'))
-        self.assertEquals(response_actual.status_code, 404)
+        self.assertEquals(response_actual.status_code, httplib.NOT_FOUND)
         self.assertEquals('', response_actual.data)
 
     @freeze_time(testing_constants.ORDER_NOW)
@@ -703,25 +697,11 @@ class TestClient(TestFlaskApplication):
         self.logout()
 
     def test_display_post_email_add_review_screen_bad_token_not_logged_in(self):
-        order = Order()
-        product = Product(name=testing_constants.NEW_PRODUCT_NAME, platform_product_id=testing_constants.NEW_PRODUCT_PLATFORM_ID)
-        order.user = self.reviewer_user
-        customer = Customer(user=self.shop_owner_user)
-        shop = Shop(name=testing_constants.NEW_SHOP_NAME)
-        shop.owner = self.shop_owner_user
-        product.shop = shop
-        order.shop = shop
-        order.products.append(product)
-
         review_request_token = "BOGUSTOKEN"
-
-
-        response_actual = self.desktop_client.get("/" + review_request_token, follow_redirects=True)
-        self.assertEqual(response_actual.status_code, 200)
-        self.assertFalse(self.reviewer_user.name in response_actual.data.decode('utf-8'))
-        self.assertTrue("<h1 align=\"center\">Take your company's reviews to the next level.</h1>" in response_actual.data.decode('utf-8'))
-        self.assertFalse("Write your review here... \nYou can paste a youtube link too!" in response_actual.data.decode('utf-8'))
-
+        response_actual = self.desktop_client.get("/" + review_request_token)
+        location_expected = current_app.config.get('OPINEW_API_SERVER') + '/'
+        self.assertEqual(response_actual.status_code, httplib.MOVED_PERMANENTLY)
+        self.assertEquals(location_expected, response_actual.location)
 
     def test_display_post_email_add_review_screen_template_text_reviewer_logged_in_NORMAL_USER(self):
         order = Order()
@@ -1321,7 +1301,8 @@ class TestClient(TestFlaskApplication):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         params = {"order_id": order.id}
         response_actual = self.desktop_client.get('/render-order-review-email', query_string=params, follow_redirects=True)
-        self.assertEquals(response_actual.status_code, 200)
+        self.assertEquals(response_actual.status_code, httplib.OK)
+
         self.assertTrue("Not your shop" in response_actual.data.decode('utf-8'))
         self.assertFalse(product.name in response_actual.data.decode('utf-8'))
         self.assertFalse("Make a review and we'll help you spread the word!" in response_actual.data.decode('utf-8'))

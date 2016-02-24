@@ -1,0 +1,19 @@
+{% if current_user.is_authenticated() %}
+  {% if current_user == review.product.shop.owner or
+        current_user == review.user %}
+    <div class="comment-form">
+      <img class="img-circle author-image" src="{{ current_user.image_url }}"
+           alt="{{ review.user_name }} profile image"/>
+      <form method="post" action="/comments/create">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="review_id" value="{{ review.id }}"/>
+        <div class="input-group">
+          <input type="text" class="form-control" name="body" value="" placeholder="Comment..."/>
+            <span class="input-group-btn">
+              <button class="btn btn-primary">Post</button>
+            </span>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+{% endif %}

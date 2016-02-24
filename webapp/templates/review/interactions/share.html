@@ -1,0 +1,5 @@
+<a onclick="shareReview(this, '{{ review.id }}')"
+   class="btn btn-interaction {% if review.is_shared_by_current_user %}btn-info{% else %}btn-default{% endif %}">
+  <span class="glyphicon glyphicon-share-alt"></span>
+  Share (<span class="count">{{ review.shares|length }}</span>)
+</a>

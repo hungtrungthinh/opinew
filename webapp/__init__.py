@@ -1,3 +1,4 @@
+import logging
 from flaskopinewext import FlaskOpinewExt
 from flask import g, request, redirect, flash, session
 from flask_admin import Admin, BaseView
@@ -9,11 +10,14 @@ from flask.ext.security import Security, SQLAlchemyUserDatastore, login_required
 from flask.ext.restless import APIManager
 from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_request_class
 from flask.ext.gravatar import Gravatar
+from flask.ext.babel import Babel
+from flask.ext.assets import Environment, Bundle
+from flask_resize import Resize
 from flask_mail import Mail
 from werkzeug.exceptions import default_exceptions
 from config import config_factory, Constants
+from assets import strings
 from flask.ext.compress import Compress
-import logging
 from logging.handlers import SMTPHandler
 from logging import Formatter
 from user_agents import parse
@@ -57,6 +61,7 @@ class EmailRenderView(BaseView):
 
 csrf = CsrfProtect()
 db = SQLAlchemy()
+babel = Babel()
 migrate = Migrate()
 
 mail = Mail()
@@ -66,17 +71,25 @@ admin.add_view(EmailRenderView(name="Email Renders", endpoint='email-renders'))
 security = Security()
 api_manager = APIManager()
 compress = Compress()
-gravatar = Gravatar(size=100, rating='g', default='mm', force_default=False, use_ssl=True, base_url=None)
+gravatar = Gravatar(size=42, rating='g', default='mm', force_default=False, use_ssl=True, base_url=None)
 
 user_images = UploadSet('userimages', IMAGES)
 review_images = UploadSet('reviewimages', IMAGES)
 shop_images = UploadSet('shopimages', IMAGES)
+
+resize = Resize()
+assets = Environment()
+js_assets = Bundle('js/min/jquery-1.11.3.min.js', 'js/min/bootstrap.min.js', 'js/main.js',
+            filters='rjsmin', output='js/main.min.js')
+css_assets = Bundle('css/min/bootstrap.min.css', 'css/global.css',
+            filters='cssmin', output='css/global.min.css')
 
 
 def create_app(option):
     app = FlaskOpinewExt(__name__)
     config = config_factory.get(option)
     app.config.from_object(config)
+
     from common import create_jinja_filters, random_pwd, verify_initialization
 
     create_jinja_filters(app)
@@ -90,12 +103,18 @@ def create_app(option):
 
     compress.init_app(app)
     gravatar.init_app(app)
+    resize.init_app(app)
     db.init_app(app)
     admin.init_app(app)
     mail.init_app(app)
     migrate.init_app(app, db)
+    babel.init_app(app)
     from models import User, Role
     from webapp.forms import ExtendedRegisterForm
+
+    assets.init_app(app)
+    assets.register('js_all', js_assets)
+    assets.register('css_all', css_assets)
 
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
@@ -125,9 +144,13 @@ def create_app(option):
             g.constants = Constants
             g.config = app.config
             g.mode = app.config.get('MODE')
+            g.response_context = []
+            g.s = strings
 
         @app.after_request
         def redirect_if_next(response_class):
+            if request.endpoint == 'static':
+                response_class.headers['Access-Control-Allow-Origin'] = '*'
             payload = request.args if request.method == 'GET' else request.form
             if 'api_next' in payload:
                 if not response_class.status_code == 200:
@@ -153,7 +176,8 @@ def create_app(option):
                                    'server-error@opinew.com',
                                    admins,
                                    'Your Application Failed',
-                                   credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')))
+                                   credentials=(app.config.get('MAIL_USERNAME'), app.config.get('MAIL_PASSWORD')),
+                                   secure=())
         mail_handler.setLevel(logging.ERROR)
         mail_handler.setFormatter(Formatter('''
 Time        : %(asctime)s

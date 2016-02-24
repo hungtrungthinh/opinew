@@ -9,12 +9,12 @@ from flask import url_for, abort, redirect, request
 from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
+from flask_resize import resize
 
-from webapp import db, admin
+from webapp import db, admin, gravatar
 from webapp.exceptions import DbException
 from providers import stripe_payment
 from config import Constants
-from webapp import gravatar
 from webapp.common import generate_temp_password, random_pwd
 
 order_products_table = db.Table('order_products',
@@ -105,14 +105,6 @@ class User(db.Model, UserMixin, Repopulatable):
     @classmethod
     def get_by_email_no_exception(cls, email):
         return cls.query.filter_by(email=email).first()
-
-    @property
-    def reviews_count(self):
-        return len(self.reviews)
-
-    @property
-    def likes_count(self):
-        return len([rl for rl in ReviewLike.query.filter_by(user_id=self.id).all()])
 
     @classmethod
     def get_by_email(cls, email):
@@ -336,39 +328,66 @@ class Subscription(db.Model, Repopulatable):
 class ReviewLike(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
-                        default=current_user.id if current_user and current_user.is_authenticated() else 0)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("review_likes"))
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("review_likes"))
+    review = db.relationship("Review", backref=db.backref("likes"))
 
 
 class ReviewReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
-                        default=current_user.id if current_user and current_user.is_authenticated() else 0)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("review_reports"))
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("review_reports"))
+    review = db.relationship("Review", backref=db.backref("reports"))
 
 
 class ReviewFeature(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime)
 
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("review_features"))
+
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("feature"), uselist=False)
+    review = db.relationship("Review", backref=db.backref("featured"), uselist=False)
+
+
+class ReviewShare(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("review_shares"))
+
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship("Review", backref=db.backref("shares"))
+
+    def serialize(self):
+        return {
+            'action': True,
+            'count': len(self.review.shares)
+        }
+
+
+class UrlReferer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+    url = db.Column(db.String)
+    q = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("url_referers"))
 
 
 class Notification(db.Model):
@@ -672,6 +691,15 @@ class Comment(db.Model):
     def __repr__(self):
         return '<Comment %r... for %r by %r>' % (self.body[:10], self.review, self.user)
 
+    def serialize(self):
+        return {
+            'body': self.body,
+            'user': {
+                'name': self.user.name,
+                'image_url': self.user.image_url
+            }
+        }
+
 
 class Source(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -736,7 +764,13 @@ class ReviewRequest(db.Model):
         return token
 
 
-class Review(db.Model, Repopulatable):
+class RenderableObject(object):
+    @property
+    def object_type(self):
+        return self.__class__.__name__
+
+
+class Review(db.Model, Repopulatable, RenderableObject):
     id = db.Column(db.Integer, primary_key=True)
 
     body = db.Column(db.String)
@@ -788,6 +822,12 @@ class Review(db.Model, Repopulatable):
         self.body = unicode(body) if body else None
         self.image_url = image_url
         self.star_rating = star_rating
+
+        if not body:
+            if self.star_rating:
+                self.body = Constants.DEFAULT_BODY_STARS.format(star_rating=star_rating)
+            else:
+                body = ""
 
         # differentiate between a review about a product vs a review about a shop
         if shop_id and product_id:
@@ -853,6 +893,14 @@ class Review(db.Model, Repopulatable):
         return review
 
     @classmethod
+    def create_for_test(cls, source_user_name=None, source_id=None, user=None, **kwargs):
+        review = Review(**kwargs)
+        review.user = user
+        review.source_user_name = source_user_name
+        review.source_id = source_id
+        return review
+
+    @classmethod
     def verify_review_request(cls, data):
         review_request_id = data.get('review_request_id')
         if review_request_id:
@@ -894,54 +942,66 @@ class Review(db.Model, Repopulatable):
         return self
 
     @property
-    def likes(self):
-        return sum([rl.action for rl in ReviewLike.query.filter_by(review_id=self.id).all()])
-
-    @property
-    def reports(self):
-        return sum([rr.action for rr in ReviewReport.query.filter_by(review_id=self.id).all()])
-
-    @property
-    def liked_by_current_user(self):
+    def is_liked_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return rl
+            review_like = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_like:
+                return True
         return False
 
     @property
-    def reported_by_current_user(self):
+    def is_reported_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rr = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return rr
+            review_report = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_report:
+                return True
         return False
 
     @property
-    def featured(self):
+    def is_featured_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rf = ReviewFeature.query.filter_by(review_id=self.id).first()
-            return rf
+            review_feature = ReviewFeature.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_feature:
+                return True
         return False
 
     @property
-    def next_like_action(self):
+    def is_shared_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return (0 if rl.action == 1 else 1) if rl else 1
-        return 1
+            review_shared = ReviewShare.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_shared:
+                return True
+        return False
 
     @property
-    def next_report_action(self):
-        if current_user and current_user.is_authenticated():
-            rr = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return (0 if rr.action == 1 else 1) if rr else 1
-        return 1
+    def user_name(self):
+        if self.source_id and not self.source_id == 1 and self.source_user_name:
+            _user_name = self.source_user_name
+        elif self.user and self.user.name:
+            _user_name = self.user.name
+        else:
+            _user_name = Constants.DEFAULT_ANONYMOUS_USER_NAME
+        return _user_name
 
     @property
-    def next_feature_action(self):
-        if current_user and current_user.is_authenticated():
-            rf = ReviewFeature.query.filter_by(review_id=self.id).first()
-            return (0 if rf.action == 1 else 1) if rf else 1
-        return 1
+    def user_image_url(self):
+        if self.user:
+            if self.user.image_url:
+                _user_image_url = self.user.image_url
+            elif self.user.email:
+                _user_image_url = gravatar(self.user.email)
+            else:
+                _user_image_url = gravatar('')
+        elif self.source_id and not self.source_id == 1 and self.source_user_image_url:
+            _user_image_url = self.source_user_image_url
+        else:
+            _user_image_url = gravatar('')
+        return _user_image_url
+
+
+    @classmethod
+    def get_all_undeleted_reviews_for_product(cls, product_id):
+        return cls.query.filter_by(product_id=product_id, deleted=False).all()
 
     def __repr__(self):
         return '<Review %r %r... by %r>' % (self.id, self.body[:10] if self.body else self.id, self.user)
@@ -984,7 +1044,7 @@ class Review(db.Model, Repopulatable):
 
     @classmethod
     def get_latest(cls, start, end):
-        reviews = cls.query.order_by(Review.id.desc()).all()[start:end]
+        reviews = cls.query.filter_by(deleted=False).order_by(Review.id.desc()).all()[start:end]
         return reviews
 
     @classmethod
@@ -1011,7 +1071,7 @@ class Shop(db.Model, Repopulatable):
     owner = db.relationship("User", backref=db.backref("shops"))
 
     platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
-    platform = db.relationship("Platform", backref=db.backref("platform", uselist=False))
+    platform = db.relationship("Platform", backref=db.backref("platform"))
 
     def update_access_token(self, access_token):
         self.access_token = access_token
@@ -1241,31 +1301,37 @@ class ProductUrl(db.Model, Repopulatable):
     product = db.relationship("Product", backref=db.backref("urls"))
 
 
-class Question(db.Model, Repopulatable):
+class Question(db.Model, Repopulatable, RenderableObject):
     id = db.Column(db.Integer, primary_key=True)
+    created_ts = db.Column(db.DateTime)
 
     body = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("questions"))
 
-    about_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    about_product = db.relationship("Product", backref=db.backref("questions"))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("questions"))
 
     click_count = db.Column(db.Integer, default=0)
     is_public = db.Column(db.Boolean, default=False)
 
+    @classmethod
+    def get_all_questions_for_product(cls, product_id):
+        return cls.query.filter_by(product_id=product_id).all()
+
 
 class Answer(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
+    created_ts = db.Column(db.DateTime)
 
     body = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("answers"))
 
-    to_question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
-    to_question = db.relationship("Question", backref=db.backref("answers"))
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
+    question = db.relationship("Question", backref=db.backref("answers"))
 
 
 class SentEmail(db.Model):
@@ -1348,6 +1414,7 @@ admin.add_view(AdminModelView(Subscription, db.session))
 admin.add_view(AdminModelView(ReviewLike, db.session))
 admin.add_view(AdminModelView(ReviewReport, db.session))
 admin.add_view(AdminModelView(ReviewFeature, db.session))
+admin.add_view(AdminModelView(ReviewShare, db.session))
 admin.add_view(AdminModelView(ReviewRequest, db.session))
 admin.add_view(AdminModelView(Notification, db.session))
 admin.add_view(AdminModelView(Order, db.session))
@@ -1364,3 +1431,4 @@ admin.add_view(AdminModelView(Task, db.session))
 admin.add_view(AdminModelView(SentEmail, db.session))
 admin.add_view(AdminModelView(Source, db.session))
 admin.add_view(AdminModelView(FunnelStream, db.session))
+admin.add_view(AdminModelView(UrlReferer, db.session))

@@ -1,0 +1,43 @@
+<style>
+  .star-active:before {
+    content: "\2605";
+    position: absolute;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  .star-active:before {
+    color: #fb8c2d;
+  }
+
+  .star-half:after {
+    content: '\2605';
+    color: #fb8c2d;
+    position: absolute;
+    margin-left: -14px;
+    width: 7px;
+    overflow: hidden;
+  }
+
+  .rating-review-body .star-active:before {
+    color: rgba(251, 140, 45, 0.6);
+  }
+</style>
+{% if average_stars %}
+  <a href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=product.id) }}" target="_blank">
+  <div style="display:table;">
+    <span class="star-rating {% if 1 > average_stars >= 0 %}star-half {% endif %}{% if average_stars >= 1 %}star-active{% endif %}">☆</span>
+    <span class="star-rating {% if 2 > average_stars >= 1 %}star-half {% endif %}{% if average_stars >= 2 %}star-active{% endif %}">☆</span>
+    <span class="star-rating {% if 3 > average_stars >= 2 %}star-half {% endif %}{% if average_stars >= 3 %}star-active{% endif %}">☆</span>
+    <span class="star-rating {% if 4 > average_stars >= 3 %}star-half {% endif %}{% if average_stars >= 4 %}star-active{% endif %}">☆</span>
+    <span class="star-rating {% if 5 > average_stars >= 4 %}star-half {% endif %}{% if average_stars == 5 %}star-active{% endif %}">☆</span><br>
+    <div style="text-align:center;">{{ all_reviews|length }} reviews</div>
+  </div>
+  </a>
+  {% else %}
+  <a href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=product.id) }}" target="_blank">
+  No reviews yet.
+  </a>
+{% endif %}

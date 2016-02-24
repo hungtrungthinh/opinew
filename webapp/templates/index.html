@@ -1,102 +1,281 @@
 {% extends "layout.html" %}
-{% import "_macros.html" as macros %}
-
+{% block style %}
+  <link href="{{ url_for('static', filename='css/landing-page.css') }}" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic,700italic" rel="stylesheet"
+        type="text/css">
+  <style>
+    .intro-header {
+      background: url({{ url_for('static', filename='img/marketing/stock_header.jpg') }}) no-repeat center center;
+      background-size: cover;
+    }
+  </style>
+{% endblock %}
 {% block content %}
-  <section class="container-fluid" id="welcome" xmlns="http://www.w3.org/1999/html">
+  <!-- Header -->
+  <a name="about"></a>
+  <div class="intro-header">
+    <div class="container">
+
+      <div class="row">
+        <div class="col-lg-12">
+          <div class="intro-message">
+            <h1>{{ g.s.OPINEW }}</h1>
+            <h3>{{ g.s.OPINEW_MOTO }}</h3>
+            <hr class="intro-divider">
+            <ul class="list-inline intro-social-buttons">
+              <li>
+                <a href="{{ url_for('security.register', shop_owner=1) }}" class="btn btn-primary btn-lg"><i
+                    class="fa fa-github fa-fw"></i> <span class="network-name">{{ gettext('Start now') }}</span></a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.intro-header -->
+
+  <!-- Page Content -->
+
+  <a name="features"></a>
+  <div class="content-section-b">
+
+    <div class="container">
+      <div class="row text-center">
+        <a target="_blank" class="btn btn-lg btn-success" href="https://apps.shopify.com/opinew">
+          <h3>
+            {{ gettext('Have a shop running on') }}<br>
+            <img class="img-responsive marketing-img-shopify"
+                 src="{{ url_for('static', filename='img/marketing/shopify.png') }}"
+                 alt="Shopify"/>?
+          </h3>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="content-section-a">
+
     <div class="container">
       <div class="row">
+        <div class="col-lg-5 col-sm-6">
+          <hr class="section-heading-spacer">
+          <div class="clearfix"></div>
+          <h2 class="section-heading">{{ gettext("Get reviews that drive sales") }}</h2>
+          <p class="lead">{{ gettext("Get better reviews for your products, driving conversions and increasing sales by <strong>20 percent</strong>. We will send automated emails to your customers to prompt them to leave a review. Then, our smart system suggests which reviews will help you and your customers the most.") }}</p>
+        </div>
+        <div class="col-lg-5 col-lg-offset-2 col-sm-6">
+          <img src="{{ url_for('static', filename='img/marketing/verified.jpg') }}" class="img-responsive"
+               alt="{{ gettext('Opinew smart algorithms verify and authenticate the reviews') }}"/>
+        </div>
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-a -->
+
+  <div class="content-section-b">
+
+    <div class="container">
+
+      <div class="row">
+        <div class="col-lg-5 col-lg-offset-1 col-sm-push-6  col-sm-6">
+          <hr class="section-heading-spacer">
+          <div class="clearfix"></div>
+          <h2 class="section-heading">{{ gettext("Enrich your reviews with photos and videos") }}</h2>
+          <p class="lead">{{ gettext("Bring extra credibility to your reviews with photos and videos. Over a billion of them are posted everyday on services like Snapchat, Pinterest and Instagram.") }}</p>
+        </div>
+        <div class="col-lg-5 col-sm-pull-6  col-sm-6">
+          <img class="img-responsive" src="{{ url_for('static', filename='img/marketing/multimedia.jpg') }}"
+               alt="{{ gettext('Opinew reviews gives you rich multimedia content') }}">
+
+        </div>
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-b -->
+
+  <div class="content-section-a">
+
+    <div class="container">
+
+      <div class="row">
+        <div class="col-lg-5 col-sm-6">
+          <hr class="section-heading-spacer">
+          <div class="clearfix"></div>
+          <h2 class="section-heading">{{ gettext("Works everywhere, Mobile-first") }}</h2>
+          <p class="lead">{{ gettext("Our plugin works on <strong>any</strong> website, feature-rich and looks great. We understand the role of mobile in our world and we have focused on making the reviewing process on them as simple as possible.") }}
+          </p>
+        </div>
+        <div class="col-lg-5 col-lg-offset-2 col-sm-6">
+          <img src="{{ url_for('static', filename='img/marketing/mobile.jpg') }}" class="img-responsive"
+               alt="{{ gettext('Opinew reviews is mobile friendly and works on any website') }}"/>
+        </div>
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-a -->
+
+  <a name="our-clients"></a>
+  <div class="content-section-b">
+
+    <div class="container">
+
+      <div class="row">
+        <h2 class="text-center section-heading">{{ gettext("You deserve better reviews") }}</h2>
+        <div class="text-center">
+          <img src="{{ url_for('static', filename='img/opinew_logo.png') }}" class="img-responsive marketing-logo"
+               alt="{{ gettext('Opinew reviews logo') }}"/>
+          <p class="lead">{{ gettext("Check out our customers already benefiting from high-quality reviews") }}</p>
+        </div>
+        <div class="row">
+          <div class="col-md-4">
+            <a target="_blank" href="http://www.fatburnextreme.com/product-category/training-events/#opinew-plugin">
+              <img src="{{ url_for('static', filename='img/marketing/fatburn.jpg') }}" class="img-responsive"
+                   alt="{{ gettext('Opinew reviews plugin on Fatburn Extreme website') }}"/>
+            </a>
+          </div>
+          <div class="col-md-4">
+            <a target="_blank" href="https://www.opinew.com/product/625">
+              <img src="{{ url_for('static', filename='img/marketing/bk.jpg') }}" class="img-responsive"
+                   alt="{{ gettext('Opinew reviews plugin on Beauty Kitchen website') }}"/>
+            </a>
+          </div>
+          <div class="col-md-4">
+            <a target="_blank"
+               href="https://www.ragefistmafia.com/products/fight-me-ragefist-mafia-3-4-sleeve-red-white-shirt-mens?variant=15409789187#opinew-plugin">
+              <img src="{{ url_for('static', filename='img/marketing/ragefist.jpg') }}" class="img-responsive"
+                   alt="{{ gettext('Opinew reviews plugin on Ragefist mafia website') }}"/>
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+      <!-- /.container -->
+
+    </div>
+    <!-- /.content-section-b -->
+  </div>
 
 
-        <img class="img-responsive" src="https://opinew.com/static/img/opinew_logo.png"
-             style="display: block;margin-left: auto;margin-right: auto ">
-        <h1 align="center">Take your company's reviews to the next level.</h1>
+  <a name="about-us"></a>
+  <div class="content-section-a">
 
+    <div class="container">
+      <div class="row">
+        <h2 class="text-center">{{ gettext('Are you ready to get more sales?') }}
+          <a class="btn btn-lg btn-primary"
+             href="/register?shop_owner=1">{{ gettext('Use the best reviews on the planet!') }}</a>
+        </h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- /.container -->
+  <div class="content-section-b">
+
+    <div class="container">
+
+      <div class="row">
+        <h2 class="text-center section-heading">{{ gettext("Who we are") }}</h2>
+        <div class="col-lg-5 col-lg-offset-1 col-sm-push-6  col-sm-6">
+          <img alt="Daniel photo" class="about-us-picture img-circle"
+               src="{{ url_for('static', filename='img/marketing/dani.jpg') }}"/>
+
+          <p class="text-center lead">{{ gettext("Daniel Tsvetkov") }}
+
+          <p>{{ gettext("Daniel spent the summer of 2014 as a tech intern at Google, at the heart of
+                    the Silicon Valley in Mountain View where he caught the entrepreneurial spirit of the Valley so much
+                    he formed Opinew. Along with his passion for creating things, Daniel brings to Opinew his experience
+                    of the web and visualizations technologies to make it friendly for anyone, anywhere.") }}
+        </div>
+        <div class="col-lg-5 col-sm-pull-6  col-sm-6">
+          <img alt="Tomasz photo" class="about-us-picture img-circle"
+               src="{{ url_for('static', filename='img/marketing/tom.jpg') }}"/>
+
+          <p class="text-center lead">{{ gettext("Tomasz Sadowski") }}
+
+          <p>{{ gettext("Tomasz works with the Scottish Institute for Enterprise and has an extensive
+                    network of business contacts all around the world. His respect for the good software engineering
+                    practices gained at Verint and experience with Big Data is helping Opinew get in shape for the big
+                    days. Tomasz loves helping people find what they need which gives Opinew its guiding light.") }}
+        </div>
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-a -->
+
+  <a name="faq"></a>
+  <div class="content-section-a">
+
+    <div class="container">
+      <div class="row">
+        <h2 class="text-center"> {{ gettext('Help your customers discover you') }}
+          <a class="btn btn-lg btn-primary"
+             href="/register?shop_owner=1">{{ gettext('Use the best reviews on the planet!') }}</a>
+        </h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- /.container -->
+
+
+  <div class="content-section-b">
+
+    <div class="container">
+
+      <div class="row">
+        <h2 class="text-center section-heading">{{ gettext("Frequently Asked Questions") }}</h2>
+        {% include "marketing/faq.html" %}
+      </div>
+
+    </div>
+    <!-- /.container -->
+
+  </div>
+  <!-- /.content-section-b -->
+
+  <a name="pricing"></a>
+  <div class="content-section-a">
+
+    <div class="container">
+
+      <div class="row">
+        {% include "marketing/not_on_shopify.html" %}
 
       </div>
 
     </div>
-    <!--/row-->
+    <!-- /.container -->
 
-    <!--/container-->
-  </section>
+  </div>
+  <!-- /.content-section-a -->
+  <div class="content-section-b">
 
-  {% include "colors_bar.html" %}
-  <section id="section1" class="container-fluid small-section">
-    <div class="col-md-4">
-      <img src="/static/img/marketing/multimedia.jpg" class="img-responsive"/>
+    <div class="container">
+
+      <div class="row">
+        <h2 class="text-center section-heading">{{ gettext("Pricing") }}</h2>
+        {% include "pricing_plans/pricing_plans.html" %}
+      </div>
+
     </div>
-    <div class="col-md-6 col-md-offset-2">
-      <span class="glyphicon glyphicon-envelope glyphicon-5x" style="margin-right: 20px"></span>
-      <span class="glyphicon glyphicon-comment glyphicon-5x"></span>
+    <!-- /.container -->
 
-      <h2 align="center">Automation</h2>
-
-      <p class="marketing-feature-expl">Having too much on your head already?</br> We will send automated emails to the
-        buyers to prompt
-        them to leave a review and help others in their buying decisions.
-        We will take care of
-        profanity filters and suggesting which reviews
-        will help you and your customers the most.
-      </p>
-      <span class="glyphicon glyphicon-camera glyphicon-5x" style="margin-right: 20px"></span>
-      <span class="glyphicon glyphicon-facetime-video glyphicon-5x"></span>
-
-      <h2 align="center">Rich multimedia content</h2>
-
-      <p class="marketing-feature-expl">Bring extra credibility to your reviews with photos and videos.</br>
-        Over a billion of them are posted everyday on services like Snapchat, Pinterest and Instagram.</br>
-        Be part of the revolution - pictures and videos over dull text.</p>
-    </div>
-
-  </section>
-
-  <section id="section3" class="container-fluid small-section">
-    <div class="col-md-4">
-      <img src="/static/img/marketing/verified.jpg" class="img-responsive"/>
-    </div>
-
-    <div class="col-md-6 col-md-offset-2">
-      <span class="glyphicon glyphicon-shopping-cart glyphicon-5x"></span>
-
-      <h2>High quality reviews, higher sales</h2>
-
-      <p class="marketing-feature-expl">Get better reviews for your products, driving conversions and
-        increasing sales by up to 20 percent.</p>
-
-      <span class="glyphicon glyphicon-check glyphicon-5x"></span>
-
-      <h2>Verified reviews</h2>
-      <p class="marketing-feature-expl">Reviews left by people who purchased them are shown as "Verified Reviews". Our
-        picture-based approach from our app only tightens the process.</p>
-    </div>
-  </section>
-
-
-  <section id="section5" class="container-fluid small-section">
-    <div class="col-md-4">
-      <img src="/static/img/marketing/mobile.jpg" class="img-responsive"/>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-      <span class="glyphicon glyphicon-phone glyphicon-5x"></span>
-      <h2 align="center">Mobile first</h2>
-      <p class="marketing-feature-expl">We focus on making the reviewing process on those devices as simple as possible.
-      </p>
-      <br>
-      <span class="glyphicon glyphicon-thumbs-up glyphicon-5x"></span>
-      <h2 align="center">Works everywhere</h2>
-      <p class="marketing-feature-expl">Simple version works on ANY website, is feature-rich and looks great.</br>
-          Best can be installed on Shopify with Magento and others to come soon.
-      </p>
-    </div>
-  </section>
-
-  {% include "colors_bar.html" %}
-
-  <section class="container-fluid" id="pricing">
-    <h2 class="text-center">Summary and pricing</h2>
-    <div class="col-sm-12">
-      {% include "/pricing_plans/pricing_plans.html" %}
-      <!--/container-->
-    </div>
-  </section>
+  </div>
+  <!-- /.content-section-a -->
 {% endblock %}

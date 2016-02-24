@@ -63,5 +63,4 @@ User      : {current_user}
 
 class FlaskOpinewExt(Flask):
     def log_exception(self, exc_info):
-        """...description omitted..."""
         self.logger.error(error_string(), exc_info=exc_info)
