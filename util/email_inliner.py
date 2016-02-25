@@ -14,7 +14,8 @@ def inline_email(html_filename, css_filename="simple.css"):
     with open(os.path.join(basedir, 'email_templates_not_inlined', html_filename), mode='r') as html_file:
         html_doc = html_file.read().decode('utf-8')
         p = Premailer(html_doc, external_styles=css_styles_path,
-                      include_star_selectors=True)
+                      include_star_selectors=True,
+                      remove_classes=False)
         inlined_html = p.transform().encode('utf8')
 
     with open(os.path.join(basedir, 'webapp', 'templates', 'email', html_filename), mode='w') as html_file:

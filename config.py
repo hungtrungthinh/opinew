@@ -63,7 +63,9 @@ class Constants(object):
                                 "shop_marketing.html",
                                 "shop_marketing_opinew_simple.html",
                                 "new_reviewer_user.html",
-                                "new_shop_owner_user.html"]
+                                "new_shop_owner_user.html",
+                                "review_us.html",
+                                "card_details.html"]
 
     OPINEW_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
