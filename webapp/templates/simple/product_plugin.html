@@ -120,11 +120,49 @@
       background-color: #1c9298;
     }
 
+    .flash-container {
+      top: 50px;
+      z-index: 10;
+      width: 100%;
+    }
+
+    .alert-flash {
+      margin: 10px auto;
+      padding: 8px;
+      border-radius: 2px;
+      border: 1px solid;
+    }
+
+    /* Alerts */
+    .alert-error, .alert-danger {
+      background-color: #fb412d;
+      border-color: #e13a28;
+      color: #eee;
+    }
+
+    .alert-warning {
+      background-color: #fb8c2d;
+      border-color: #e17e28;
+      color: #eee;
+    }
+
+    .alert-primary, .alert-info, .alert-message {
+      background-color: #1c9298;
+      border-color: #198388;
+      color: #eee;
+    }
+
+    .alert-success {
+      background-color: #22be44;
+      border-color: #1eab3d;
+      color: #eee;
+    }
+
     textarea {
+      font-family: 'Helvetica', sans-serif;
       box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14);
       width: 100%;
       height: 100px;
-      font-family: 'Lora', serif;
       margin: 16px auto;
       line-height: 1.6;
       font-size: 18px;
@@ -240,9 +278,9 @@
     }
 
     input {
+      font-family: 'Helvetica', sans-serif;
       box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14);
       padding: 8px;
-      font-family: 'Lora', serif;
       line-height: 1.6;
       border-radius: 2px;
       resize: none;
@@ -269,7 +307,7 @@
       box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14);
       width: 100%;
       height: 100px;
-      font-family: 'Lora', serif;
+      font-family: 'Helvetica', sans-serif;
       margin: 16px auto;
       line-height: 1.6;
       font-size: 18px;
@@ -288,7 +326,7 @@
 
     button, .btn {
       box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
-      font-family: sans-serif;
+      font-family: 'Helvetica', sans-serif;
       cursor: pointer;
       display: inline-block;
       padding: 8px 16px;
@@ -385,19 +423,6 @@
       margin-left: -38px;
       width: 19px;
       overflow: hidden;
-    }
-
-    .review-help {
-      display: inline-block;
-      float: right;
-      cursor: pointer;
-      border-radius: 50%;
-      border: 1px solid #888;
-      width: 24px;
-      height: 24px;
-      text-align: center;
-      color: #888;
-      font-size: 16px;
     }
 
     .btn-interaction {
@@ -550,6 +575,15 @@
       width: 32px;
     }
 
+    .sprite-opinew-logo {
+      background-position: 0px 32px;
+      position: fixed;
+      bottom: 8px;
+      right: 32px;
+      width: 96px;
+      height: 32px;
+    }
+
     .review-image-container {
       position: relative;
       overflow: hidden;
@@ -627,9 +661,10 @@
   </div>
 {% endif %}
 
-{% include "simple_add_review_partial.html" %}
+{% include "simple/partials/review/create.html" %}
 
-<form method="post" action="{{ url_for('client.search_review') }}" id="search-form">
+<form method="get" action="{{ url_for('client.route_product_review_search', product_id=product.id) }}"
+      id="search-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   <button type="submit" class="btn-input-right" id="search-form-submit">Search</button>
   <div class="input-wrapper">
@@ -644,13 +679,14 @@
   {% for obj in product_objs.objs_list %}
     {% if obj.obj_type == 'review' %}
       {% set review = obj %}
-      {% include "simple_review.html" %}
+      {% include "simple/partials/review.html" %}
     {% elif obj.obj_type == 'question' %}
       {% set question = obj %}
     {% endif %}
   {% endfor %}
 </div>
 
+<a href="https://www.opinew.com/" target="_blank" class="sprite sprite-opinew-logo"></a>
 <button class="fab" id="fab-button" hidden>
   <span class="fab-text">+</span>
 </button>
@@ -658,6 +694,7 @@
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 <script>
+  var SEARCH_DELAY = 600;
   var csrftoken = $('meta[name=csrf-token]').attr('content');
 
   $.ajaxSetup({
@@ -667,6 +704,14 @@
       }
     }
   });
+
+  function renderMessageTemplate(message, category) {
+    return "<div class=\"alert alert-flash alert-" + category + "\">" + message + "</div>"
+  }
+
+  function flashMessage(message, category) {
+    $('#flashed-messages').append(renderMessageTemplate(message, category));
+  }
 
   // Bind the FAB to add a review
   $('#fab-button').bind('click', function () {
@@ -689,7 +734,6 @@
     }
     $(this).find('.review-short').toggle();
     $(this).find('.review-full').toggle();
-    $(this).find('.review-details').hide();
   }
 
   function reviewHoverShow() {
@@ -698,26 +742,16 @@
 
   function reviewHoverHide() {
     $(this).find('.star-rating').removeClass('star-full-active');
-    $(this).find('.review-details').hide();
   }
 
   // hover over a review
   $('.review-container').hover(reviewHoverShow, reviewHoverHide).click(reviewToggle);
 
-  // review details
-  $('.review-help').click(function (e) {
-    e.preventDefault();
-    var reviewId = $(this).data('review-id');
-    $('#review-details-' + reviewId).slideToggle(200);
-    return false;
-  });
-
   function search(query) {
     $('#objects').hide();
     $('#search-objects').show().html("<img src='{{ url_for('static', filename='img/ajax-loader.gif') }}' />");
     $.ajax({
-      url: "{{ url_for('client.search_review') }}",
-      method: 'post',
+      url: "{{ url_for('client.route_product_review_search', product_id=product.id) }}",
       data: {
         'query': query,
         'product_id': {{ product.id }},
@@ -726,16 +760,22 @@
     }).done(function (r) {
       $('#search-objects').html(r);
     }).fail(function (r) {
-      var error = r.responseJSON.error;
+      var error = (r.responseJSON && r.responseJSON.error) || 'Uknown error';
       flashMessage(error, 'error');
     });
   }
 
   // override search form
+  var searchTimer = 0;
   $('#search-form-query').on('input', function () {
     var query = $(this).val();
     if (query) {
-      search(query);
+      if (searchTimer) {
+        clearTimeout(searchTimer);
+      }
+      searchTimer = setTimeout(function () {
+        search(query)
+      }, SEARCH_DELAY);
     } else {
       $('#objects').show();
       $('#search-objects').hide()

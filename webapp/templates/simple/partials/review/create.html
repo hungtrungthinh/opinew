@@ -1,8 +1,21 @@
 <div class="container" id="add-review">
+  <div class="pull-right">
+    {% if current_user.is_authenticated() %}
+      <div class="review-author">
+      <span class="person-img sprite sprite-mystery-man"
+            data-gravatar-url="{{ current_user.image_url }}"></span>
+        <p class="person-name">
+          {{ current_user.name }}<br>
+          <a href="/logout">Log out</a>
+        </p>
+      </div>
+    {% else %}
+      <a href="/login">Log in</a> | <a href="/register">Register</a>
+    {% endif %}
+  </div>
   <p>What is your experience with <strong>{{ product.name }}</strong>?</p>
-  <form action="{{ url_for('client.add_review') }}" method="post">
+  <form action="{{ url_for('client.route_product_review_create', product_id=product.id) }}" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="product_id" value="{{ product.id }}">
 
     <fieldset class="rating">
       <input type="radio" id="star5" name="star_rating" value="5" class="form-serialize"
@@ -42,7 +55,8 @@
 
       <input type="hidden" name="image_url"/>
       <input type="file" name="image" id="review-image" class="inputfile"/>
-      <label for="review-image" class="btn btn-default">Add a photo <span class="sprite sprite-add-photo"></span></label>
+      <label for="review-image" class="btn btn-default">Add a photo <span
+          class="sprite sprite-add-photo"></span></label>
 
       {% if not current_user.is_authenticated() %}
         <div class="g-recaptcha" data-sitekey="6LdafxETAAAAABCLBbhvuRX-qhgJH8SJOCOPf5-C"></div>

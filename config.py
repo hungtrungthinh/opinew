@@ -172,6 +172,8 @@ class Constants(object):
     NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON = 'pencil'
     NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR = COLOR_OPINEW_AQUA
 
+    RATELIMIT_CREATE_OBJECTS = "2 per minute,5 per hour"
+
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),
@@ -282,6 +284,7 @@ class ConfigTest(Config):
     CELERY_CACHE_BACKEND = 'memory'
 
     RESIZE_NOOP = True
+    RATELIMIT_ENABLED = False
 
 
 class ConfigDev(Config):
@@ -292,6 +295,8 @@ class ConfigDev(Config):
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
     HOST = '0.0.0.0'
     RESIZE_URL = 'http://localhost:5000/media'
+    RATELIMIT_ENABLED = False
+
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION
@@ -302,6 +307,7 @@ class ConfigProd(Config):
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
     SERVER_NAME = 'www.opinew.com'
     RESIZE_URL = 'https://www.opinew.com/media'
+    RATELIMIT_GLOBAL = "500 per day,100 per hour,20 per minute"
 
 
 config_factory = {

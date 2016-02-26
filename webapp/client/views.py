@@ -5,11 +5,11 @@ import os
 import httplib
 from functools import wraps
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, jsonify, send_file, Response
+    current_app, make_response, abort, jsonify, send_file, Response, session
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import API
-from webapp import db, review_images
+from webapp import db, review_images, limiter
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
@@ -32,6 +32,7 @@ def verify_requirements(*redirect_url_for):
     :param f:
     :return:
     """
+
     def outer_wrapper(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -50,9 +51,9 @@ def verify_requirements(*redirect_url_for):
 
             # decide which exceptions to catch
             if current_app.debug:
-                exception_list = (RequirementException, )
+                exception_list = (RequirementException, AssertionError)
             else:
-                exception_list = (Exception, )
+                exception_list = (Exception, AssertionError)
             try:
                 return f(*args, **kwargs)
             except exception_list as e:
@@ -75,11 +76,14 @@ def verify_requirements(*redirect_url_for):
                 return redirect(referer_redirect or
                                 ctx_redirect or
                                 url_for('client.index'))
+
         return wrapper
+
     return outer_wrapper
 
 
-def verify_required_condition(condition, error_msg, error_code=httplib.BAD_REQUEST, error_category=Constants.ALERT_ERROR_LABEL):
+def verify_required_condition(condition, error_msg, error_code=httplib.BAD_REQUEST,
+                              error_category=Constants.ALERT_ERROR_LABEL):
     """
     Makes sure that the required condition is truthy. Otherwise raises a response error which is either
     jsonified response (if the resource has been required async) or flashing.
@@ -115,9 +119,9 @@ def get_required_model_instance_by_id(model, instance_id):
     """
     obj = model.query.filter_by(id=instance_id).first()
     verify_required_condition(condition=obj is not None,
-                           error_msg=ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance=model.__name__,
-                                                                                  id=instance_id),
-                           error_code=httplib.BAD_REQUEST)
+                              error_msg=ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance=model.__name__,
+                                                                                     id=instance_id),
+                              error_code=httplib.BAD_REQUEST)
     return obj
 
 
@@ -280,35 +284,35 @@ def shopify_plugin_callback():
     # set new next action
     now = datetime.datetime.utcnow()
     im1 = NextAction(
-        shop=shop,
-        timestamp=now,
-        identifier=Constants.NEXT_ACTION_ID_SETUP_YOUR_SHOP,
-        title=strings.NEXT_ACTION_SETUP_YOUR_SHOP,
-        url=url_for('client.setup_plugin', shop_id=shop.id),
-        icon=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON,
-        icon_bg_color=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR
+            shop=shop,
+            timestamp=now,
+            identifier=Constants.NEXT_ACTION_ID_SETUP_YOUR_SHOP,
+            title=strings.NEXT_ACTION_SETUP_YOUR_SHOP,
+            url=url_for('client.setup_plugin', shop_id=shop.id),
+            icon=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON,
+            icon_bg_color=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR
     )
     db.session.add(im1)
 
     im2 = NextAction(
-        timestamp=now,
-        shop=shop,
-        identifier=Constants.NEXT_ACTION_ID_SETUP_BILLING,
-        title=strings.NEXT_ACTION_SETUP_BILLING,
-        url="javascript:showTab('#account');",
-        icon=Constants.NEXT_ACTION_SETUP_BILLING_ICON,
-        icon_bg_color=Constants.NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR
+            timestamp=now,
+            shop=shop,
+            identifier=Constants.NEXT_ACTION_ID_SETUP_BILLING,
+            title=strings.NEXT_ACTION_SETUP_BILLING,
+            url="javascript:showTab('#account');",
+            icon=Constants.NEXT_ACTION_SETUP_BILLING_ICON,
+            icon_bg_color=Constants.NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR
     )
     db.session.add(im2)
 
     im3 = NextAction(
-        timestamp=now,
-        shop=shop,
-        identifier=Constants.NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD,
-        title=strings.NEXT_ACTION_CHANGE_YOUR_PASSWORD,
-        url=url_for('security.change_password'),
-        icon=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON,
-        icon_bg_color=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR
+            timestamp=now,
+            shop=shop,
+            identifier=Constants.NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD,
+            title=strings.NEXT_ACTION_CHANGE_YOUR_PASSWORD,
+            url=url_for('security.change_password'),
+            icon=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON,
+            icon_bg_color=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR
     )
     db.session.add(im3)
 
@@ -681,7 +685,7 @@ def get_plugin_stars():
                 not shop.owner.customer[0].last4:
             return '', 404
         all_reviews = Review.query.filter_by(product_id=product.id, deleted=False).order_by(
-            Review.created_ts.desc()).all()
+                Review.created_ts.desc()).all()
         stars_list = [r.star_rating for r in all_reviews if r.star_rating]
         average_stars = sum(stars_list) / len(stars_list) if len(stars_list) else 0
     except (ParamException, DbException, AssertionError, AttributeError) as e:
@@ -831,7 +835,7 @@ def delete_review(review_id):
     db.session.add(review)
     db.session.commit()
     return redirect(
-        request.referrer or url_for('client.get_product', product_id=review.product_id) or url_for('client.index'))
+            request.referrer or url_for('client.get_product', product_id=review.product_id) or url_for('client.index'))
 
 
 @client.route('/reviews', defaults={'review_id': 0})
@@ -1112,20 +1116,105 @@ def unsubscribe():
     return "%s has been successfully unsubscribed." % email
 
 
-@client.route('/review-like', defaults={'review_id': None})
-@client.route('/review-like/<review_id>')
-@login_required
-def add_review_like(review_id):
-    review = Review.query.filter_by(id=review_id).first()
-    if not review:
-        return jsonify({
-            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id)
-        }), httplib.BAD_REQUEST
-    review_like = ReviewLike.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+@client.route('/ref')
+@verify_requirements
+def add_referer():
+    # Verify required objects
+    url = get_required_parameter(request.form, 'url')
+    q = get_required_parameter(request.form, 'q')
+
+    # Create UrlReferrer object
+    now = datetime.datetime.utcnow()
+    ref = UrlReferer(url=url, q=q, timestamp=now)
+    if current_user.is_authenticated():
+        ref.user = current_user
+    db.session.add(ref)
+    db.session.commit()
+    if url.startswith('http://') or url.startswith('https://'):
+        return redirect(url)
+    return redirect('http://' + url)
+
+
+#######################
+# OPINEW API DEFINITION
+#######################
+# GET  /resources                               -> get all resources
+# GET  /resources/<id>                          -> get resource by id
+# GET  /resources/<id>/act                      -> execute idempotent action on single resource (e.g. search)
+# POST /resources/<id>/act                      -> execute action on single resource (e.g. create, like)
+
+# GET  /resources/<id>/sub_resources            -> get sub_resources for resource_id
+# GET  /resources/<id>/sub_resources/act        -> execute idempotent action on single sub_resource of resource
+# POST /resources/<id>/sub_resources/act        -> execute action on single sub_resource of resource
+
+def get_or_create_user():
+    """
+    Gets the currently saved user - either anonymous or authenticated.
+    If no user is authenticated, create one with the next id and store
+    it in the session.
+    :return:
+    """
+    if current_user and current_user.is_authenticated():
+        return current_user
+    # validate that the session cookie is sent - this protects against
+    # empty session attacks
+    assert not session.new
+    # try to get the user_id from the session
+    user_id = session.get('anonymous_user_id')
+    if user_id:
+        user = User.query.filter_by(id=int(user_id)).first()
+        if user:
+            return user
+    user = User()
+    db.session.add(user)
+    db.session.commit()
+    session['anonymous_user_id'] = user.id
+    return user
+
+
+@client.route('/blank_not_found')
+def route_blank_not_found():
+    return '', 404
+
+@client.route('/no_redirect')
+def no_redirect():
+    return render_template("no_redirect.html")
+
+
+@client.route('/simple')
+def route_simple_index():
+    review = Review.query.first()
+    return render_template('simple_index.html', review=review)
+
+
+@client.route('/plugins/product')
+@verify_requirements('client.blank_not_found')
+def route_plugin_product():
+    get_by = get_required_parameter(request.args, 'get_by')
+    if get_by == 'url':
+        shop_id = get_required_parameter(request.args, 'shop_id')
+        product_url = get_required_parameter(request.args, 'product_url')
+        product = Product.find_product_by_url(product_url, shop_id)
+    elif get_by == 'platform_id':
+        platform_product_id = param_required('platform_product_id', request.args)
+        product = Product.query.filter_by( platform_product_id=platform_product_id).first()
+    product_objs = rank_objects_for_product(product.id)
+    return render_template('simple/product_plugin.html',
+                           product=product,
+                           product_objs=product_objs)
+
+
+@client.route('/reviews/<int:review_id>/like', methods=['POST'])
+@verify_requirements('client.reviews')
+def route_review_like(review_id):
+    review = get_required_model_instance_by_id(Review, review_id)
+    user = get_or_create_user()
+    # verify that this user hasn't liked it before
+    review_like = ReviewLike.query.filter_by(review_id=review_id, user_id=user.id).first()
     if not review_like:
         now = datetime.datetime.utcnow()
         new_action = True
-        review_like = ReviewLike(review_id=review_id, user_id=current_user.id, timestamp=now)
+        review_like = ReviewLike(review_id=review_id, user_id=user.id, timestamp=now)
         db.session.add(review_like)
     else:
         new_action = False
@@ -1139,10 +1228,8 @@ def add_review_like(review_id):
     return redirect(request.referrer or url_for('client.reviews'))
 
 
-@client.route('/review-report', defaults={'review_id': None})
-@client.route('/review-report/<review_id>')
-@login_required
-def add_review_report(review_id):
+@client.route('/reviews/<int:review_id>/report', methods=['POST'])
+def route_review_report(review_id):
     review = Review.query.filter_by(id=review_id).first()
     if not review:
         return jsonify({
@@ -1166,11 +1253,9 @@ def add_review_report(review_id):
     return redirect(request.referrer or url_for('client.reviews'))
 
 
-@client.route('/review-feature', defaults={'review_id': None})
-@client.route('/review-feature/<review_id>')
+@client.route('/reviews/<int:review_id>/feature', methods=['POST'])
 @roles_required(Constants.SHOP_OWNER_ROLE)
-@login_required
-def add_review_feature(review_id):
+def route_review_feature(review_id):
     review = Review.query.filter_by(id=review_id).first()
     if not review:
         return jsonify({
@@ -1205,10 +1290,9 @@ def add_review_feature(review_id):
 
 # TODO: From below - refactored with new quick verification functions (see top of file). Refactor the ones above too.
 
-@client.route('/review-share', defaults={'review_id': None})
-@client.route('/review-share/<review_id>')
+@client.route('/reviews/<int:review_id>/share', methods=['POST'])
 @verify_requirements('client.reviews')
-def add_review_share(review_id):
+def route_review_share(review_id):
     # Verify required objects
     review = get_required_model_instance_by_id(Review, review_id)
 
@@ -1223,29 +1307,10 @@ def add_review_share(review_id):
     return generate_success_response_from_obj(obj=review_share, obj_name='Review Share')
 
 
-@client.route('/ref')
-@verify_requirements
-def add_referer():
-    # Verify required objects
-    url = get_required_parameter(request.form, 'url')
-    q = get_required_parameter(request.form, 'q')
-
-    # Create UrlReferrer object
-    now = datetime.datetime.utcnow()
-    ref = UrlReferer(url=url, q=q, timestamp=now)
-    if current_user.is_authenticated():
-        ref.user = current_user
-    db.session.add(ref)
-    db.session.commit()
-    if url.startswith('http://') or url.startswith('https://'):
-        return redirect(url)
-    return redirect('http://' + url)
-
-
-@client.route('/comments/create', methods=['POST'])
+@client.route('/reviews/<int:review_id>/comments/create', methods=['POST'])
 @verify_requirements('client.reviews')
 @login_required
-def create_comment():
+def route_review_comment_create(review_id):
     # Verify required objects
     review_id = get_required_parameter(request.form, 'review_id')
     body = get_required_parameter(request.form, 'body')
@@ -1262,10 +1327,10 @@ def create_comment():
     return generate_success_response_from_obj(obj=comment, obj_name='comment')
 
 
-@client.route('/questions/create', methods=['POST'])
+@client.route('/products/<int:product_id>/questions/create', methods=['POST'])
 @verify_requirements('client.reviews')
 @login_required
-def create_question():
+def route_product_question_create(product_id):
     # Verify required objects
     product_id = get_required_parameter(request.form, 'product_id')
     body = get_required_parameter(request.form, 'body')
@@ -1282,10 +1347,10 @@ def create_question():
     return generate_success_response_from_obj(obj=question, obj_name='question')
 
 
-@client.route('/answers/create', methods=['POST'])
+@client.route('/questions/<int:question_id>/answers/create', methods=['POST'])
 @verify_requirements('client.reviews')
 @login_required
-def create_answer():
+def route_question_answer_create(question_id):
     # Verify required objects
     question_id = get_required_parameter(request.form, 'question_id')
     body = get_required_parameter(request.form, 'body')
@@ -1302,79 +1367,31 @@ def create_answer():
     return generate_success_response_from_obj(obj=answer, obj_name='answer')
 
 
-@client.route('/simple')
-def simple_index():
-    review = Review.query.first()
-    return render_template('simple_index.html', review=review)
-
-
-@client.route('/simple-add-review')
-def simple_add_review():
-    return render_template('simple_add_review.html')
-
-
-@client.route('/shopify_manual_verification')
-@login_required
-def shopify_manual_verification():
-    # TODO: update next_action
-    return redirect(url_for('client.shop_dashboard'))
-
-
-@client.route('/404')
-def not_found():
-    return ''
-
-
-@client.route('/simple-plugin')
-@verify_requirements('client.not_found')
-def simple_plugin():
-    shop_id = get_required_parameter(request.args, 'shop_id')
-    get_by = get_required_parameter(request.args, 'get_by')
-    if get_by == 'url':
-        product_url = get_required_parameter(request.args, 'product_url')
-        product = Product.find_product_by_url(product_url, shop_id)
-    elif get_by == 'platform_id':
-        platform_product_id = param_required('platform_product_id', request.args)
-        product = Product.query.filter_by(shop_id=shop_id, platform_product_id=platform_product_id).first()
-    product_objs = rank_objects_for_product(product.id)
-    return render_template('simple_plugin.html',
-                           product=product,
-                           product_objs=product_objs)
-
-
-from sqlalchemy_searchable import search
-
-
-@client.route('/review/search', methods=['POST'])
+@client.route('/products/<int:product_id>/reviews/search')
 @verify_requirements('client.reviews')
-def search_review():
-    query = get_required_parameter(request.form, 'query')
-    product_id = get_required_parameter(request.form, 'product_id')
+def route_product_review_search(product_id):
+    query = get_required_parameter(request.args, 'query')
     async = request.form.get('async')
     reviews = Review.query.whoosh_search(query).filter_by(product_id=product_id).all()
     if async:
-        return render_template('search_results_partial.html', reviews=reviews, query=query)
-    return render_template('search_results_partial.html',
+        return render_template('simple/partials/search/results.html',
+                               product_id=product_id,
+                               reviews=reviews,
+                               query=query)
+    return render_template('simple/partials/search/results.html',
+                           product_id=product_id,
                            reviews=reviews,
                            query=query)
 
 
-@client.route('/review/create', methods=['GET', 'POST'])
+@client.route('/products/<int:product_id>/reviews/create', methods=['POST'])
 @verify_requirements('client.reviews')
-def create_review():
-    if request.method == 'get':
-        # It's a get
-        product_id = get_required_parameter(request.args, 'product_id')
-        product = get_required_model_instance_by_id(Product, product_id)
-        password_req = request.args.get('password_req')
-        return render_template('simple_add_review.html', product=product, password_req=password_req)
-
-    # Okay, it's a post
+@limiter.limit(Constants.RATELIMIT_CREATE_OBJECTS)
+def route_product_review_create(product_id):
     g_recaptcha_required = False
     verified_review = False
 
     # Verify required objects
-    product_id = get_required_parameter(request.form, 'product_id')
     product = get_required_model_instance_by_id(Product, product_id)
 
     # Get user
@@ -1410,11 +1427,11 @@ def create_review():
         # verify recaptcha
         recaptcha = get_required_parameter(request.form, 'g-recaptcha-response')
         r = requests.post(current_app.config.get("RECAPTCHA_URL"),
-                      data={
-                          'secret': current_app.config.get("RECAPTCHA_SECRET"),
-                          'response': recaptcha,
-                          'remoteip': request.remote_addr
-                      })
+                          data={
+                              'secret': current_app.config.get("RECAPTCHA_SECRET"),
+                              'response': recaptcha,
+                              'remoteip': request.remote_addr
+                          })
         verify_required_condition(condition=r and r.status_code == 200 and r.json() and r.json().get('success'),
                                   error_msg=ExceptionMessages.CAPTCHA_FAIL,
                                   error_code=httplib.UNAUTHORIZED)
@@ -1424,8 +1441,8 @@ def create_review():
     # TODO: push the body of the review through a pipeline for general verification - swear words, etc.
 
     star_rating = request.form.get('star_rating')
-    if star_rating:
-        verify_required_condition(condition=star_rating in range(1,6),
+    if star_rating and star_rating.isdigit():
+        verify_required_condition(condition=int(star_rating) in range(1, 6),
                                   error_msg=ExceptionMessages.STAR_RATING_BETWEEN_1_5)
 
     # save image - either from the ready form image_url field or from the field file...
@@ -1457,6 +1474,12 @@ def create_review():
     return generate_success_response_from_obj(obj=review, obj_name='review')
 
 
-@client.route('/review/<int:review_id>/details')
-def review_details(review_id):
-    return 'None'
+@client.route('/reviews/<int:review_id>')
+@verify_requirements('client.reviews')
+def route_review(review_id):
+    review = get_required_model_instance_by_id(Review, review_id)
+    return render_template('shop_admin/view_review.html',
+                           review=review,
+                           page_title='Review by %s about %s' % (review.user_name, review.product.name),
+                           page_description=review.body,
+                           page_image=review.image_url)

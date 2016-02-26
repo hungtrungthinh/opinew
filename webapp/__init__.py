@@ -1,6 +1,6 @@
 import logging
 from flaskopinewext import FlaskOpinewExt
-from flask import g, request, redirect, flash, session
+from flask import g, request, redirect, flash, session, render_template
 from flask_admin import Admin, BaseView
 from flask_wtf.csrf import CsrfProtect
 from flask.ext.admin import AdminIndexView, expose
@@ -12,6 +12,7 @@ from flask.ext.uploads import IMAGES, UploadSet, configure_uploads, patch_reques
 from flask.ext.gravatar import Gravatar
 from flask.ext.babel import Babel
 from flask.ext.assets import Environment, Bundle
+from flask.ext.limiter import Limiter
 from flask_resize import Resize
 from flask_mail import Mail
 from flask_whooshalchemyplus import index_all
@@ -55,6 +56,7 @@ csrf = CsrfProtect()
 db = SQLAlchemy()
 babel = Babel()
 migrate = Migrate()
+limiter = Limiter()
 
 mail = Mail()
 admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
@@ -98,6 +100,7 @@ def create_app(option):
     mail.init_app(app)
     migrate.init_app(app, db)
     babel.init_app(app)
+    limiter.init_app(app)
     from models import User, Role, Review
     from webapp.forms import ExtendedRegisterForm
     import flask.ext.whooshalchemy as whooshalchemy
@@ -150,13 +153,23 @@ def create_app(option):
             return response_class
 
     # register here CSRF so that the before_request is executed after the hack above
+    @app.errorhandler(400)
+    def bad_request(e):
+        flash(e.name + ': ' + e.description, 'error')
+        if request.referrer and not request.referrer == request.path:
+            return redirect(request.referrer)
+        return render_template('no_redirect.html')
+
+    # register here CSRF so that the before_request is executed after the hack above
+    @app.errorhandler(429)
+    def rate_exceeded(e):
+        flash(e.name + ': limit is ' + e.description, 'warning')
+        if request.referrer and not request.referrer == request.path:
+            return redirect(request.referrer)
+        return render_template('no_redirect.html')
+
     csrf.init_app(app)
     patch_request_class(app, Constants.MAX_FILE_SIZE)
-
-    from webapp.common import make_json_error
-
-    for code in default_exceptions.iterkeys():
-        app.error_handler_spec[None][code] = make_json_error
 
     configure_uploads(app, (user_images, review_images, shop_images, ))
     admins = [email for name, email in config.ADMINS]

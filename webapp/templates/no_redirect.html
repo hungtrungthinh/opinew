@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Opinew - Sorry!</title>
+  <style>
+    body {
+      font-family: 'Helvetica', sans-serif;
+      margin: 32px auto;
+      max-width: 768px;
+      line-height: 1.6;
+      font-size: 16px;
+      color: #444;
+      background-color: #EEE;
+      padding: 0 10px;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.2
+    }
+
+    a, a:visited {
+      color: #1c9298;
+    }
+
+    .flash-container {
+      top: 50px;
+      z-index: 10;
+      width: 100%;
+    }
+
+    .alert-flash {
+      margin: 10px auto;
+      padding: 8px;
+      border-radius: 2px;
+      border: 1px solid;
+    }
+
+    /* Alerts */
+    .alert-error, .alert-danger {
+      background-color: #fb412d;
+      border-color: #e13a28;
+      color: #eee;
+    }
+
+    .alert-warning {
+      background-color: #fb8c2d;
+      border-color: #e17e28;
+      color: #eee;
+    }
+
+    .alert-primary, .alert-info, .alert-message {
+      background-color: #1c9298;
+      border-color: #198388;
+      color: #eee;
+    }
+
+    .alert-success {
+      background-color: #22be44;
+      border-color: #1eab3d;
+      color: #eee;
+    }
+  </style>
+</head>
+<body>
+<h1>Sorry, we hit something unexpected!</h1>
+<p>Maybe you could try to go to <a href="/">Opinew main page</a>?</p>
+<p>If you see this too often <a href="mailto:team@opinew.com">let us know</a>.</p>
+<p>Here is some description of the errors we encountered:</p>
+{% include "snippets/flashed_messages.html" %}
+</body>
+</html>

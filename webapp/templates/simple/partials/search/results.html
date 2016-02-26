@@ -1,0 +1,5 @@
+<h2>{{ reviews|length }} results for "{{ query }}"</h2>
+{% for review in reviews %}
+  {% include "simple/partials/review.html" %}
+{% endfor %}
+{% include "simple/partials/question/create.html" %}

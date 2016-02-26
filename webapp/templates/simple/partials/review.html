@@ -26,7 +26,8 @@
   </blockquote>
   {% if review.youtube_video %}
     <div class="review-youtube-container">
-      <iframe class="review-youtube" src="{{ review.youtube_video|embded_youtube }}" frameborder="0" allowfullscreen></iframe>
+      <iframe class="review-youtube" src="{{ review.youtube_video|embded_youtube }}" frameborder="0"
+              allowfullscreen></iframe>
     </div>
   {% elif review.image_url %}
     <div class="review-image-container">
@@ -46,7 +47,6 @@
         <span>by shop owner</span>
       {% endif %}
     </p>
-
   </div>
   <span itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
     <meta itemprop="name" content="Opinew">
@@ -54,53 +54,31 @@
   <div class="clearfix"></div>
   <div class="review-interactions">
     <hr>
-    <form method="post" action="{{ url_for('client.add_review_share', review_id=review.id) }}"
+    <form method="post" action="{{ url_for('client.route_review_share', review_id=review.id) }}"
           class="form-interaction">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" title="Share" class="btn-interaction btn-share">
         <span class="sprite sprite-share"></span>
         <span>{{ review.shares|length }}</span>
       </button>
     </form>
-
-    <form method="post" action="{{ url_for('client.add_review_like', review_id=review.id) }}"
+    <form method="post" action="{{ url_for('client.route_review_like', review_id=review.id) }}"
           class="form-interaction">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" title="Helpful"
               class="btn-interaction btn-like {% if review.is_liked_by_current_user %}success{% endif %}">
         <span class="sprite sprite-thumb-up"></span>
         <span>{{ review.likes|length }}</span>
       </button>
     </form>
-
-    <form method="post" action="{{ url_for('client.add_review_report', review_id=review.id) }}"
+    <form method="post" action="{{ url_for('client.route_review_report', review_id=review.id) }}"
           class="form-interaction">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" title="Report"
               class="btn-interaction btn-report {% if review.is_reported_by_current_user %}danger{% endif %}">
         <span class="sprite sprite-flag"></span>
         <span>{{ review.likes|length }}</span>
       </button>
     </form>
-
-    <a href="{{ url_for('client.review_details', review_id=review.id) }}" class="review-help"
-       data-review-id="{{ review.id }}">?</a>
-  </div>
-  <div class="review-details" id="review-details-{{ review.id }}" hidden>
-    <p><strong>Rank score: </strong> {{ review.rank_score }}</p>
-    <p>This review is ranked at this position because of the following factors:</p>
-    <p>Factors about the user who posted the review:</p>
-    <ul>
-      <li># reviews by this user: {{ review.user.reviews|length }}</li>
-      <li># reviews likes received to this user: {{ review.user.review_likes|length }}</li>
-    </ul>
-    <p>This review:</p>
-    <ul>
-      <li># days since post: {{ review.days_since }}</li>
-      <li># likes: {{ review.likes|length }}</li>
-      <li># reports: {{ review.reports|length }}</li>
-      <li># shares: {{ review.shares|length }}</li>
-      <li># comments: {{ review.comments|length }}</li>
-      <li>Is verified: {{ 'Yes' if review.verified_review else 'No' }}</li>
-      <li>Has image: {{ 'Yes' if review.image_url else 'No' }}</li>
-      <li>Has youtube video: {{ 'Yes' if review.youtube_video else 'No' }}</li>
-    </ul>
   </div>
 </div>

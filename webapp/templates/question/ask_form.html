@@ -3,7 +3,7 @@
     <img class="img-circle author-image" src="{{ current_user.image_url }}"
          alt="{{ current_user.name }} profile image"/>
     <form method="post" action="/questions/create">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="product_id" value="{{ product.id }}">
       <div class="input-group">
         <input class="form-control ask-form-body" name="body" placeholder="What would you like to know?"/>
