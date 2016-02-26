@@ -1,5 +1,6 @@
 from __future__ import division
 import datetime
+import requests
 import os
 import httplib
 from functools import wraps
@@ -8,11 +9,11 @@ from flask import request, redirect, url_for, render_template, flash, g, send_fr
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import API
-from webapp import db
+from webapp import db, review_images
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
-    ReviewFeature, UrlReferer, Comment, Answer
+    ReviewFeature, UrlReferer, Comment, Answer, NextAction
 from webapp.common import param_required, catch_exceptions, get_post_payload
 from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages, RequirementException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm
@@ -22,6 +23,7 @@ from webapp.strategies import rank_objects_for_product, get_scheduled_tasks, get
     get_analytics
 from messages import SuccessMessages
 from werkzeug.routing import BuildError
+from assets import strings
 
 
 def verify_requirements(*redirect_url_for):
@@ -274,6 +276,42 @@ def shopify_plugin_callback():
     db.session.add(task)
     db.session.commit()
 
+    # create next tasks
+    # set new next action
+    now = datetime.datetime.utcnow()
+    im1 = NextAction(
+        shop=shop,
+        timestamp=now,
+        identifier=Constants.NEXT_ACTION_ID_SETUP_YOUR_SHOP,
+        title=strings.NEXT_ACTION_SETUP_YOUR_SHOP,
+        url=url_for('client.setup_plugin', shop_id=shop.id),
+        icon=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON,
+        icon_bg_color=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR
+    )
+    db.session.add(im1)
+
+    im2 = NextAction(
+        timestamp=now,
+        shop=shop,
+        identifier=Constants.NEXT_ACTION_ID_SETUP_BILLING,
+        title=strings.NEXT_ACTION_SETUP_BILLING,
+        url="javascript:showTab('#account');",
+        icon=Constants.NEXT_ACTION_SETUP_BILLING_ICON,
+        icon_bg_color=Constants.NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR
+    )
+    db.session.add(im2)
+
+    im3 = NextAction(
+        timestamp=now,
+        shop=shop,
+        identifier=Constants.NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD,
+        title=strings.NEXT_ACTION_CHANGE_YOUR_PASSWORD,
+        url=url_for('security.change_password'),
+        icon=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON,
+        icon_bg_color=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR
+    )
+    db.session.add(im3)
+
     # Login shop_user
     shop_owner = User.query.filter_by(id=shop_owner_id).first()
     login_user(shop_owner)
@@ -385,40 +423,6 @@ def shop_dashboard():
     if len(shops) == 1:
         return redirect(url_for('client.shop_dashboard_id', shop_id=shops[0].id, **request.args))
     return render_template('shop_admin/choose_shop.html', shops=shops, shop_form=shop_form, platforms=platforms)
-
-
-# @client.route('/dashboard', defaults={'shop_id': 0})
-# @client.route('/dashboard/<int:shop_id>')
-# @login_required
-# @roles_required(Constants.SHOP_OWNER_ROLE)
-# def shop_dashboard_id(shop_id):
-#     shop = Shop.query.filter_by(owner_id=current_user.id, id=shop_id).first()
-#     if not shop:
-#         flash('Not your shop')
-#         return redirect(url_for('client.shop_dashboard'))
-#     if shop.platform and shop.platform.name == 'shopify':
-#         code = render_template('user_setup/shopify_code.html', shop=shop)
-#     else:
-#         code = render_template('user_setup/code.html', shop=shop)
-#     shop_form = ShopForm(MultiDict(shop.__dict__))
-#     review_request_form = ReviewRequestForm()
-#     platforms = Platform.query.all()
-#     plans = Plan.query.all()
-#     current_plan = None
-#     if shop.owner.customer and len(shop.owner.customer) > 0 and shop.owner.customer[0] and \
-#             shop.owner.customer[0].subscription and len(shop.owner.customer[0].subscription) > 0 and \
-#             shop.owner.customer[0].subscription[0]:
-#         current_plan = shop.owner.customer[0].subscription[0].plan
-#     if current_user.confirmed_at:
-#         # TODO: temporary fix for legacy users, we should always get the data from the subscription ts
-#         expiry_days = (current_user.confirmed_at + datetime.timedelta(
-#             days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
-#     else:
-#         expiry_days = (current_user.customer[0].subscription[0].timestamp + datetime.timedelta(
-#             days=Constants.TRIAL_PERIOD_DAYS) - datetime.datetime.utcnow()).days
-#     return render_template('shop_admin/home.html', shop=shop, code=code, shop_form=shop_form,
-#                            review_request_form=review_request_form, platforms=platforms,
-#                            plans=plans, expiry_days=expiry_days, current_plan=current_plan)
 
 
 @client.route('/dashboard', defaults={'shop_id': 0})
@@ -1309,14 +1313,150 @@ def simple_add_review():
     return render_template('simple_add_review.html')
 
 
-@client.route('/simple-plugin')
-def simple_plugin():
-    reviews = Review.query.all()[:10]
-    return render_template('simple_plugin.html', reviews=reviews)
-
-
 @client.route('/shopify_manual_verification')
 @login_required
 def shopify_manual_verification():
     # TODO: update next_action
     return redirect(url_for('client.shop_dashboard'))
+
+
+@client.route('/404')
+def not_found():
+    return ''
+
+
+@client.route('/simple-plugin')
+@verify_requirements('client.not_found')
+def simple_plugin():
+    shop_id = get_required_parameter(request.args, 'shop_id')
+    get_by = get_required_parameter(request.args, 'get_by')
+    if get_by == 'url':
+        product_url = get_required_parameter(request.args, 'product_url')
+        product = Product.find_product_by_url(product_url, shop_id)
+    elif get_by == 'platform_id':
+        platform_product_id = param_required('platform_product_id', request.args)
+        product = Product.query.filter_by(shop_id=shop_id, platform_product_id=platform_product_id).first()
+    product_objs = rank_objects_for_product(product.id)
+    return render_template('simple_plugin.html',
+                           product=product,
+                           product_objs=product_objs)
+
+
+from sqlalchemy_searchable import search
+
+
+@client.route('/review/search', methods=['POST'])
+@verify_requirements('client.reviews')
+def search_review():
+    query = get_required_parameter(request.form, 'query')
+    product_id = get_required_parameter(request.form, 'product_id')
+    async = request.form.get('async')
+    reviews = Review.query.whoosh_search(query).filter_by(product_id=product_id).all()
+    if async:
+        return render_template('search_results_partial.html', reviews=reviews, query=query)
+    return render_template('search_results_partial.html',
+                           reviews=reviews,
+                           query=query)
+
+
+@client.route('/review/create', methods=['GET', 'POST'])
+@verify_requirements('client.reviews')
+def create_review():
+    if request.method == 'get':
+        # It's a get
+        product_id = get_required_parameter(request.args, 'product_id')
+        product = get_required_model_instance_by_id(Product, product_id)
+        password_req = request.args.get('password_req')
+        return render_template('simple_add_review.html', product=product, password_req=password_req)
+
+    # Okay, it's a post
+    g_recaptcha_required = False
+    verified_review = False
+
+    # Verify required objects
+    product_id = get_required_parameter(request.form, 'product_id')
+    product = get_required_model_instance_by_id(Product, product_id)
+
+    # Get user
+    if current_user:
+        user = current_user
+    else:
+        g_recaptcha_required = True
+        name = request.form.get('name')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = User.query.filter_by(email=email).first()
+        if user:
+            if password:
+                # try to login user if exists
+                verify_required_condition(condition=verify_password(password, user.password),
+                                          error_msg=ExceptionMessages.WRONG_PASSWORD,
+                                          error_code=httplib.UNAUTHORIZED)
+                login_user(user)
+            else:
+                # the user exists but password is not provided. Return the form with password required
+                flash(ExceptionMessages.PASSWORD_REQUIRED)
+                return redirect(url_for('client.create_review', product_id=product_id, password_req=1))
+        if not user:
+            # check if the user is a legacy one
+            user = UserLegacy.query.filter_by(email=email).first()
+        if not user:
+            # okay, nothing of this user exists in any of our records, create
+            # TODO: post creation hook
+            user = User(email=email,
+                        name=name)
+
+    if g_recaptcha_required:
+        # verify recaptcha
+        recaptcha = get_required_parameter(request.form, 'g-recaptcha-response')
+        r = requests.post(current_app.config.get("RECAPTCHA_URL"),
+                      data={
+                          'secret': current_app.config.get("RECAPTCHA_SECRET"),
+                          'response': recaptcha,
+                          'remoteip': request.remote_addr
+                      })
+        verify_required_condition(condition=r and r.status_code == 200 and r.json() and r.json().get('success'),
+                                  error_msg=ExceptionMessages.CAPTCHA_FAIL,
+                                  error_code=httplib.UNAUTHORIZED)
+
+    # Get the rest of the parameters
+    body = request.form.get('body')
+    # TODO: push the body of the review through a pipeline for general verification - swear words, etc.
+
+    star_rating = request.form.get('star_rating')
+    if star_rating:
+        verify_required_condition(condition=star_rating in range(1,6),
+                                  error_msg=ExceptionMessages.STAR_RATING_BETWEEN_1_5)
+
+    # save image - either from the ready form image_url field or from the field file...
+    # TODO: Javascript upload picture async
+    image_url = request.form.get('image_url')
+    if not image_url and request.files:
+        file = request.files.get('image')
+        filename = review_images.save(file)
+        image_url = g.config.get('OPINEW_API_SERVER') + url_for('media.get_review_image', filename=filename)
+
+    # TODO: add review_request_id in add_review_simple
+    review_request_id = request.form.get('review_request_id')
+    if review_request_id:
+        # TODO: check out the conditions here - should return true or false, not throw an error
+        verify_required_condition(condition=Review.verify_review_request(request.args))
+        verified_review = True
+
+    # Create Review
+    now = datetime.datetime.utcnow()
+    review = Review(product=product,
+                    user=user,
+                    body=body,
+                    star_rating=star_rating,
+                    image_url=image_url,
+                    verified_review=verified_review,
+                    created_ts=now)
+    db.session.add(review)
+    db.session.commit()
+    return generate_success_response_from_obj(obj=review, obj_name='review')
+
+
+@client.route('/review/<int:review_id>/details')
+def review_details(review_id):
+    return 'None'

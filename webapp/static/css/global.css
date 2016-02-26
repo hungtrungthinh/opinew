@@ -167,7 +167,8 @@ a {
 .review-header,
 .review-badges,
 .review-body,
-.review-interactions {
+.review-interactions,
+.comment-container {
   margin: 8px;
 }
 
@@ -235,7 +236,7 @@ a {
   font-size: 0.8em;
 }
 
-.rating-review-body .star-active:before {
+.rating-review-body .star-full:before {
   color: rgba(251, 140, 45, 0.6);
 }
 
@@ -431,12 +432,12 @@ footer .nav > li > a:hover {
   font-size: 1.5em;
 }
 
-.star-active:before {
+.star-full:before {
   content: "\2605";
   position: absolute;
 }
 
-.star-active:before {
+.star-full:before {
   color: #fb8c2d;
 }
 

@@ -122,6 +122,13 @@ def verify_webhook(f):
 
 
 def create_jinja_filters(app):
+    @app.template_filter('embded_youtube')
+    def embded_youtube(youtube_url):
+        if youtube_url and '?v=' in youtube_url:
+            video_id = youtube_url.split('?v=')[1]
+            return 'https://www.youtube.com/embed/' + video_id
+        return youtube_url
+
     @app.template_filter('timesince')
     def timesince(dt, default="just now"):
         """

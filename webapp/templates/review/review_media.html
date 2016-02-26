@@ -1,7 +1,7 @@
 <div class="review-media">
   {% if review.youtube_video %}
     <div class="review-youtube-container">
-      <iframe class="review-youtube" src="{{ review.youtube_video }}" frameborder="0" allowfullscreen></iframe>
+      <iframe class="review-youtube" src="{{ review.youtube_video|embded_youtube }}" frameborder="0" allowfullscreen></iframe>
     </div>
   {% endif %}
   {% if review.image_url %}

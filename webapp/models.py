@@ -154,43 +154,6 @@ class User(db.Model, UserMixin, Repopulatable):
                         subject=email_subject)
             task = Task.create(method=tasks.send_email, args=args)
             db.session.add(task)
-
-            # set new next action
-            now = datetime.datetime.utcnow()
-            shop = user.shops[0] if user.shops else None
-            if shop:
-                im1 = NextAction(
-                    shop=shop,
-                    timestamp=now,
-                    identifier=Constants.NEXT_ACTION_ID_SETUP_YOUR_SHOP,
-                    title=strings.NEXT_ACTION_SETUP_YOUR_SHOP,
-                    url=url_for('client.setup_plugin', shop_id=shop.id),
-                    icon=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON,
-                    icon_bg_color=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR
-                )
-                db.session.add(im1)
-
-                im2 = NextAction(
-                    timestamp=now,
-                    shop=shop,
-                    identifier=Constants.NEXT_ACTION_ID_SETUP_BILLING,
-                    title=strings.NEXT_ACTION_SETUP_BILLING,
-                    url="javascript:showTab('#account');",
-                    icon=Constants.NEXT_ACTION_SETUP_BILLING_ICON,
-                    icon_bg_color=Constants.NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR
-                )
-                db.session.add(im2)
-
-                im3 = NextAction(
-                    timestamp=now,
-                    shop=shop,
-                    identifier=Constants.NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD,
-                    title=strings.NEXT_ACTION_CHANGE_YOUR_PASSWORD,
-                    url=url_for('security.change_password'),
-                    icon=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON,
-                    icon_bg_color=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR
-                )
-                db.session.add(im3)
         db.session.commit()
 
     @classmethod
@@ -738,6 +701,27 @@ class Comment(db.Model):
             }
         }
 
+    @property
+    def user_name(self):
+        if self.user and self.user.name:
+            _user_name = self.user.name
+        else:
+            _user_name = Constants.DEFAULT_ANONYMOUS_USER_NAME
+        return _user_name
+
+    @property
+    def user_image_url(self):
+        if self.user:
+            if self.user.image_url:
+                _user_image_url = self.user.image_url
+            elif self.user.email:
+                _user_image_url = gravatar(self.user.email)
+            else:
+                _user_image_url = gravatar('')
+        else:
+            _user_image_url = gravatar('')
+        return _user_image_url
+
 
 class Source(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -809,6 +793,7 @@ class RenderableObject(object):
 
 
 class Review(db.Model, Repopulatable, RenderableObject):
+    __searchable__ = ['body']
     id = db.Column(db.Integer, primary_key=True)
 
     body = db.Column(db.String)

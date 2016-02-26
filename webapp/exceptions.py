@@ -16,6 +16,10 @@ class ExceptionMessages(object):
     NOT_YOUR_REVIEW = "Not your review."
 
     CANT_FEATURE_THAT_REVIEW = "Can't feature that review."
+    STAR_RATING_BETWEEN_1_5 = "Star rating needs to be between 1 and 5 stars"
+
+    WRONG_PASSWORD = "Wrong password"
+    PASSWORD_REQUIRED = "Password required"
 
 
 class RequirementException(Exception):

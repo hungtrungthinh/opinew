@@ -84,7 +84,7 @@ class Constants(object):
     DESKTOP_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36'
     MOBILE_USER_AGENT = 'Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_2_1 like Mac OS X; en-us) AppleWebKit/533.17.9 (KHTML, like Gecko) Version/5.0.2 Mobile/8C148 Safari/6533.18.5'
 
-    MAX_BODY_LENGTH = 300
+    MAX_BODY_LENGTH = 160
 
     TASK_STATUS_SUCCESS = 'SUCCESS'
     TASK_STATUS_REVOKED = 'REVOKED'
@@ -256,6 +256,9 @@ class Config(object):
 
     BABEL_DEFAULT_LOCALE = Constants.DEFAULT_LOCALE
     BABEL_DEFAULT_TIMEZONE = 'UTC'
+
+    SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
+    WHOOSH_BASE = SQLALCHEMY_DATABASE_URI
 
 
 class ConfigTest(Config):

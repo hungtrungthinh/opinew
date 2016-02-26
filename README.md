@@ -119,6 +119,14 @@ To push to production server `opinew.com`:
 
     psql -U opinew_user -h localhost opinew < dbexport.pgsql
 
+## Reindex search db
+
+    ./run_production shell
+
+    from flask_whooshalchemyplus import index_all
+    from flask import current_app
+    index_all(current_app)
+
 
 ## Purging
 

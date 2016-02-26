@@ -14,6 +14,7 @@ from flask.ext.babel import Babel
 from flask.ext.assets import Environment, Bundle
 from flask_resize import Resize
 from flask_mail import Mail
+from flask_whooshalchemyplus import index_all
 from werkzeug.exceptions import default_exceptions
 from config import config_factory, Constants
 from assets import strings
@@ -78,7 +79,7 @@ def create_app(option):
     config = config_factory.get(option)
     app.config.from_object(config)
 
-    from common import create_jinja_filters, random_pwd, verify_initialization
+    from common import create_jinja_filters, random_pwd
 
     create_jinja_filters(app)
     from webapp.api import api
@@ -97,8 +98,10 @@ def create_app(option):
     mail.init_app(app)
     migrate.init_app(app, db)
     babel.init_app(app)
-    from models import User, Role
+    from models import User, Role, Review
     from webapp.forms import ExtendedRegisterForm
+    import flask.ext.whooshalchemy as whooshalchemy
+    whooshalchemy.whoosh_index(app, Review)
 
     assets.init_app(app)
     assets.register('js_all', js_assets)
@@ -107,8 +110,7 @@ def create_app(option):
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
     with app.app_context():
-        if not app.testing:
-            verify_initialization()
+        index_all(app)
 
         if app.testing:
             from async import tasks

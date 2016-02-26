@@ -69,6 +69,7 @@
 
   {#  Stylesheets #}
   <link href='https://fonts.googleapis.com/css?family=Lora:400,400italic' rel='stylesheet' type='text/css'>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style type="text/css">
     body {
       font-family: 'Lora', serif;
@@ -89,11 +90,16 @@
       color: #1c9298;
     }
 
+    header {
+      margin: 16px 0;
+    }
+
     .container {
       background-color: #fcfcfc;
       padding: 16px 32px;
       border-radius: 2px;
       box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+      margin: 0 0 16px 0;
     }
 
     .colors-bar {
@@ -155,6 +161,155 @@
       display: inline-block;
       padding: 8px 16px;
       margin-bottom: 0;
+      font-size: 14px;
+      border-radius: 2px;
+    }
+
+    button:focus {
+      outline: 0;
+    }
+
+    button:active {
+      background-color: #198388;
+    }
+
+    .btn-default {
+      background-color: #f0f0f0;
+      border: 1px solid #aaa;
+      color: #444;
+    }
+
+    .btn-primary {
+      background-color: #1c9298;
+      border: 1px solid #198388;
+      color: #eee;
+    }
+
+    .inputfile {
+      width: 0;
+      height: 0;
+      opacity: 0;
+      overflow: hidden;
+      position: absolute;
+      z-index: -1;
+    }
+
+    .pull-right {
+      float: right;
+    }
+
+    .clearfix:before,
+    .clearfix:after {
+      content: " ";
+      display: table;
+    }
+
+    .clearfix:after {
+      clear: both;
+    }
+
+    .clearfix {
+      *zoom: 1;
+    }
+
+    blockquote {
+      margin: 0;
+    }
+
+    blockquote > p {
+      margin: 0;
+      color: #888;
+    }
+
+    .person-name {
+      color: #888;
+      font-size: 0.8em;
+      float: right;
+      line-height: 8px;
+      margin: 8px;
+    }
+
+    .person-img {
+      border-radius: 50%;
+      height: 24px;
+      width: auto;
+      float: right;
+    }
+
+    .fab {
+      border: 0;
+      box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+      height: 64px;
+      width: 64px;
+      background-color: #1c9298;
+      border-radius: 50%;
+      position: fixed;
+      bottom: 48px;
+      right: 48px;
+      text-align: center;
+      padding: 0;
+    }
+
+    .fab-text {
+      color: #eee;
+      font-size: 32px;
+      line-height: 64px;
+    }
+
+    input {
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14);
+      padding: 8px;
+      font-family: 'Lora', serif;
+      line-height: 1.6;
+      border-radius: 2px;
+      resize: none;
+      box-sizing: border-box;
+      border: 1px solid #aaa;
+      margin: 8px auto;
+    }
+
+    .search-box {
+      height: 48px;
+      margin: 16px auto;
+      font-size: 24px;
+      padding: 24px;
+      width: 100%;
+    }
+
+    input:focus {
+      outline: 0;
+      border-color: #1c9298;
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14), 0 0 8px rgba(28, 146, 152, 0.8);
+    }
+
+    textarea {
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14);
+      width: 100%;
+      height: 100px;
+      font-family: 'Lora', serif;
+      margin: 16px auto;
+      line-height: 1.6;
+      font-size: 18px;
+      padding: 8px;
+      border-radius: 2px;
+      resize: none;
+      box-sizing: border-box;
+      border: 1px solid #aaa;
+    }
+
+    textarea:focus {
+      outline: 0;
+      border-color: #1c9298;
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14), 0 0 8px rgba(28, 146, 152, 0.8);
+    }
+
+    button, .btn {
+      box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+      font-family: sans-serif;
+      cursor: pointer;
+      display: inline-block;
+      padding: 8px 16px;
+      margin-bottom: 0;
       font-size: 18px;
       border-radius: 2px;
       border: 0;
@@ -176,6 +331,17 @@
     .btn-primary {
       background-color: #1c9298;
       color: #eee;
+    }
+
+    .input-wrapper {
+      overflow: hidden;
+    }
+
+    .btn-input-right {
+      float: right;
+      margin: 16px 0;
+      line-height: 1.4;
+      font-size: 24px;
     }
 
     .inputfile {
@@ -213,6 +379,179 @@
       font-size: 12px;
       text-decoration: none;
     }
+
+    .aggreate-ratings-container {
+      text-align: center;
+      font-size: 1.5em;
+    }
+
+    .star-full:before {
+      content: "\2605";
+      position: absolute;
+      color: #888;
+    }
+
+    .star-full-active:before {
+      color: #fb8c2d;
+    }
+
+    .star-half:after {
+      content: '\2605';
+      color: #fb8c2d;
+      position: absolute;
+      margin-left: -38px;
+      width: 19px;
+      overflow: hidden;
+    }
+
+    .review-help {
+      display: inline-block;
+      float: right;
+      cursor: pointer;
+      border-radius: 50%;
+      border: 1px solid #888;
+      width: 24px;
+      height: 24px;
+      text-align: center;
+      color: #888;
+      font-size: 16px;
+    }
+
+    .material-icons {
+      font-family: 'Material Icons';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px; /* Preferred icon size */
+      display: inline-block;
+      line-height: 1;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+
+      /* Support for all WebKit browsers. */
+      -webkit-font-smoothing: antialiased;
+      /* Support for Safari and Chrome. */
+      text-rendering: optimizeLegibility;
+
+      /* Support for Firefox. */
+      -moz-osx-font-smoothing: grayscale;
+
+      /* Support for IE. */
+      font-feature-settings: 'liga';
+    }
+
+    .btn-interaction {
+      border: 0;
+      background-color: transparent;
+      outline: none;
+      box-shadow: none;
+      display: inline;
+      color: #888;
+    }
+
+    .btn-like:hover {
+      color: #22be44;
+    }
+
+    .btn-report:hover {
+      color: #fb412d;
+    }
+
+    .btn-share:hover {
+      color: #1c9298;
+    }
+
+    .danger {
+      color: #fb412d;
+    }
+
+    .warning {
+      color: #fb8c2d;
+    }
+
+    .success {
+      color: #22be44;
+    }
+
+    .form-interaction {
+      display: inline;
+    }
+
+    .review-date {
+      color: #ccc;
+    }
+
+    .review-details {
+      font-size: 11pt;
+    }
+
+    .rating {
+      margin: 0 auto;
+      width: 440px;
+      border: none;
+    }
+
+    /* :not(:checked) is a filter, so that browsers that don’t support :checked don’t
+       follow these rules. Every browser that supports :checked also supports :not(), so
+       it doesn’t make the test unnecessarily selective */
+    .rating:not(:checked) > input {
+      position: absolute;
+      clip: rect(0, 0, 0, 0);
+    }
+
+    .rating:not(:checked) > label {
+      float: right;
+      width: 1em;
+      padding: 0 .1em;
+      overflow: hidden;
+      white-space: nowrap;
+      cursor: pointer;
+      font-size: 400%;
+      line-height: 1.2;
+      color: #666;
+    }
+
+    .rating:not(:checked) > label:before {
+      content: '★ ';
+    }
+
+    .rating > input:checked ~ label {
+      color: #fb8c2d;
+    }
+
+    .rating:not(:checked) > label:hover,
+    .rating:not(:checked) > label:hover ~ label {
+      color: #FF8E2E;
+    }
+
+    .rating > input:checked + label:hover,
+    .rating > input:checked + label:hover ~ label,
+    .rating > input:checked ~ label:hover,
+    .rating > input:checked ~ label:hover ~ label,
+    .rating > label:hover ~ input:checked ~ label {
+      color: #FFB77A;
+    }
+
+    .rating > label:active {
+      position: relative;
+      top: 2px;
+      left: 2px;
+    }
+
+    .left-label {
+      display: inline-block;
+      width: 100px;
+    }
+
+    .right-input {
+      width: 595px;
+    }
+
+    .g-recaptcha {
+      margin: 16px 0 0 0;
+    }
   </style>
   {# Place per-page styles #}
   {% block style %}{% endblock %}
@@ -232,18 +571,7 @@
     <div class="color-bar-element opinew-cherry"></div>
   </div>
 </header>
-<div class="container">
-  <p>How do you like the <strong>battery</strong> of your new <strong>Lenovo laptop</strong>?</p>
-  <a href="#" class="small pull-right">Choose a different question...</a>
-  <form action="{{ url_for('client.add_review') }}" method="post">
-    <textarea name="text" class="validate[required,length[6,300]] feedback-input" id="comment"
-              placeholder="Comment"></textarea>
-    <input type="file" name="file" id="file" class="inputfile"/>
-    <label for="file" class="btn btn-default">Upload image</label>
-    <button type="submit" class="btn-primary pull-right">Post</button>
-    <div class="clearfix"></div>
-  </form>
-</div>
+{% include "simple_add_review_partial.html" %}
 {# /End of main content #}
 
 {# Include Google analytics, fb code if in production mode #}

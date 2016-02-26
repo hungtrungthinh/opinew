@@ -9,6 +9,7 @@ from config import Constants
 def calculate_regular_review_score(review, timestamp):
     # Calculate days between now and the post of the review.
     days_since = (timestamp - review.created_ts).days
+    review.days_since = days_since
     # Older reviews are penalized
     review.rank_score -= days_since * Constants.REVIEW_RANK_DAYS_WEIGHT
     if review.user:
@@ -52,6 +53,7 @@ def rank_objects_for_product(product_id):
     # Get all not deleted reviews
     all_reviews = models.Review.get_all_undeleted_reviews_for_product(product_id)
     for review in all_reviews:
+        review.obj_type = 'review'
         if review.star_rating:
             star_distribution[review.star_rating] += 1
             reviews_with_stars += 1
@@ -69,6 +71,7 @@ def rank_objects_for_product(product_id):
     # Get all questions
     all_questions = models.Question.get_all_questions_for_product(product_id)
     for question in all_questions:
+        question.obj_type = 'question'
         question.rank_score = 0
         calculate_question_score(question, timestamp=now)
         # Add it to list of questions
@@ -101,7 +104,7 @@ def get_scheduled_tasks(shop):
     scheduled_tasks = []
     for order in shop.orders:
         for task in order.tasks:
-            if task.status == "PENDING":
+            if task.status == "PENDING" and task.method == 'send_email':
                 obj = {
                     'title': task.method,
                     'icon': 'envelope',

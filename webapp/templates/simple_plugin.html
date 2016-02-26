@@ -10,24 +10,13 @@
   <link id="favicon" rel="shortcut icon" href="{{ url_for('static', filename='icons/opinew32.ico') }}"/>
   <link rel="alternate" href="https://www.opinew.com/" hreflang="x-default"/>
 
-  {# Add to homescreen for Chrome on Android#}
-  <meta name="mobile-web-app-capable" content="yes">
-  <link rel="icon" sizes="192x192" href="{{ url_for('static', filename='icons/android-desktop.png') }}">
-
-  {# Add to homescreen for Safari on iOS#}
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="{{ g.constants.PRODUCT_NAME }}">
-  <link rel="apple-touch-icon-precomposed" href="{{ url_for('static', filename='icons/ios-desktop.png') }}">
-
   {# SEO: If your mobile URL is different from the desktop URL, add a canonical link to the desktop page https://developers.google.com/webmasters/smartphone-sites/feature-phones #}
   <link rel="canonical" href="{{ g.constants.META_CANONICAL_URL }}">
 
   {# DNS Prefetch hints #}
-  {#  <link rel="dns-prefetch" href="maxcdn.bootstrapcdn.com">#}
-  {#  <link rel="dns-prefetch" href="ajax.googleapis.com">#}
+  <link rel="dns-prefetch" href="ajax.googleapis.com">
   {# Hints for CURRENT page #}
-  {# <link rel="subresource" href="{{ url_for('static', filename='js/main.min.js') }}">#}
+  <link rel="subresource" href="{{ url_for('static', filename='img/sprites.png') }}">
   {# Hints for FUTURE navigation #}
   {# <link rel="prefetch" href="{{ url_for('static', filename='js/post_review.js') }}">#}
   {# Chrome prerenders this ONE page in the background for INSTANT click - ONLY GET #}
@@ -68,14 +57,13 @@
   <link href="https://plus.google.com/+Opinew" rel="publisher"/>
 
   {#  Stylesheets #}
-  <link href='https://fonts.googleapis.com/css?family=Lora:400,400italic' rel='stylesheet' type='text/css'>
   <style type="text/css">
     body {
-      font-family: 'Lora', serif;
+      font-family: 'Helvetica', sans-serif;
       margin: 32px auto;
       max-width: 768px;
       line-height: 1.6;
-      font-size: 18px;
+      font-size: 16px;
       color: #444;
       background-color: #EEE;
       padding: 0 10px;
@@ -95,7 +83,7 @@
 
     .container {
       background-color: #fcfcfc;
-      padding: 16px 32px;
+      padding: 8px 16px;
       border-radius: 2px;
       box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
       margin: 0 0 16px 0;
@@ -215,21 +203,18 @@
       margin: 0;
     }
 
-    blockquote > p {
-      margin: 0;
-    }
-
     .person-name {
       color: #888;
       font-size: 0.8em;
       float: right;
-      line-height: 8px;
-      margin: 8px;
+      line-height: 14px;
+      margin: 0 8px;
+      text-align: right;
     }
 
     .person-img {
       border-radius: 50%;
-      height: 24px;
+      height: 32px;
       width: auto;
       float: right;
     }
@@ -254,25 +239,351 @@
       line-height: 64px;
     }
 
+    input {
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14);
+      padding: 8px;
+      font-family: 'Lora', serif;
+      line-height: 1.6;
+      border-radius: 2px;
+      resize: none;
+      box-sizing: border-box;
+      border: 1px solid #aaa;
+      margin: 8px auto;
+    }
+
     .search-box {
+      height: 48px;
+      margin: 16px auto;
+      font-size: 24px;
+      padding: 24px;
+      width: 100%;
+    }
+
+    input:focus {
+      outline: 0;
+      border-color: #1c9298;
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14), 0 0 8px rgba(28, 146, 152, 0.8);
+    }
+
+    textarea {
       box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14);
       width: 100%;
-      height: 48px;
+      height: 100px;
       font-family: 'Lora', serif;
       margin: 16px auto;
       line-height: 1.6;
-      font-size: 24px;
-      padding: 24px;
+      font-size: 18px;
+      padding: 8px;
       border-radius: 2px;
       resize: none;
       box-sizing: border-box;
       border: 1px solid #aaa;
     }
 
-    .search-box:focus {
+    textarea:focus {
       outline: 0;
       border-color: #1c9298;
       box-shadow: inset 0 1px 4px rgba(0, 0, 0, .14), 0 0 8px rgba(28, 146, 152, 0.8);
+    }
+
+    button, .btn {
+      box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+      font-family: sans-serif;
+      cursor: pointer;
+      display: inline-block;
+      padding: 8px 16px;
+      margin-bottom: 0;
+      font-size: 18px;
+      border-radius: 2px;
+      border: 0;
+    }
+
+    button:focus {
+      outline: 0;
+    }
+
+    button:active {
+      background-color: #198388;
+    }
+
+    .btn-default {
+      background-color: #eee;
+      color: #444;
+    }
+
+    .btn-primary {
+      background-color: #1c9298;
+      color: #eee;
+    }
+
+    .input-wrapper {
+      overflow: hidden;
+    }
+
+    .btn-input-right {
+      float: right;
+      margin: 16px 0;
+      line-height: 1.4;
+      font-size: 24px;
+    }
+
+    .inputfile {
+      width: 0;
+      height: 0;
+      opacity: 0;
+      overflow: hidden;
+      position: absolute;
+      z-index: -1;
+    }
+
+    .pull-right {
+      float: right;
+    }
+
+    .clearfix:before,
+    .clearfix:after {
+      content: " ";
+      display: table;
+    }
+
+    .clearfix:after {
+      clear: both;
+    }
+
+    .clearfix {
+      *zoom: 1;
+    }
+
+    header {
+      margin: 16px 0;
+    }
+
+    .small {
+      font-size: 12px;
+      text-decoration: none;
+    }
+
+    .aggreate-ratings-container {
+      text-align: center;
+      font-size: 1.5em;
+    }
+
+    .star-full:before {
+      content: "\2605";
+      position: absolute;
+      color: #888;
+    }
+
+    .star-full-active:before {
+      color: #fb8c2d;
+    }
+
+    .star-half:after {
+      content: '\2605';
+      color: #fb8c2d;
+      position: absolute;
+      margin-left: -38px;
+      width: 19px;
+      overflow: hidden;
+    }
+
+    .review-help {
+      display: inline-block;
+      float: right;
+      cursor: pointer;
+      border-radius: 50%;
+      border: 1px solid #888;
+      width: 24px;
+      height: 24px;
+      text-align: center;
+      color: #888;
+      font-size: 16px;
+    }
+
+    .btn-interaction {
+      border: 0;
+      background-color: transparent;
+      outline: none;
+      box-shadow: none;
+      display: inline;
+      color: #888;
+    }
+
+    .btn-like:hover {
+      color: #22be44;
+    }
+
+    .btn-report:hover {
+      color: #fb412d;
+    }
+
+    .btn-share:hover {
+      color: #1c9298;
+    }
+
+    .danger {
+      color: #fb412d;
+    }
+
+    .warning {
+      color: #fb8c2d;
+    }
+
+    .success {
+      color: #22be44;
+    }
+
+    .form-interaction {
+      display: inline;
+    }
+
+    .review-date {
+      color: #ccc;
+    }
+
+    .review-details {
+      font-size: 11pt;
+    }
+
+    .rating {
+      margin: 0 auto;
+      width: 440px;
+      border: none;
+    }
+
+    /* :not(:checked) is a filter, so that browsers that don’t support :checked don’t
+       follow these rules. Every browser that supports :checked also supports :not(), so
+       it doesn’t make the test unnecessarily selective */
+    .rating:not(:checked) > input {
+      position: absolute;
+      clip: rect(0, 0, 0, 0);
+    }
+
+    .rating:not(:checked) > label {
+      float: right;
+      width: 1em;
+      padding: 0 .1em;
+      overflow: hidden;
+      white-space: nowrap;
+      cursor: pointer;
+      font-size: 400%;
+      line-height: 1.2;
+      color: #666;
+    }
+
+    .rating:not(:checked) > label:before {
+      content: '★ ';
+    }
+
+    .rating > input:checked ~ label {
+      color: #fb8c2d;
+    }
+
+    .rating:not(:checked) > label:hover,
+    .rating:not(:checked) > label:hover ~ label {
+      color: #FF8E2E;
+    }
+
+    .rating > input:checked + label:hover,
+    .rating > input:checked + label:hover ~ label,
+    .rating > input:checked ~ label:hover,
+    .rating > input:checked ~ label:hover ~ label,
+    .rating > label:hover ~ input:checked ~ label {
+      color: #FFB77A;
+    }
+
+    .rating > label:active {
+      position: relative;
+      top: 2px;
+      left: 2px;
+    }
+
+    .left-label {
+      display: inline-block;
+      width: 100px;
+    }
+
+    .right-input {
+      width: 595px;
+    }
+
+    .g-recaptcha {
+      margin: 16px 0 0 0;
+    }
+
+    .show-more {
+      background-color: #eee;
+      border-radius: 50%;
+      width: 25px;
+      text-align: center;
+      height: 25px;
+      display: inline-block;
+      cursor: pointer;
+    }
+
+    .sprite {
+      background-image: url({{ url_for('static', filename='img/sprites.png') }});
+      display: inline-block;
+      height: 24px;
+      width: 24px;
+    }
+
+    .sprite-thumb-up {
+      background-position: -72px 0;
+    }
+
+    .sprite-share {
+      background-position: -48px 0;
+    }
+
+    .sprite-flag {
+      background-position: -24px 0;
+    }
+
+    .sprite-add-photo {
+      background-position: 0 0;
+    }
+
+    .sprite-mystery-man {
+      background-position: -96px 0;
+      height: 32px;
+      width: 32px;
+    }
+
+    .review-image-container {
+      position: relative;
+      overflow: hidden;
+      max-height: 312px;
+      background-color: #222;
+    }
+
+    .review-image {
+      display: block;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      height: auto;
+      margin: auto;
+    }
+
+    .review-youtube-container {
+      position: relative;
+      padding-bottom: 312px;
+      padding-top: 25px;
+      height: 0;
+    }
+
+    .review-youtube {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .review-author {
+      margin: 8px auto;
     }
   </style>
   {# Place per-page styles #}
@@ -285,7 +596,8 @@
 
 {# Main content of application is here #}
 <header>
-  <h1>Reviews about <strong>Lenovo laptop</strong></h1>
+  <h1>Reviews about <strong itemprop="itemReviewed" itemscope
+                            itemtype="http://schema.org/Thing">{{ product.name }}</strong></h1>
   <div class="colors-bar">
     <div class="color-bar-element color-bar-element-primary opinew-aqua"></div>
     <div class="color-bar-element opinew-kiwi"></div>
@@ -293,27 +605,165 @@
     <div class="color-bar-element opinew-cherry"></div>
   </div>
 </header>
-<input type="text" class="search-box" placeholder="What would you like to know?" />
-{% for review in reviews %}
-  <div class="container">
-    <blockquote>
-      <p>{{ review.body }}</p>
-    </blockquote>
-    <img class="person-img" src="{{ review.user_image_url }}" alt="{{ review.user_name }} profile image"/>
-    <p class="person-name">{{ review.user_name }}</p>
-    <div class="clearfix"></div>
+{% if product_objs.average_stars %}
+  {% set average_stars = product_objs.average_stars %}
+  <div class="aggreate-ratings-container" itemprop="aggregateRating" itemscope
+       itemtype="http://schema.org/AggregateRating">
+      <span
+          class="star-rating {% if 1 > average_stars > 0 %}star-half {% endif %}{% if average_stars >= 1 %}star-full star-full-active{% endif %}">☆</span>
+      <span
+          class="star-rating {% if 2 > average_stars > 1 %}star-half {% endif %}{% if average_stars >= 2 %}star-full star-full-active{% endif %}">☆</span>
+      <span
+          class="star-rating {% if 3 > average_stars > 2 %}star-half {% endif %}{% if average_stars >= 3 %}star-full star-full-active{% endif %}">☆</span>
+      <span
+          class="star-rating {% if 4 > average_stars > 3 %}star-half {% endif %}{% if average_stars >= 4 %}star-full star-full-active{% endif %}">☆</span>
+      <span
+          class="star-rating {% if 5 > average_stars > 4 %}star-half {% endif %}{% if average_stars == 5 %}star-full star-full-active{% endif %}">☆</span>
+      <span style="color: #fb8c2d">
+        <meta itemprop="worstRating" content="1"/>
+        <span itemprop="ratingValue">{{ average_stars|round(1) }}</span> / <span itemprop="bestRating">5</span>
+      </span>
+    from <span itemprop="ratingCount">{{ product_objs.total_reviews }}</span> reviews
   </div>
-{% endfor %}
-<button class="fab">
+{% endif %}
+
+{% include "simple_add_review_partial.html" %}
+
+<form method="post" action="{{ url_for('client.search_review') }}" id="search-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <button type="submit" class="btn-input-right" id="search-form-submit">Search</button>
+  <div class="input-wrapper">
+    <input type="text" name="q" class="search-box" placeholder="What would you like to know?" id="search-form-query"/>
+  </div>
+</form>
+
+{# The results of a search will appear here #}
+<div id="search-objects" hidden></div>
+
+<div id="objects">
+  {% for obj in product_objs.objs_list %}
+    {% if obj.obj_type == 'review' %}
+      {% set review = obj %}
+      {% include "simple_review.html" %}
+    {% elif obj.obj_type == 'question' %}
+      {% set question = obj %}
+    {% endif %}
+  {% endfor %}
+</div>
+
+<button class="fab" id="fab-button" hidden>
   <span class="fab-text">+</span>
 </button>
 {# /End of main content #}
 
-{# Include Google analytics, fb code if in production mode #}
-{% if g.mode == 'production' %}
-  {% include "snippets/ga.html" %}
-  {% include "snippets/fb_code.html" %}
-{% endif %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script>
+  var csrftoken = $('meta[name=csrf-token]').attr('content');
+
+  $.ajaxSetup({
+    beforeSend: function (xhr, settings) {
+      if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+        xhr.setRequestHeader("X-CSRFToken", csrftoken)
+      }
+    }
+  });
+
+  // Bind the FAB to add a review
+  $('#fab-button').bind('click', function () {
+    $('#add-review').slideToggle().find('textarea').focus();
+  });
+
+  // override search form
+  $('#search-form-submit').submit(function (e) {
+    e.preventDefault();
+    console.log('submitting');
+  });
+
+  // review toggle
+  function reviewToggle() {
+    var reviewInteractionsEl = $(this).find('.review-interactions');
+    var starEl = $(this).find('.star-rating');
+    reviewInteractionsEl.slideToggle(100);
+    if (starEl.hasClass('.star-full-active')) {
+      starEl.toggleClass('star-full-active');
+    }
+    $(this).find('.review-short').toggle();
+    $(this).find('.review-full').toggle();
+    $(this).find('.review-details').hide();
+  }
+
+  function reviewHoverShow() {
+    $(this).find('.star-rating').addClass('star-full-active');
+  }
+
+  function reviewHoverHide() {
+    $(this).find('.star-rating').removeClass('star-full-active');
+    $(this).find('.review-details').hide();
+  }
+
+  // hover over a review
+  $('.review-container').hover(reviewHoverShow, reviewHoverHide).click(reviewToggle);
+
+  // review details
+  $('.review-help').click(function (e) {
+    e.preventDefault();
+    var reviewId = $(this).data('review-id');
+    $('#review-details-' + reviewId).slideToggle(200);
+    return false;
+  });
+
+  function search(query) {
+    $('#objects').hide();
+    $('#search-objects').show().html("<img src='{{ url_for('static', filename='img/ajax-loader.gif') }}' />");
+    $.ajax({
+      url: "{{ url_for('client.search_review') }}",
+      method: 'post',
+      data: {
+        'query': query,
+        'product_id': {{ product.id }},
+        'async': 1
+      }
+    }).done(function (r) {
+      $('#search-objects').html(r);
+    }).fail(function (r) {
+      var error = r.responseJSON.error;
+      flashMessage(error, 'error');
+    });
+  }
+
+  // override search form
+  $('#search-form-query').on('input', function () {
+    var query = $(this).val();
+    if (query) {
+      search(query);
+    } else {
+      $('#objects').show();
+      $('#search-objects').hide()
+    }
+  });
+
+  // display review body on star change
+  $('input:radio').change(function () {
+    if ($('#review-body-wrapper').is(":hidden"))
+      $('#review-body-wrapper').slideDown();
+    var reviewNameEl = $('#review-name');
+    if (reviewNameEl)
+      reviewNameEl.focus();
+    else
+      $('#review-body').focus();
+  });
+
+  // hide the add-review and focus on the seearch box
+  $(document).ready(function () {
+    $('#add-review').hide();
+    $('#fab-button').show();
+    $('#review-body-wrapper').hide();
+    $('.review-interactions').hide();
+    $('.review-short').show();
+    $('.review-full').hide();
+    $('#search-form-query').focus();
+  });
+</script>
 
 {# Place per-page scripts #}
 {% block script %}{% endblock %}
