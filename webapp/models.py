@@ -78,7 +78,7 @@ class User(db.Model, UserMixin, Repopulatable):
     login_count = db.Column(db.Integer)
 
     def is_authenticated(self):
-        return session.get('user_id') == self.id
+        return session.get('user_id') == str(self.id)
 
     @classmethod
     def exclude_fields(cls):
@@ -866,24 +866,7 @@ class Review(db.Model, Repopulatable, RenderableObject):
         if user_id:
             self.user = User.query.filter_by(id=user_id).first()
         self.created_ts = datetime.datetime.utcnow()
-        # Is it by shop owner?
-        if product_id:
-            product = Product.query.filter_by(id=product_id).first()
-            if product and product.shop and product.shop.owner and product.shop.owner == current_user:
-                self.by_shop_owner = True
-        # Should we include youtube link?
-        if self.body and (Constants.YOUTUBE_WATCH_LINK in self.body or Constants.YOUTUBE_SHORT_LINK in self.body):
-            # we have youtube video somewhere in the body, let's extract it
-            if Constants.YOUTUBE_WATCH_LINK in self.body:
-                youtube_link = Constants.YOUTUBE_WATCH_LINK
-            else:
-                youtube_link = Constants.YOUTUBE_SHORT_LINK
-            # find the youtube video id
-            youtube_video_id = self.body.split(youtube_link)[1].split(' ')[0].split('?')[0].split('&')[0]
-            self.youtube_video = Constants.YOUTUBE_EMBED_URL.format(youtube_video_id=youtube_video_id)
-            # Finally, remove the link from the body
-            to_remove = youtube_link + self.body.split(youtube_link)[1].split(' ')[0]
-            self.body = re.sub(r"\s*" + re.escape(to_remove) + r"\s*", '', self.body)
+
 
 
     """

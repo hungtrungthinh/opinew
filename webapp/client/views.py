@@ -1,6 +1,6 @@
 from __future__ import division
 import datetime
-import requests
+import re
 import os
 import httplib
 import urllib
@@ -1248,6 +1248,59 @@ def schedule_scoring_of_review(review_id):
     pass
 
 
+def create_default_body_from_stars(review):
+    if not review.body:
+        if review.star_rating:
+            review.body = Constants.DEFAULT_BODY_STARS.format(star_rating=review.star_rating)
+        else:
+            review.body = ""
+
+
+def is_review_by_shop_owner(review):
+    product = review.product
+    if product and product.shop and product.shop.owner and product.shop.owner == current_user:
+        review.by_shop_owner = True
+
+
+def review_has_youtube(review):
+    if review.body and (Constants.YOUTUBE_WATCH_LINK in review.body or Constants.YOUTUBE_SHORT_LINK in review.body):
+        # we have youtube video somewhere in the body, let's extract it
+        if Constants.YOUTUBE_WATCH_LINK in review.body:
+            youtube_link = Constants.YOUTUBE_WATCH_LINK
+        else:
+            youtube_link = Constants.YOUTUBE_SHORT_LINK
+        # find the youtube video id
+        youtube_video_id = review.body.split(youtube_link)[1].split(' ')[0].split('?')[0].split('&')[0]
+        review.youtube_video = Constants.YOUTUBE_EMBED_URL.format(youtube_video_id=youtube_video_id)
+        # Finally, remove the link from the body
+        to_remove = youtube_link + review.body.split(youtube_link)[1].split(' ')[0]
+        review.body = re.sub(r"\s*" + re.escape(to_remove) + r"\s*", '', review.body)
+
+
+def create_review(product, user, body, star_rating, image_url):
+    now = datetime.datetime.utcnow()
+    review = Review(product=product,
+                    user=user,
+                    body=body,
+                    star_rating=star_rating,
+                    image_url=image_url,
+                    created_ts=now)
+
+    # Is this a verified review?
+    verify_review_request(review)
+    create_default_body_from_stars(review)
+    is_review_by_shop_owner(review)
+    review_has_youtube(review)
+
+    # All checks pass, commit now
+    db.session.add(review)
+    db.session.commit()
+
+    # Start a pipeline to score the review's various characteristics
+    schedule_scoring_of_review(review.id)
+    return review
+
+
 @client.route('/blank_not_found')
 def route_blank_not_found():
     return '', 404
@@ -1308,17 +1361,15 @@ def route_review_like(review_id):
 
 
 @client.route('/reviews/<int:review_id>/report', methods=['POST'])
+@verify_requirements('client.reviews')
 def route_review_report(review_id):
-    review = Review.query.filter_by(id=review_id).first()
-    if not review:
-        return jsonify({
-            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id)
-        }), httplib.BAD_REQUEST
-    review_report = ReviewReport.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+    review = get_required_model_instance_by_id(Review, review_id)
+    user = get_real_or_anonymous_user()
+    review_report = ReviewReport.query.filter_by(review_id=review_id, user_id=user.id).first()
     if not review_report:
         now = datetime.datetime.utcnow()
         new_action = True
-        review_report = ReviewReport(review_id=review_id, user_id=current_user.id, timestamp=now)
+        review_report = ReviewReport(review_id=review_id, user_id=user.id, timestamp=now)
         db.session.add(review_report)
     else:
         new_action = False
@@ -1334,21 +1385,11 @@ def route_review_report(review_id):
 
 @client.route('/reviews/<int:review_id>/feature', methods=['POST'])
 @roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
 def route_review_feature(review_id):
-    review = Review.query.filter_by(id=review_id).first()
-    if not review:
-        return jsonify({
-            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
-        }), httplib.BAD_REQUEST
-    if not (review.product and review.product.shop):
-        return jsonify({
-            "error": ExceptionMessages.CANT_FEATURE_THAT_REVIEW
-        }), httplib.BAD_REQUEST
-    review_shop = review.product.shop
-    if review_shop not in current_user.shops:
-        return jsonify({
-            "error": ExceptionMessages.CANT_FEATURE_THAT_REVIEW
-        }), httplib.UNAUTHORIZED
+    review = get_required_model_instance_by_id(Review, review_id)
+    verify_required_condition(condition=review.product and review.product.shop and review.product.shop not in current_user.shops,
+                              error_msg=ExceptionMessages.CANT_FEATURE_THAT_REVIEW)
     review_feature = ReviewFeature.query.filter_by(review_id=review_id).first()
     if not review_feature:
         now = datetime.datetime.utcnow()
@@ -1366,8 +1407,6 @@ def route_review_feature(review_id):
         })
     return redirect(request.referrer or url_for('client.reviews'))
 
-
-# TODO: From below - refactored with new quick verification functions (see top of file). Refactor the ones above too.
 
 @client.route('/reviews/<int:review_id>/share', methods=['POST'])
 @verify_requirements('client.reviews')
@@ -1391,7 +1430,6 @@ def route_review_share(review_id):
 @login_required
 def route_review_comment_create(review_id):
     # Verify required objects
-    review_id = get_required_parameter(request.form, 'review_id')
     body = get_required_parameter(request.form, 'body')
     review = get_required_model_instance_by_id(Review, review_id)
 
@@ -1491,22 +1529,8 @@ def route_product_review_create(product_id):
         image_url = g.config.get('OPINEW_API_SERVER') + url_for('media.get_review_image', filename=filename)
 
     # Create Review
-    now = datetime.datetime.utcnow()
-    review = Review(product=product,
-                    user=user,
-                    body=body,
-                    star_rating=star_rating,
-                    image_url=image_url,
-                    created_ts=now)
-    # Is this a verified review?
-    verify_review_request(review)
+    review = create_review(product=product, user=user, body=body, star_rating=star_rating, image_url=image_url)
 
-    # All checks pass, commit now
-    db.session.add(review)
-    db.session.commit()
-
-    # Start a pipeline to score the review's various characteristics
-    schedule_scoring_of_review(review.id)
     return generate_success_response_from_obj(obj=review, obj_name='review')
 
 
