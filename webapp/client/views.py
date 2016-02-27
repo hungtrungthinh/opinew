@@ -3,6 +3,7 @@ import datetime
 import requests
 import os
 import httplib
+import urllib
 from functools import wraps
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort, jsonify, send_file, Response, session
@@ -73,9 +74,21 @@ def verify_requirements(*redirect_url_for):
                     ctx_redirect = default_redirect if not default_redirect == request.path else None
                     if ctx_redirect:
                         break
-                return redirect(referer_redirect or
-                                ctx_redirect or
-                                url_for('client.index'))
+                # transfer form data to args
+
+                request_args = dict(request.args)
+                for k, w in request.form.iteritems():
+                    if k in ['password', 'csrf_token']:
+                        continue
+                    request_args[k] = w
+                final_redirect = referer_redirect or ctx_redirect or url_for('client.index')
+                # add the args to the final_redirect uri
+                query = urllib.urlencode(request_args)
+                if '?' in final_redirect:
+                    final_redirect = final_redirect.split('?')[0] + '?' + query
+                else:
+                    final_redirect += '?' + query
+                return redirect(final_redirect)
 
         return wrapper
 
@@ -104,7 +117,7 @@ def get_required_parameter(payload, param_name):
     :return:
     """
     obj = payload.get(param_name)
-    verify_required_condition(condition=obj is not None,
+    verify_required_condition(condition=obj,
                               error_msg=ExceptionMessages.MISSING_PARAM.format(param=param_name),
                               error_code=httplib.BAD_REQUEST)
     return obj
@@ -126,11 +139,12 @@ def get_required_model_instance_by_id(model, instance_id):
 
 
 def generate_success_response_from_obj(obj, obj_name):
-    ctx = g.response_context.pop()
-    if ctx.is_async:
+    payload = request.args if request.method in ['GET'] else request.form
+    is_async = payload.get('async')
+    if is_async:
         return jsonify(obj.serialize()), httplib.CREATED
     flash(SuccessMessages.SUCCESS_CREATING_OBJECT.format(object_name=obj_name))
-    return redirect(request.referrer or ctx.default_redirect)
+    return redirect(request.referrer)
 
 
 @client.route('/kitchen-sink')
@@ -1147,7 +1161,7 @@ def add_referer():
 # GET  /resources/<id>/sub_resources/act        -> execute idempotent action on single sub_resource of resource
 # POST /resources/<id>/sub_resources/act        -> execute action on single sub_resource of resource
 
-def get_or_create_user():
+def get_real_or_anonymous_user():
     """
     Gets the currently saved user - either anonymous or authenticated.
     If no user is authenticated, create one with the next id and store
@@ -1172,9 +1186,72 @@ def get_or_create_user():
     return user
 
 
+def upgrade_to_real_user(user):
+    user.is_legacy = False
+    # TODO: Generate password, send email to say 'hi'
+    db.session.add(user)
+    db.session.commit()
+
+
+def check_legacy_user(user):
+    if user.is_legacy:
+        # The user has been imported before from an order
+        upgrade_to_real_user(user)
+    else:
+        password = get_required_parameter(request.form, 'password')
+        # try to login user if password is correct
+        verify_required_condition(condition=verify_password(password, user.password),
+                                  error_msg=ExceptionMessages.WRONG_PASSWORD,
+                                  error_code=httplib.UNAUTHORIZED)
+        login_user(user)
+
+
+def validate_or_create_user(user):
+    name = get_required_parameter(request.form, 'name')
+    email = get_required_parameter(request.form, 'email')
+    # Check if that user already exists with this email:
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        # The user already exists somehow
+        check_legacy_user(existing_user)
+    elif not user.email:
+        # The user is completely anonymous, and it doesn't exist in
+        # our records - add details and create him officially
+        user.name = name
+        user.email = email
+        upgrade_to_real_user(user)
+
+
+def score_review(review_id):
+    # TODO: Move to async
+    # TODO: score this review's body contents for readibility, swear words etc.
+    review = get_required_model_instance_by_id(Review, review_id)
+    if 'fuck' in review.body:
+        review.offensive = 1.0
+    db.session.add(review)
+    db.session.commit()
+
+
+def verify_review_request(review):
+    review_request_id = request.form.get('review_request_id')
+    if review_request_id:
+        review_request_token = get_required_parameter(request.form, 'review_request_token')
+        review_request = get_required_model_instance_by_id(ReviewRequest, review_request_id)
+        verify_required_condition(condition=review_request.token == review_request_token)
+        verify_required_condition(condition=review_request.to_user == review.user)
+        verify_required_condition(condition=review_request.for_product == review.product)
+        review.verified_review = True
+
+
+def schedule_scoring_of_review(review_id):
+    # TODO: Create a task for scoring a review
+    pass
+
+
 @client.route('/blank_not_found')
 def route_blank_not_found():
     return '', 404
+
 
 @client.route('/no_redirect')
 def no_redirect():
@@ -1199,16 +1276,18 @@ def route_plugin_product():
         platform_product_id = param_required('platform_product_id', request.args)
         product = Product.query.filter_by( platform_product_id=platform_product_id).first()
     product_objs = rank_objects_for_product(product.id)
+    review_form = ReviewForm(request.args)
     return render_template('simple/product_plugin.html',
                            product=product,
-                           product_objs=product_objs)
+                           product_objs=product_objs,
+                           review_form=review_form)
 
 
 @client.route('/reviews/<int:review_id>/like', methods=['POST'])
 @verify_requirements('client.reviews')
 def route_review_like(review_id):
     review = get_required_model_instance_by_id(Review, review_id)
-    user = get_or_create_user()
+    user = get_real_or_anonymous_user()
     # verify that this user hasn't liked it before
     review_like = ReviewLike.query.filter_by(review_id=review_id, user_id=user.id).first()
     if not review_like:
@@ -1385,60 +1464,18 @@ def route_product_review_search(product_id):
 
 
 @client.route('/products/<int:product_id>/reviews/create', methods=['POST'])
-@verify_requirements('client.reviews')
+@verify_requirements('client.product_review_create')
 @limiter.limit(Constants.RATELIMIT_CREATE_OBJECTS)
 def route_product_review_create(product_id):
-    g_recaptcha_required = False
-    verified_review = False
-
     # Verify required objects
     product = get_required_model_instance_by_id(Product, product_id)
 
-    # Get user
-    if current_user:
-        user = current_user
-    else:
-        g_recaptcha_required = True
-        name = request.form.get('name')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        user = User.query.filter_by(email=email).first()
-        if user:
-            if password:
-                # try to login user if exists
-                verify_required_condition(condition=verify_password(password, user.password),
-                                          error_msg=ExceptionMessages.WRONG_PASSWORD,
-                                          error_code=httplib.UNAUTHORIZED)
-                login_user(user)
-            else:
-                # the user exists but password is not provided. Return the form with password required
-                flash(ExceptionMessages.PASSWORD_REQUIRED)
-                return redirect(url_for('client.create_review', product_id=product_id, password_req=1))
-        if not user:
-            # check if the user is a legacy one
-            user = UserLegacy.query.filter_by(email=email).first()
-        if not user:
-            # okay, nothing of this user exists in any of our records, create
-            # TODO: post creation hook
-            user = User(email=email,
-                        name=name)
-
-    if g_recaptcha_required:
-        # verify recaptcha
-        recaptcha = get_required_parameter(request.form, 'g-recaptcha-response')
-        r = requests.post(current_app.config.get("RECAPTCHA_URL"),
-                          data={
-                              'secret': current_app.config.get("RECAPTCHA_SECRET"),
-                              'response': recaptcha,
-                              'remoteip': request.remote_addr
-                          })
-        verify_required_condition(condition=r and r.status_code == 200 and r.json() and r.json().get('success'),
-                                  error_msg=ExceptionMessages.CAPTCHA_FAIL,
-                                  error_code=httplib.UNAUTHORIZED)
+    user = get_real_or_anonymous_user()
+    if not user.is_authenticated():
+        validate_or_create_user(user)
 
     # Get the rest of the parameters
     body = request.form.get('body')
-    # TODO: push the body of the review through a pipeline for general verification - swear words, etc.
 
     star_rating = request.form.get('star_rating')
     if star_rating and star_rating.isdigit():
@@ -1453,13 +1490,6 @@ def route_product_review_create(product_id):
         filename = review_images.save(file)
         image_url = g.config.get('OPINEW_API_SERVER') + url_for('media.get_review_image', filename=filename)
 
-    # TODO: add review_request_id in add_review_simple
-    review_request_id = request.form.get('review_request_id')
-    if review_request_id:
-        # TODO: check out the conditions here - should return true or false, not throw an error
-        verify_required_condition(condition=Review.verify_review_request(request.args))
-        verified_review = True
-
     # Create Review
     now = datetime.datetime.utcnow()
     review = Review(product=product,
@@ -1467,10 +1497,16 @@ def route_product_review_create(product_id):
                     body=body,
                     star_rating=star_rating,
                     image_url=image_url,
-                    verified_review=verified_review,
                     created_ts=now)
+    # Is this a verified review?
+    verify_review_request(review)
+
+    # All checks pass, commit now
     db.session.add(review)
     db.session.commit()
+
+    # Start a pipeline to score the review's various characteristics
+    schedule_scoring_of_review(review.id)
     return generate_success_response_from_obj(obj=review, obj_name='review')
 
 
@@ -1483,3 +1519,12 @@ def route_review(review_id):
                            page_title='Review by %s about %s' % (review.user_name, review.product.name),
                            page_description=review.body,
                            page_image=review.image_url)
+
+
+# Override some of the Flask-Security Functionality to support natively UserLegacy
+# Can be found in venv/local/lib/python2.7/site-packages/flask_security/views.py
+@client.route('/register', methods=['GET', 'POST'])
+def register():
+    register_user_form = ExtendedRegisterForm(request.form)
+    return render_template('security/register_user.html',
+                           register_user_form=register_user_form)

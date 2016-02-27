@@ -1,5 +1,5 @@
 from flask.ext.wtf import Form
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, FileField, HiddenField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, FileField, HiddenField, RadioField
 from wtforms.validators import DataRequired, Email, Length, EqualTo
 from flask_security.forms import ConfirmRegisterForm
 
@@ -36,9 +36,18 @@ class ReviewImageForm(Form):
 
 
 class ReviewForm(Form):
+    name = StringField('Name')
+    email = StringField('Email', validators=[Email()])
+    password = PasswordField('Password', validators=[])
     body = TextAreaField('', validators=[Length(max=260)])
-    image_url = StringField()
-    submit = SubmitField('Post')
+    star_rating = RadioField('Label', choices=[(1,''),
+                                               (2,''),
+                                               (3,''),
+                                               (4,''),
+                                               (5,'')])
+    image_url = HiddenField()
+    review_request_id = HiddenField()
+    review_request_token = HiddenField()
 
 
 class ReviewRequestForm(Form):

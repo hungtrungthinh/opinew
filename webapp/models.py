@@ -5,7 +5,7 @@ import re
 import pytz
 from dateutil import parser as date_parser
 from sqlalchemy import and_
-from flask import url_for, abort, redirect, request
+from flask import url_for, abort, redirect, request, session
 from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
@@ -59,6 +59,7 @@ class User(db.Model, UserMixin, Repopulatable):
     email = db.Column(db.String)
     roles = db.relationship("Role", secondary=roles_users_table,
                             backref=db.backref('users', lazy='dynamic'))
+    is_legacy = db.Column(db.Boolean)
     is_shop_owner = db.Column(db.Boolean, default=False)
     temp_password = db.Column(db.String)
     password = db.Column(db.String)
@@ -75,6 +76,9 @@ class User(db.Model, UserMixin, Repopulatable):
     last_login_ip = db.Column(db.String(40))
     current_login_ip = db.Column(db.String(40))
     login_count = db.Column(db.Integer)
+
+    def is_authenticated(self):
+        return session.get('user_id') == self.id
 
     @classmethod
     def exclude_fields(cls):

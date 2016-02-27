@@ -1,67 +1,48 @@
+{% import "_macros.html" as macros %}
 <div class="container" id="add-review">
   <div class="pull-right">
     {% if current_user.is_authenticated() %}
       <div class="review-author">
-      <span class="person-img sprite sprite-mystery-man"
-            data-gravatar-url="{{ current_user.image_url }}"></span>
+        <span class="person-img sprite sprite-mystery-man" data-gravatar-url="{{ current_user.image_url }}"></span>
         <p class="person-name">
           {{ current_user.name }}<br>
           <a href="/logout">Log out</a>
         </p>
       </div>
     {% else %}
-      <a href="/login">Log in</a> | <a href="/register">Register</a>
+      <a href="/login">Log in</a> | <a href="{{ url_for('client.register') }}">Register</a>
     {% endif %}
   </div>
   <p>What is your experience with <strong>{{ product.name }}</strong>?</p>
   <form action="{{ url_for('client.route_product_review_create', product_id=product.id) }}" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
+    {{ review_form.hidden_tag() }}
+    {{ review_form.review_request_id() }}
+    {{ review_form.review_request_token() }}
     <fieldset class="rating">
-      <input type="radio" id="star5" name="star_rating" value="5" class="form-serialize"
-             {% if request.args.get('like') == '1' %}checked="checked"{% endif %}
-             {% if review and review.star_rating == 5 %}checked="checked"{% endif %}/>
-      <label for="star5" title="Rocks!">5 stars</label>
-      <input type="radio" id="star4" name="star_rating" value="4" class="form-serialize"
-             {% if review and review.star_rating == 4 %}checked="checked"{% endif %}/>
-      <label for="star4" title="Pretty good">4 stars</label>
-      <input type="radio" id="star3" name="star_rating" value="3" class="form-serialize"
-             {% if review and review.star_rating == 3 %}checked="checked"{% endif %}/>
-      <label for="star3" title="Meh">3 stars</label>
-      <input type="radio" id="star2" name="star_rating" value="2" class="form-serialize"
-             {% if review and review.star_rating == 2 %}checked="checked"{% endif %}/>
-      <label for="star2" title="Kinda bad">2 stars</label>
-      <input type="radio" id="star1" name="star_rating" value="1" class="form-serialize"
-             {% if request.args.get('like') == '0' %}checked="checked"{% endif %}
-             {% if review and review.star_rating == 1 %}checked="checked"{% endif %}/>
-      <label for="star1" title="Sucks big time">1 star</label>
+      {% for subfield in review_form.star_rating|reverse %}
+        {{ subfield() }}
+        {{ subfield.label }}
+      {% endfor %}
     </fieldset>
-
     <div id="review-body-wrapper">
       {% if not current_user.is_authenticated() %}
         <div>
-          <label for="review-name" class="left-label">Name: </label>
-          <input type="text" name="name" id="review-name" placeholder="your name..." class="right-input"/>
+          {{ review_form.name.label(class="left-label") }}
+          {{ review_form.name(class="right-input") }}
         </div>
-
         <div>
-          <label for="review-email" class="left-label">Email: </label>
-          <input type="email" name="email" id="review-email" placeholder="your email..." class="right-input"/>
+          {{ review_form.email.label(class="left-label") }}
+          {{ review_form.email(class="right-input") }}
+        </div>
+        <div {% if not request.form.email %}hidden{% endif %}>
+          {{ review_form.password.label(class="left-label") }}
+          {{ review_form.password(class="right-input") }}
         </div>
       {% endif %}
-
-      <textarea name="body" class="validate[required,length[6,300]] feedback-input" id="review-body"
-                placeholder="Your review..."></textarea>
-
-      <input type="hidden" name="image_url"/>
+      {{ review_form.body(placeholder="Your review...", id="review-body") }}
+      {{ review_form.image_url() }}
       <input type="file" name="image" id="review-image" class="inputfile"/>
-      <label for="review-image" class="btn btn-default">Add a photo <span
-          class="sprite sprite-add-photo"></span></label>
-
-      {% if not current_user.is_authenticated() %}
-        <div class="g-recaptcha" data-sitekey="6LdafxETAAAAABCLBbhvuRX-qhgJH8SJOCOPf5-C"></div>
-        <script defer src='https://www.google.com/recaptcha/api.js'></script>
-      {% endif %}
+      <label for="review-image" class="btn btn-default">Add a photo <span class="sprite sprite-add-photo"></span></label>
     </div>
     <button type="submit" class="btn-primary pull-right">Post</button>
     <div class="clearfix"></div>
