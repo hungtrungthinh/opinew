@@ -50,6 +50,16 @@ class AnalyticsView(BaseView):
                            tasks=tasks)
 
 
+class EmailRenderView(BaseView):
+    @expose('/')
+    @login_required
+    @roles_required(Constants.ADMIN_ROLE)
+    def stats(self):
+        from webapp import models
+        template_names = Constants.HTML_TO_INLINE_FILENAMES
+        return self.render('admin/email_render.html', template_names=template_names)
+
+
 csrf = CsrfProtect()
 db = SQLAlchemy()
 babel = Babel()
@@ -58,6 +68,7 @@ migrate = Migrate()
 mail = Mail()
 admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
 admin.add_view(AnalyticsView(name="Analytics", endpoint='analytics'))
+admin.add_view(EmailRenderView(name="Email Renders", endpoint='email-renders'))
 security = Security()
 api_manager = APIManager()
 compress = Compress()

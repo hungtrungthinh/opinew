@@ -1,0 +1,31 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+
+<h2>Welcome to the motherfuckin' email renderer!</h2>
+
+  <form id="render-form" method="get" action="/render-email">
+    <div class="col-xs-6">
+      <select id="template-name" class="form-control form-serialize" name="template_name">
+        {% for template_name in template_names %}
+          <option value="{{ template_name }}">
+            {{ template_name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-xs-6">
+      <button id="submit-render-form" type="submit" class="btn btn-success">Render this motherfucker!</button>
+    </div>
+  </form>
+    <div><br><br>
+    <h3>Email start</h3>
+    </div>
+    <div id="email-render-container">
+
+    </div>
+    <div>
+        <h3>Email end</h3>
+        <br><br><br><br></div>
+<script defer src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

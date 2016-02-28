@@ -902,9 +902,14 @@ def render_order_review_email():
     return render_template('email/review_order.html', **template_ctx)
 
 
-@client.route('/render-marketing-email')
-def render_marketing_email():
-    return render_template('email/shop_marketing_opinew_simple.html')
+@client.route('/render-email')
+@login_required
+@roles_required(Constants.ADMIN_ROLE)
+def render_email():
+    from util.email_inliner import inline_email
+    template_name = request.args.get('template_name')
+    inline_email(template_name)
+    return render_template('email/'+template_name)
 
 
 @client.route('/fake-shopify-api', defaults={'shop': None})

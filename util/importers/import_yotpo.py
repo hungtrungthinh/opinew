@@ -11,6 +11,8 @@ from importer import OpinewImporter
 We are assuming that the shop from which the reviews came, is already registered
 and we imported all of its products.
 """
+
+
 class YotpoImpoter(OpinewImporter):
 
     def __init__(self, shop_id):
@@ -32,7 +34,6 @@ class YotpoImpoter(OpinewImporter):
                     output.append(row_dict)
         return output
 
-
     def import_reviews(self, yotpo_csv_filepath=None):
         yotpo_reviews = self.csv_to_dicts_YOTPO(yotpo_csv_filepath)
         num_of_reviews = len(yotpo_reviews)
@@ -40,7 +41,6 @@ class YotpoImpoter(OpinewImporter):
         for row in yotpo_reviews:
             #gets an instance of a user or legacy user
             user = self.create_or_match_user_from_review_data(row["display_name"], row["email"])
-
             try:
                 self.import_review_from_yotpo_data(row["review_content"], row["product_title"],
                                                      row["review_score"], row["date"],

@@ -60,6 +60,16 @@ class Constants(object):
     DEFAULT_LINK_SHORT_SIZE = 42
     DEFAULT_ANONYMOUS_USER_NAME = "Anonymous"
 
+    HTML_TO_INLINE_FILENAMES = ["review_order.html",
+                                "shop_marketing.html",
+                                "shop_marketing_opinew_simple.html",
+                                "new_reviewer_user.html",
+                                "new_shop_owner_user.html",
+                                "review_us.html",
+                                "card_details.html"]
+
+    OPINEW_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
     TRIAL_PERIOD_DAYS = 30
 
     EXPECTED_WEBHOOKS = 6
@@ -80,6 +90,7 @@ class Constants(object):
     ORDER_ACTION_CANCEL_REVIEW = 'CANCEL_REVIEW'
 
     DIFF_SHIPMENT_NOTIFY = 14
+    DEFAULT_EXPORT_DESTINATION = os.path.join(basedir, 'util', 'review_exports')
 
     DESKTOP_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36'
     MOBILE_USER_AGENT = 'Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_2_1 like Mac OS X; en-us) AppleWebKit/533.17.9 (KHTML, like Gecko) Version/5.0.2 Mobile/8C148 Safari/6533.18.5'

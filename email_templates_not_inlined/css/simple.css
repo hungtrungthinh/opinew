@@ -88,7 +88,7 @@ p, ul, ol {
       text-transform: uppercase; }
   .container .content {
     background: white;
-    padding: 0; }
+    padding: 15px; }
     .container .content.footer {
       background: none; }
       .container .content.footer p {
@@ -124,7 +124,9 @@ p, ul, ol {
 		*[class=row]{display:table-row!important; width:100%!important;}
         *[class=content]{padding:0px !important;}
 		}
-
+@media screen and (min-width: 640px) {
+  *[class=content]{padding:20px !important;}
+}
 .opening {
   padding-top:30px;
 }
