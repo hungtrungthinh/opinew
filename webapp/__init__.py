@@ -43,11 +43,9 @@ class AnalyticsView(BaseView):
     def stats(self):
         from webapp import models
         from async import celery_async
-        tasks = celery_async.get_scheduled_tasks()
-        shops = models.Shop.query.all()
+        customers=models.Customer.query.all()
         return self.render('admin/analytics.html',
-                           shops=shops,
-                           tasks=tasks)
+                           customers=customers)
 
 
 class EmailRenderView(BaseView):
@@ -118,6 +116,8 @@ def create_app(option):
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
     with app.app_context():
+        from providers import database, payment
+
         if not app.testing:
             verify_initialization()
 
@@ -145,6 +145,8 @@ def create_app(option):
             g.mode = app.config.get('MODE')
             g.response_context = []
             g.s = strings
+            g.payment = payment.OpinewStripeFacade()
+            g.db = database.OpinewSQLAlchemyFacade()
 
         @app.after_request
         def redirect_if_next(response_class):

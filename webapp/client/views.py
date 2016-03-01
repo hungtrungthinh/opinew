@@ -7,14 +7,14 @@ from flask import request, redirect, url_for, render_template, flash, g, send_fr
     current_app, make_response, abort, jsonify, send_file, Response
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
-from providers.shopify_api import API
+from providers.shopify_api import OpinewShopifyFacade
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
     ReviewFeature, UrlReferer, Comment, Answer
 from webapp.common import param_required, catch_exceptions, get_post_payload
-from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages, RequirementException
+from webapp.exceptions import ParamException, DbException, ExceptionMessages, RequirementException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm
 from config import Constants, basedir
 from providers import giphy
@@ -127,18 +127,6 @@ def generate_success_response_from_obj(obj, obj_name):
     return redirect(request.referrer or ctx.default_redirect)
 
 
-@client.route('/kitchen-sink')
-@roles_required(Constants.ADMIN_ROLE)
-@login_required
-def kitchen_sink():
-    flash('This is dangerous', category=Constants.ALERT_ERROR_LABEL)
-    flash('Careful hello!!', category=Constants.ALERT_WARNING_LABEL)
-    flash('hello?', category=Constants.ALERT_INFO_LABEL)
-    flash('hello okay', category=Constants.ALERT_PRIMARY_LABEL)
-    flash('YES hello', category=Constants.ALERT_SUCCESS_LABEL)
-    return render_template('dev/kitchen_sink.html')
-
-
 @client.route('/')
 def index():
     if current_user.is_authenticated():
@@ -163,50 +151,37 @@ def privacy_policy():
     return render_template('legal/privacy_policy.html', page_title="Privacy Policy - ")
 
 
-@client.route('/install')
+@client.route('/platforms/<platform_name>/shops/install')
 @catch_exceptions
-def install():
+def platform_shop_install(platform_name):
     """
     First step of the oauth process - generate address
     for permission grant from user
     :return:
     """
-    ref = request.args.get('ref')
-    if ref == 'shopify':
-        return install_shopify_step_one()
+    if platform_name == Constants.SHOPIFY_PLATFORM_NAME:
+        return redirect(generate_oath_callback_url_for_shopify_app())
     return redirect('/register', **request.args)
 
 
-def install_shopify_step_one():
-    shop_domain = param_required('shop', request.args)
-    if not len(shop_domain) > 14:
-        raise ParamException('invalid shop domain', 400)
-    shop_domain_ends_in = shop_domain[-14:]
-    shop_name = shop_domain[:-14]
-    if not shop_domain_ends_in or not shop_domain_ends_in == '.myshopify.com':
-        raise ParamException('incorrect shop name', 400)
-    shop = Shop.query.filter_by(domain=shop_domain).first()
-    if shop and shop.access_token:
-        # check that the access token is still valid
-        shopify_api = API(shop_domain=shop_domain, access_token=shop.access_token)
-        try:
-            webhooks_count = shopify_api.check_webhooks_count()
-            # okay, the token is still valid!
-            if not webhooks_count == Constants.EXPECTED_WEBHOOKS:
-                raise DbException('invalid count of webhooks')
-            return redirect(url_for('client.shop_dashboard'))
-        except (ApiException, DbException) as e:
-            # The token is no longer valid, delete
-            shop.access_token = None
-            db.session.add(shop)
-            db.session.commit()
+def generate_oath_callback_url_for_shopify_app():
+    """
+    Generate URL to redirect back to after a user has given permissions on the shopify store
+    :return:
+    """
+    shop_domain = get_required_parameter(request.args, 'shop')
+    shop = g.db.Shop.get_by_domain(shop_domain)
+    opinew_shopify = OpinewShopifyFacade(shop=shop)
 
-    client_id = g.config.get('SHOPIFY_APP_API_KEY')
-    scopes = g.config.get('SHOPIFY_APP_SCOPES')
+    if not opinew_shopify.shop_has_valid_token():
+        return redirect(url_for('client.shop_dashboard'))
 
-    nonce = shop_name
+    client_id = current_app.config.get('SHOPIFY_APP_API_KEY')
+    scopes = current_app.config.get('SHOPIFY_APP_SCOPES')
 
-    redirect_uri = '%s/oauth/callback' % g.config.get('OPINEW_API_SERVER')
+    nonce = opinew_shopify.shop_name
+
+    redirect_uri = '%s/platforms/shopify/create' % g.config.get('OPINEW_API_SERVER')
 
     url = 'https://{shop}/admin/oauth/authorize' \
           '?client_id={api_key}' \
@@ -214,68 +189,34 @@ def install_shopify_step_one():
           '&redirect_uri={redirect_uri}' \
           '&state={nonce}'.format(
             shop=shop_domain, api_key=client_id, scopes=scopes, redirect_uri=redirect_uri, nonce=nonce)
-    return redirect(url)
+    return url
 
 
-@client.route('/oauth/callback')
-@catch_exceptions
-def shopify_plugin_callback():
+@client.route('/platforms/<platform_name>/shops/create')
+@verify_requirements('client.home')
+def platform_shop_create(platform_name):
     """
     Seconds step of the oauth process - verify callback and
     send request for an access token
     :return:
     """
-    client_id = g.config.get('SHOPIFY_APP_API_KEY')
-    client_secret = g.config.get('SHOPIFY_APP_SECRET')
+    if platform_name == Constants.SHOPIFY_PLATFORM_NAME:
+        return create_shopify_shop()
+    return redirect('/register', **request.args)
 
-    nonce_request = param_required('state', request.args)
-    hmac_request = param_required('hmac', request.args)
-    shop_domain = param_required('shop', request.args)
-    code = param_required('code', request.args)
 
-    shop_name = shop_domain[:-14]
+def create_shopify_shop():
+    nonce_request = get_required_parameter(request.args, 'state')
+    hmac_request = get_required_parameter(request.args, 'hmac')
+    shop_domain = get_required_parameter(request.args, 'shop')
+    code = get_required_parameter(request.args, 'code')
 
-    # Initialize the API
-    shopify_api = API(client_id, client_secret, shop_domain)
-    shopify_api.initialize_api(nonce_request=nonce_request, hmac_request=hmac_request, code=code)
-
-    # Get shop and products info from API
-    shopify_shop = shopify_api.get_shop()
-
-    # Create db records
-    # Create shop user, generate pass
-    shop_owner_email = shopify_shop.get('email', '')
-    shop_owner_name = shopify_shop.get('shop_owner', '')
-    shop_owner, is_new = User.get_or_create_by_email(shop_owner_email,
-                                                     role_name=Constants.SHOP_OWNER_ROLE,
-                                                     name=shop_owner_name,
-                                                     plan_name=Constants.PLAN_NAME_SHOPIFY_SIMPLE)
-    if is_new:
-        db.session.add(shop_owner)
-        db.session.commit()
-    shop_owner_id = shop_owner.id
-
-    # Create shop with owner = shop_user
-    shopify_platform = Platform.get_by_name('shopify')
-    shop = Shop(name=shop_name,
-                domain=shop_domain,
-                platform=shopify_platform,
-                access_token=shopify_api.access_token,
-                owner=shop_owner)
-    shop_owner.shops.append(shop)
-    db.session.add(shop)
-    db.session.commit()
-
-    # asyncronously create all products, orders and webhooks
-    from async import tasks
-
-    args = dict(shopify_api=shopify_api, shop_id=shop.id)
-    task = Task.create(method=tasks.create_shopify_shop, args=args)
-    db.session.add(task)
-    db.session.commit()
+    opinew_shopify = OpinewShopifyFacade()
+    shop = opinew_shopify.create_shop(shop_domain=shop_domain, hmac_request=hmac_request,
+                                      code=code, nonce_request=nonce_request)
 
     # Login shop_user
-    shop_owner = User.query.filter_by(id=shop_owner_id).first()
+    shop_owner = g.db.User.get_by_id(shop.owner_id)
     login_user(shop_owner)
     return redirect(url_for('client.setup_plugin', shop_id=shop.id))
 
@@ -284,6 +225,23 @@ def shopify_plugin_callback():
 from flask.ext.security import user_registered
 
 user_registered.connect(User.post_registration_handler)
+
+
+@client.route('/register', methods=['GET', 'POST'])
+@verify_requirements('client.index')
+def register():
+    """
+    Override flask.security register
+    :return:
+    """
+    if current_user.is_authenticated():
+        return redirect(request.referrer or url_for('client.index'))
+    register_user_form = ExtendedRegisterForm()
+    if register_user_form.validate_on_submit():
+        user = g.db.User.create(**request.form.to_dict())
+        g.db.add(user)
+        g.db.push()
+    return render_template('security/register_user.html', register_user_form=register_user_form)
 
 
 @client.route('/', defaults={'review_request_token': ''})

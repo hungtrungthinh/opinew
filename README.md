@@ -9,7 +9,7 @@ Create python virtual environment, install required packages and populate the da
 1. Install the following packages (ubuntu 12.04 and 14.04):
 
     sudo apt-get update
-    sudo apt-get install git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev amqp-tools libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk
+    sudo apt-get install git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev amqp-tools libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk postgresql-server-dev-9.3 libxml2-dev libxslt1-dev python-dev
 
 
 1. Set up a virtual environment
@@ -18,11 +18,17 @@ Create python virtual environment, install required packages and populate the da
     venv/bin/activate
     pip install -r requirements.txt
     
-1. Set up postgres database
+1. Create development and testing databases. See `sensitive.py` for the password.
 
-1. Initialize database
+    sudo -u postgres createuser -sP opinew_user
+    sudo su - postgres
+    createdb opinew
+    createdb opinew_test
+    exit
+    
+1. Finally, create the tables in the database. As own user run:
 
-    ./run_development.py db init
+    ./run_production.py db upgrade
     
 ## Changes
 

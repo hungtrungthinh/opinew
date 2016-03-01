@@ -183,6 +183,9 @@ class Constants(object):
     NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON = 'pencil'
     NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR = COLOR_OPINEW_AQUA
 
+    SHOPIFY_PLATFORM_NAME = 'shopify'
+    SHOPIFY_DEFAULT_PLAN_NAME = 'shopify_basic'
+
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),

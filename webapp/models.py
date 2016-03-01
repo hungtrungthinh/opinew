@@ -5,7 +5,7 @@ import re
 import pytz
 from dateutil import parser as date_parser
 from sqlalchemy import and_
-from flask import url_for, abort, redirect, request
+from flask import url_for, abort, redirect, request, g
 from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
@@ -13,7 +13,7 @@ from flask_resize import resize
 
 from webapp import db, admin, gravatar
 from webapp.exceptions import DbException
-from providers import stripe_payment
+from providers import payment
 from config import Constants
 from webapp.common import generate_temp_password, random_pwd
 from assets import strings
@@ -64,6 +64,8 @@ class User(db.Model, UserMixin, Repopulatable):
     password = db.Column(db.String)
     name = db.Column(db.String)
     image_url = db.Column(db.String)
+
+    is_legacy = db.Column(db.Boolean, default=False)
 
     unsubscribed = db.Column(db.Boolean, default=False)
     unsubscribe_token = db.Column(db.String)
@@ -220,16 +222,18 @@ class User(db.Model, UserMixin, Repopulatable):
                            confirmed_at=datetime.datetime.utcnow(),
                            **kwargs)
 
-            # Check the role for the new user
-            if role_name == Constants.SHOP_OWNER_ROLE:
-                instance.is_shop_owner = True
-
             # Reassign the orders and review requests from legacy user
             if user_legacy:
                 cls.reassign_legacy_user_data_and_delete(user_legacy, instance)
 
             # Handle creation of customer and roles
             User.post_registration_handler(user=instance, plan_name=plan_name)
+        # Check the role for the new user
+        if role_name == Constants.SHOP_OWNER_ROLE:
+            instance.is_shop_owner = True
+        role = Role.query.filter_by(name=role_name).first()
+        if role:
+            instance.roles.append(role)
         return instance, is_new
 
     @classmethod
@@ -297,13 +301,8 @@ class Customer(db.Model, Repopulatable):
     last4 = db.Column(db.String)
     active = db.Column(db.Boolean, default=True)
 
-    def create(self, **kwargs):
-        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.create_customer(self)
-        return self
-
     def add_payment_card(self, stripe_token, **kwargs):
-        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
+        stripe_opinew_adapter = payment.OpinewStripeFacade()
         stripe_opinew_adapter.create_paying_customer(self, stripe_token)
         return self
 
@@ -324,7 +323,7 @@ class Plan(db.Model, Repopulatable):
     stripe_plan_id = db.Column(db.String)
 
     def create(self):
-        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
+        stripe_opinew_adapter = payment.OpinewStripeFacade()
         stripe_opinew_adapter.create_plan(self)
         return self
 
@@ -341,23 +340,14 @@ class Subscription(db.Model, Repopulatable):
     plan_id = db.Column(db.Integer, db.ForeignKey('plan.id'))
     plan = db.relationship("Plan", backref=db.backref("subscription"), uselist=False)
 
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    shop = db.relationship("Shop", backref=db.backref("subscription"), uselist=False)
+
     timestamp = db.Column(db.DateTime)
 
     stripe_subscription_id = db.Column(db.String)
 
-    def create(self):
-        self.timestamp = datetime.datetime.utcnow()
-        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.create_subscription(self)
-        return self
-
-    @classmethod
-    def update(cls, instance, plan):
-        assert instance is not None
-        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        instance = stripe_opinew_adapter.update_subscription(instance, plan)
-        instance.plan = plan
-        return instance
+    trialed_for = db.Column(db.Integer, default=0)
 
     def __repr__(self):
         return '<Subscription of %r by %r>' % (self.plan, self.customer)
@@ -1110,6 +1100,9 @@ class Shop(db.Model, Repopulatable):
 
     platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
     platform = db.relationship("Platform", backref=db.backref("platform"))
+
+    active = db.Column(db.Boolean)
+
 
     def update_access_token(self, access_token):
         self.access_token = access_token
