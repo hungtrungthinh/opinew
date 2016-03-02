@@ -1,10 +1,9 @@
-import pytz
-from dateutil import parser as date_parser
+import datetime
 from flask import jsonify, request
 from webapp import db, models, exceptions, csrf
 from webapp.api import api
 from webapp.common import get_post_payload, catch_exceptions, verify_webhook, build_created_response
-from providers import shopify_api
+from providers.shopify_api import OpinewShopifyFacade
 
 
 @api.route('/platform/shopify/products/create', methods=['POST'])
@@ -105,7 +104,8 @@ def platform_shopify_create_order():
     shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
-    shopify_api.create_order(shop, payload)
+    opinew_shopify = OpinewShopifyFacade(shop=shop)
+    opinew_shopify.create_order(payload)
     return jsonify({}), 201
 
 
@@ -121,7 +121,8 @@ def platform_shopify_fulfill_order():
     shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
-    shopify_api.fulfill_order(shop, payload)
+    opinew_shopify = OpinewShopifyFacade(shop=shop)
+    opinew_shopify.fulfill_order(payload)
     return jsonify({}), 200
 
 
@@ -141,6 +142,15 @@ def platform_shopify_app_uninstalled():
         for task in order.tasks:
             task.revoke()
             db.session.add(task)
-    db.session.delete(shop)
-    db.session.commit()
+    # Mark shop as inactive
+    shop.active = False
+    db.session.add(shop)
+
+    # Find subscription
+    subscription = shop.owner.customer[0].subscription
+
+    #Update trialed for days
+    g.db.Subscription.cancel(subscription)
+    g.db.add(subscription)
+    g.db.push()
     return jsonify({}), 200

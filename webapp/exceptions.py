@@ -6,7 +6,7 @@ class ExceptionMessages(object):
     PARAM_NOT_INTEGER = '{param} needs to be an integer.'
     PRODUCT_NOT_WITHIN_SHOP_DOMAIN = "Product url needs to start with the shop domain: {shop_domain}"
     CAPTCHA_FAIL = 'CAPTCHA failed'
-    USER_EXISTS = 'User %s already exists'
+    USER_EXISTS = 'User {user_email} already exists'
     DOMAIN_NEEDED = "Sorry, we couldn't process your shop domain name. " \
                     "Are you sure it looks like one of these? " \
                     "https://www.shop.com, http://www.shop.com, www.shop.com"
