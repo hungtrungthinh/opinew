@@ -1,4 +1,6 @@
 import stripe
+import datetime
+import time
 from flask import current_app
 from config import Constants
 
@@ -13,10 +15,16 @@ class PaymentInterface(object):
     def create_plan(self, opinew_plan):
         raise NotImplementedError()
 
-    def create_subscription(self, opinew_subscription):
+    def create_subscription(self, opinew_subscription, opinew_customer, opinew_plan):
+        raise NotImplementedError()
+
+    def create_subscription_from_existing(self, opinew_subscription):
         raise NotImplementedError()
 
     def update_subscription(self, opinew_subscription, opinew_new_plan):
+        raise NotImplementedError()
+
+    def cancel_subscription(self, opinew_subscription):
         raise NotImplementedError()
 
 
@@ -60,9 +68,22 @@ class StripeAPI(PaymentInterface):
             )
         return plan
 
-    def create_subscription(self, opinew_subscription):
-        customer = self.stripe_proxy.Customer.retrieve(opinew_subscription.customer.stripe_customer_id)
-        customer.subscriptions.create(plan=opinew_subscription.plan.stripe_plan_id)
+    def create_subscription(self, opinew_subscription, opinew_customer, opinew_plan):
+        customer = self.stripe_proxy.Customer.retrieve(opinew_customer.stripe_customer_id)
+        customer.subscriptions.create(plan=opinew_plan.stripe_plan_id)
+        subscription = customer.save()
+        return subscription.subscriptions.data[0]
+
+    def create_subscription_from_existing(self, opinew_subscription):
+        opinew_customer = opinew_subscription.customer
+        opinew_plan = opinew_subscription.plan
+        elapsed_days = opinew_subscription.trialed_for or 0
+        days_til_trial_end = Constants.TRIAL_PERIOD_DAYS - elapsed_days
+        now = datetime.datetime.utcnow()
+        trial_end_dt = now + datetime.timedelta(days=days_til_trial_end)
+        trial_end = int(time.mktime(trial_end_dt.timetuple()))
+        customer = self.stripe_proxy.Customer.retrieve(opinew_customer.stripe_customer_id)
+        customer.subscriptions.create(plan=opinew_plan.stripe_plan_id, trial_end=trial_end)
         subscription = customer.save()
         return subscription.subscriptions.data[0]
 
@@ -71,6 +92,11 @@ class StripeAPI(PaymentInterface):
         subscription = customer.subscriptions.retrieve(opinew_subscription.stripe_subscription_id)
         subscription.plan = opinew_new_plan.stripe_plan_id
         subscription.save()
+        return subscription
+
+    def cancel_subscription(self, opinew_subscription):
+        customer = self.stripe_proxy.Customer.retrieve(opinew_subscription.customer.stripe_customer_id)
+        subscription = customer.subscriptions.retrieve(opinew_subscription.stripe_subscription_id).delete()
         return subscription
 
     def create_token(self, number, cvc, exp_month, exp_year):
@@ -92,7 +118,7 @@ class StripeAPI(PaymentInterface):
         )
 
 
-class StripeOpinewAdapter(PaymentInterface):
+class OpinewStripeFacade(PaymentInterface):
     def __init__(self):
         self.stripe_api = StripeAPI(current_app.config.get('STRIPE_API_KEY'))
 
@@ -114,12 +140,22 @@ class StripeOpinewAdapter(PaymentInterface):
         opinew_plan.stripe_plan_id = stripe_plan.id
         return opinew_plan
 
-    def create_subscription(self, opinew_subscription):
-        stripe_subscription = self.stripe_api.create_subscription(opinew_subscription)
+    def create_subscription(self, opinew_subscription, opinew_customer, opinew_plan):
+        stripe_subscription = self.stripe_api.create_subscription(opinew_subscription, opinew_customer, opinew_plan)
+        opinew_subscription.stripe_subscription_id = stripe_subscription.id
+        return opinew_subscription
+
+    def create_subscription_from_existing(self, opinew_subscription):
+        stripe_subscription = self.stripe_api.create_subscription_from_existing(opinew_subscription)
         opinew_subscription.stripe_subscription_id = stripe_subscription.id
         return opinew_subscription
 
     def update_subscription(self, opinew_subscription, opinew_new_plan):
         stripe_subscription = self.stripe_api.update_subscription(opinew_subscription, opinew_new_plan)
         opinew_subscription.stripe_subscription_id = stripe_subscription.id
+        return opinew_subscription
+
+    def cancel_subscription(self, opinew_subscription):
+        self.stripe_api.cancel_subscription(opinew_subscription)
+        opinew_subscription.stripe_subscription_id = None
         return opinew_subscription

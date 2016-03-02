@@ -7,6 +7,7 @@ from webapp.models import Shop
 from tests import testing_constants
 from tests.framework import TestFlaskApplication,expect_mail
 
+
 class TestShopifyShopCreation(TestFlaskApplication):
     # TODO: This test is problematic because of the way tasks are immediatly executed by celery
     # and the way that sqlalchemy's sessions work. See tried attempts in async.tasks.create_customer_account
@@ -44,9 +45,8 @@ class TestShopifyShopCreation(TestFlaskApplication):
             requests.post(Constants.VIRTUAL_SERVER + "/vshopify/admin/webhooks.json", json={})
         db.session.add(shop)
         db.session.commit()
-        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
-                                                                            'shop': shop.domain})
-        location_expected = url_for('client.shop_dashboard')
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/install", query_string={'shop': shop.domain})
+        location_expected = url_for('client.shop_dashboard_id', shop_id=shop.id)
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
         shop.access_token = None
@@ -57,13 +57,13 @@ class TestShopifyShopCreation(TestFlaskApplication):
 
     def test_create_shopify_shop(self):
         from async import tasks
-        from providers.shopify_api import API
+        from providers.shopify_api import ShopifyAPI
 
         shop = Shop.query.filter_by(id=3).first()
         self.assertEquals(len(shop.products), 0)
         self.assertEquals(len(shop.orders), 0)
-        shopify_api = API(shop_domain=shop.domain)
-        tasks.create_shopify_shop(shopify_api=shopify_api, shop_id=shop.id)
+        shopify_api = ShopifyAPI(shop=shop)
+        tasks.create_shopify_shop(shop_id=shop.id)
         shop = Shop.query.filter_by(id=3).first()
         # check webhooks count
         count = shopify_api.check_webhooks_count()

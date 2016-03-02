@@ -6,10 +6,15 @@ class ExceptionMessages(object):
     PARAM_NOT_INTEGER = '{param} needs to be an integer.'
     PRODUCT_NOT_WITHIN_SHOP_DOMAIN = "Product url needs to start with the shop domain: {shop_domain}"
     CAPTCHA_FAIL = 'CAPTCHA failed'
-    USER_EXISTS = 'User %s already exists'
+    USER_EXISTS = 'User {user_email} already exists'
     DOMAIN_NEEDED = "Sorry, we couldn't process your shop domain name. " \
                     "Are you sure it looks like one of these? " \
                     "https://www.shop.com, http://www.shop.com, www.shop.com"
+
+    SHOPIFY_INVALID_SHOP_DOMAIN = "Invalid shop domain."
+    SHOPIFY_INVALID_SHOP_NAME = "Invalid shop name."
+    SHOPIFY_INCORRECT_NONCE = 'Incorrect nonce.'
+    SHOPIFY_INVALID_HMAC = 'Invalid hmac.'
 
     NOT_YOUR_INSTANCE = "Not your {instance}"
     NOT_YOUR_SHOP = "Not your shop"

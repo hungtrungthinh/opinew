@@ -4,19 +4,20 @@ import re
 import os
 import httplib
 import urllib
+import json
 from functools import wraps
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort, jsonify, send_file, Response, session
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
-from providers.shopify_api import API
 from webapp import db, review_images, limiter
+from providers.shopify_api import OpinewShopifyFacade
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
     ReviewFeature, UrlReferer, Comment, Answer, NextAction
 from webapp.common import param_required, catch_exceptions, get_post_payload
-from webapp.exceptions import ParamException, DbException, ApiException, ExceptionMessages, RequirementException
+from webapp.exceptions import ParamException, DbException, ExceptionMessages, RequirementException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm
 from config import Constants, basedir
 from providers import giphy
@@ -25,6 +26,7 @@ from webapp.strategies import rank_objects_for_product, get_scheduled_tasks, get
 from messages import SuccessMessages
 from werkzeug.routing import BuildError
 from assets import strings
+from werkzeug.datastructures import ImmutableMultiDict
 
 
 def verify_requirements(*redirect_url_for):
@@ -38,7 +40,7 @@ def verify_requirements(*redirect_url_for):
         @wraps(f)
         def wrapper(*args, **kwargs):
             # Create a response context - is it asyncrounous call (e.g. from ajax)
-            payload = request.args if request.method in ['GET'] else request.form
+            payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data or '{}')
             is_async = payload.get('async')
 
             # get as many default redirects as possible
@@ -95,8 +97,17 @@ def verify_requirements(*redirect_url_for):
     return outer_wrapper
 
 
-def verify_required_condition(condition, error_msg, error_code=httplib.BAD_REQUEST,
-                              error_category=Constants.ALERT_ERROR_LABEL):
+def always_async(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        request_args = dict(request.args)
+        request_args['async'] = 1
+        request.args = ImmutableMultiDict(request_args)
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def verify_required_condition(condition, error_msg, error_code=httplib.BAD_REQUEST, error_category=Constants.ALERT_ERROR_LABEL):
     """
     Makes sure that the required condition is truthy. Otherwise raises a response error which is either
     jsonified response (if the resource has been required async) or flashing.
@@ -139,24 +150,16 @@ def get_required_model_instance_by_id(model, instance_id):
 
 
 def generate_success_response_from_obj(obj, obj_name):
-    payload = request.args if request.method in ['GET'] else request.form
+    payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data)
     is_async = payload.get('async')
     if is_async:
-        return jsonify(obj.serialize()), httplib.CREATED
+        return jsonify(obj), httplib.CREATED
     flash(SuccessMessages.SUCCESS_CREATING_OBJECT.format(object_name=obj_name))
     return redirect(request.referrer)
 
 
-@client.route('/kitchen-sink')
-@roles_required(Constants.ADMIN_ROLE)
-@login_required
-def kitchen_sink():
-    flash('This is dangerous', category=Constants.ALERT_ERROR_LABEL)
-    flash('Careful hello!!', category=Constants.ALERT_WARNING_LABEL)
-    flash('hello?', category=Constants.ALERT_INFO_LABEL)
-    flash('hello okay', category=Constants.ALERT_PRIMARY_LABEL)
-    flash('YES hello', category=Constants.ALERT_SUCCESS_LABEL)
-    return render_template('dev/kitchen_sink.html')
+def generate_success_response_from_model(model, obj_name):
+    return generate_success_response_from_obj(model.serialize(), obj_name)
 
 
 @client.route('/')
@@ -183,50 +186,41 @@ def privacy_policy():
     return render_template('legal/privacy_policy.html', page_title="Privacy Policy - ")
 
 
-@client.route('/install')
-@catch_exceptions
-def install():
+@client.route('/platforms/', defaults={'platform_name': ''})
+@client.route('/platforms/<platform_name>/shops/install')
+@always_async
+@verify_requirements('client.index')
+def platform_shop_install(platform_name):
     """
     First step of the oauth process - generate address
     for permission grant from user
     :return:
     """
-    ref = request.args.get('ref')
-    if ref == 'shopify':
-        return install_shopify_step_one()
-    return redirect('/register', **request.args)
+    if platform_name == Constants.SHOPIFY_PLATFORM_NAME:
+        return generate_oath_callback_url_for_shopify_app()
+    return redirect('/register')
 
 
-def install_shopify_step_one():
-    shop_domain = param_required('shop', request.args)
-    if not len(shop_domain) > 14:
-        raise ParamException('invalid shop domain', 400)
-    shop_domain_ends_in = shop_domain[-14:]
-    shop_name = shop_domain[:-14]
-    if not shop_domain_ends_in or not shop_domain_ends_in == '.myshopify.com':
-        raise ParamException('incorrect shop name', 400)
-    shop = Shop.query.filter_by(domain=shop_domain).first()
-    if shop and shop.access_token:
-        # check that the access token is still valid
-        shopify_api = API(shop_domain=shop_domain, access_token=shop.access_token)
-        try:
-            webhooks_count = shopify_api.check_webhooks_count()
-            # okay, the token is still valid!
-            if not webhooks_count == Constants.EXPECTED_WEBHOOKS:
-                raise DbException('invalid count of webhooks')
-            return redirect(url_for('client.shop_dashboard'))
-        except (ApiException, DbException) as e:
-            # The token is no longer valid, delete
-            shop.access_token = None
-            db.session.add(shop)
-            db.session.commit()
+def generate_oath_callback_url_for_shopify_app():
+    """
+    Generate URL to redirect back to after a user has given permissions on the shopify store
+    :return:
+    """
+    shop_domain = get_required_parameter(request.args, 'shop')
+    shop = g.db.Shop.get_by_domain(shop_domain)
+    if shop:
+        opinew_shopify = OpinewShopifyFacade(shop=shop)
+        if opinew_shopify.shop_has_valid_token():
+            return redirect(url_for('client.shop_dashboard_id', shop_id=shop.id))
 
-    client_id = g.config.get('SHOPIFY_APP_API_KEY')
-    scopes = g.config.get('SHOPIFY_APP_SCOPES')
+    shop_name = OpinewShopifyFacade.get_shop_name_by_domain(shop_domain)
+
+    client_id = current_app.config.get('SHOPIFY_APP_API_KEY')
+    scopes = current_app.config.get('SHOPIFY_APP_SCOPES')
 
     nonce = shop_name
 
-    redirect_uri = '%s/oauth/callback' % g.config.get('OPINEW_API_SERVER')
+    redirect_uri = '%s/platforms/shopify/shops/create' % g.config.get('OPINEW_API_SERVER')
 
     url = 'https://{shop}/admin/oauth/authorize' \
           '?client_id={api_key}' \
@@ -237,62 +231,29 @@ def install_shopify_step_one():
     return redirect(url)
 
 
-@client.route('/oauth/callback')
-@catch_exceptions
-def shopify_plugin_callback():
+@client.route('/platforms/', defaults={'platform_name': ''})
+@client.route('/platforms/<platform_name>/shops/create')
+@always_async
+@verify_requirements('client.home')
+def platform_shop_create(platform_name):
     """
     Seconds step of the oauth process - verify callback and
     send request for an access token
     :return:
     """
-    client_id = g.config.get('SHOPIFY_APP_API_KEY')
-    client_secret = g.config.get('SHOPIFY_APP_SECRET')
+    if platform_name == Constants.SHOPIFY_PLATFORM_NAME:
+        return create_shopify_shop()
+    return redirect('/register')
 
-    nonce_request = param_required('state', request.args)
-    hmac_request = param_required('hmac', request.args)
-    shop_domain = param_required('shop', request.args)
-    code = param_required('code', request.args)
 
-    shop_name = shop_domain[:-14]
+def create_shopify_shop():
+    nonce_request = get_required_parameter(request.args, 'state')
+    hmac_request = get_required_parameter(request.args, 'hmac')
+    shop_domain = get_required_parameter(request.args, 'shop')
+    code = get_required_parameter(request.args, 'code')
 
-    # Initialize the API
-    shopify_api = API(client_id, client_secret, shop_domain)
-    shopify_api.initialize_api(nonce_request=nonce_request, hmac_request=hmac_request, code=code)
-
-    # Get shop and products info from API
-    shopify_shop = shopify_api.get_shop()
-
-    # Create db records
-    # Create shop user, generate pass
-    shop_owner_email = shopify_shop.get('email', '')
-    shop_owner_name = shopify_shop.get('shop_owner', '')
-    shop_owner, is_new = User.get_or_create_by_email(shop_owner_email,
-                                                     role_name=Constants.SHOP_OWNER_ROLE,
-                                                     name=shop_owner_name,
-                                                     plan_name=Constants.PLAN_NAME_SHOPIFY_SIMPLE)
-    if is_new:
-        db.session.add(shop_owner)
-        db.session.commit()
-    shop_owner_id = shop_owner.id
-
-    # Create shop with owner = shop_user
-    shopify_platform = Platform.get_by_name('shopify')
-    shop = Shop(name=shop_name,
-                domain=shop_domain,
-                platform=shopify_platform,
-                access_token=shopify_api.access_token,
-                owner=shop_owner)
-    shop_owner.shops.append(shop)
-    db.session.add(shop)
-    db.session.commit()
-
-    # asyncronously create all products, orders and webhooks
-    from async import tasks
-
-    args = dict(shopify_api=shopify_api, shop_id=shop.id)
-    task = Task.create(method=tasks.create_shopify_shop, args=args)
-    db.session.add(task)
-    db.session.commit()
+    shop = OpinewShopifyFacade.create_shop(shop_domain=shop_domain, hmac_request=hmac_request,
+                                      code=code, nonce_request=nonce_request)
 
     # create next tasks
     # set new next action
@@ -331,7 +292,7 @@ def shopify_plugin_callback():
     db.session.add(im3)
 
     # Login shop_user
-    shop_owner = User.query.filter_by(id=shop_owner_id).first()
+    shop_owner = g.db.User.get_by_id(shop.owner_id)
     login_user(shop_owner)
     return redirect(url_for('client.setup_plugin', shop_id=shop.id))
 
@@ -340,6 +301,24 @@ def shopify_plugin_callback():
 from flask.ext.security import user_registered
 
 user_registered.connect(User.post_registration_handler)
+
+
+@client.route('/register', methods=['GET', 'POST'])
+@verify_requirements('client.index')
+def register():
+    """
+    Override flask.security register
+    :return:
+    """
+    if current_user.is_authenticated():
+        return redirect(request.referrer or url_for('client.index'))
+    register_user_form = ExtendedRegisterForm()
+    if register_user_form.validate_on_submit():
+        user = g.db.User.create(**request.form.to_dict())
+        g.db.add(user)
+        g.db.push()
+        return redirect(url_for('client.index'))
+    return render_template('security/register_user.html', register_user_form=register_user_form)
 
 
 @client.route('/', defaults={'review_request_token': ''})
@@ -466,7 +445,7 @@ def shop_dashboard_id(shop_id):
                            stats=stats)
 
 
-@client.route('/setup-plugin/<int:shop_id>')
+@client.route('/setup-plugin/<int:shop_id>', defaults={'shop_id': 0})
 @verify_requirements('client.dashboard')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
@@ -639,13 +618,13 @@ def get_plugin():
         else:
             return '', 404
         shop = product.shop
-        if shop.owner and \
-                shop.owner.customer and \
-                shop.owner.customer[0] and \
-                shop.owner.confirmed_at and \
-                        (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
-                not shop.owner.customer[0].last4:
-            return '', 404
+        # if shop.owner and \
+        #         shop.owner.customer and \
+        #         shop.owner.customer[0] and \
+        #         shop.owner.confirmed_at and \
+        #                 (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
+        #         not shop.owner.customer[0].last4:
+        #     return '', 404
 
         product_objs = rank_objects_for_product(product.id)
         next_arg = request.url
@@ -924,9 +903,14 @@ def render_order_review_email():
     return render_template('email/review_order.html', **template_ctx)
 
 
-@client.route('/render-marketing-email')
-def render_marketing_email():
-    return render_template('email/shop_marketing_opinew_simple.html')
+@client.route('/render-email')
+@login_required
+@roles_required(Constants.ADMIN_ROLE)
+def render_email():
+    from util.email_inliner import inline_email
+    template_name = request.args.get('template_name')
+    inline_email(template_name)
+    return render_template('email/'+template_name)
 
 
 @client.route('/fake-shopify-api', defaults={'shop': None})
@@ -1128,26 +1112,6 @@ def unsubscribe():
     db.session.add(user)
     db.session.commit()
     return "%s has been successfully unsubscribed." % email
-
-
-@client.route('/ref')
-@verify_requirements
-def add_referer():
-    # Verify required objects
-    url = get_required_parameter(request.form, 'url')
-    q = get_required_parameter(request.form, 'q')
-
-    # Create UrlReferrer object
-    now = datetime.datetime.utcnow()
-    ref = UrlReferer(url=url, q=q, timestamp=now)
-    if current_user.is_authenticated():
-        ref.user = current_user
-    db.session.add(ref)
-    db.session.commit()
-    if url.startswith('http://') or url.startswith('https://'):
-        return redirect(url)
-    return redirect('http://' + url)
-
 
 #######################
 # OPINEW API DEFINITION
@@ -1352,12 +1316,9 @@ def route_review_like(review_id):
         new_action = False
         db.session.delete(review_like)
     db.session.commit()
-    if request.args.get('async'):
-        return jsonify({
-            'action': new_action,
-            'count': len(review.likes)
-        })
-    return redirect(request.referrer or url_for('client.reviews'))
+    obj = {'action': new_action,
+           'count': len(review.likes)}
+    return generate_success_response_from_obj(obj=obj, obj_name='Review Like')
 
 
 @client.route('/reviews/<int:review_id>/report', methods=['POST'])
@@ -1375,20 +1336,18 @@ def route_review_report(review_id):
         new_action = False
         db.session.delete(review_report)
     db.session.commit()
-    if request.args.get('async'):
-        return jsonify({
-            'action': new_action,
-            'count': len(review.reports)
-        })
-    return redirect(request.referrer or url_for('client.reviews'))
+    obj = {'action': new_action,
+           'count': len(review.reports)}
+    return generate_success_response_from_obj(obj=obj, obj_name='Review Report')
 
 
 @client.route('/reviews/<int:review_id>/feature', methods=['POST'])
+@verify_requirements('client.reviews')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def route_review_feature(review_id):
     review = get_required_model_instance_by_id(Review, review_id)
-    verify_required_condition(condition=review.product and review.product.shop and review.product.shop not in current_user.shops,
+    verify_required_condition(condition=review.product and review.product.shop and review.product.shop in current_user.shops,
                               error_msg=ExceptionMessages.CANT_FEATURE_THAT_REVIEW)
     review_feature = ReviewFeature.query.filter_by(review_id=review_id).first()
     if not review_feature:
@@ -1400,12 +1359,9 @@ def route_review_feature(review_id):
         new_action = False
         db.session.delete(review_feature)
     db.session.commit()
-    if request.args.get('async'):
-        return jsonify({
-            'action': new_action,
-            'count': 1 if review.featured else 0
-        })
-    return redirect(request.referrer or url_for('client.reviews'))
+    obj = {'action': new_action,
+           'count': 1 if review.featured else 0}
+    return generate_success_response_from_obj(obj=obj, obj_name='Review Report')
 
 
 @client.route('/reviews/<int:review_id>/share', methods=['POST'])
@@ -1421,8 +1377,26 @@ def route_review_share(review_id):
         review_share.user = current_user
     db.session.add(review_share)
     db.session.commit()
+    return generate_success_response_from_model(review_share, obj_name='Review Share')
 
-    return generate_success_response_from_obj(obj=review_share, obj_name='Review Share')
+
+@client.route('/ref')
+@verify_requirements('client.index')
+def add_referer():
+    # Verify required objects
+    url = get_required_parameter(request.form, 'url')
+    q = get_required_parameter(request.form, 'q')
+
+    # Create UrlReferrer object
+    now = datetime.datetime.utcnow()
+    ref = UrlReferer(url=url, q=q, timestamp=now)
+    if current_user.is_authenticated():
+        ref.user = current_user
+    db.session.add(ref)
+    db.session.commit()
+    if url.startswith('http://') or url.startswith('https://'):
+        return redirect(url)
+    return redirect('http://' + url)
 
 
 @client.route('/reviews/<int:review_id>/comments/create', methods=['POST'])
@@ -1441,7 +1415,7 @@ def route_review_comment_create(review_id):
                       created_ts=now)
     db.session.add(comment)
     db.session.commit()
-    return generate_success_response_from_obj(obj=comment, obj_name='comment')
+    return generate_success_response_from_model(comment, obj_name='comment')
 
 
 @client.route('/products/<int:product_id>/questions/create', methods=['POST'])
@@ -1461,7 +1435,7 @@ def route_product_question_create(product_id):
                         created_ts=now)
     db.session.add(question)
     db.session.commit()
-    return generate_success_response_from_obj(obj=question, obj_name='question')
+    return generate_success_response_from_model(question, obj_name='question')
 
 
 @client.route('/questions/<int:question_id>/answers/create', methods=['POST'])
@@ -1481,7 +1455,7 @@ def route_question_answer_create(question_id):
                     created_ts=now)
     db.session.add(answer)
     db.session.commit()
-    return generate_success_response_from_obj(obj=answer, obj_name='answer')
+    return generate_success_response_from_model(answer, obj_name='answer')
 
 
 @client.route('/products/<int:product_id>/reviews/search')
@@ -1543,12 +1517,3 @@ def route_review(review_id):
                            page_title='Review by %s about %s' % (review.user_name, review.product.name),
                            page_description=review.body,
                            page_image=review.image_url)
-
-
-# Override some of the Flask-Security Functionality to support natively UserLegacy
-# Can be found in venv/local/lib/python2.7/site-packages/flask_security/views.py
-@client.route('/register', methods=['GET', 'POST'])
-def register():
-    register_user_form = ExtendedRegisterForm(request.form)
-    return render_template('security/register_user.html',
-                           register_user_form=register_user_form)

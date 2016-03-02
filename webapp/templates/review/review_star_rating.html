@@ -6,9 +6,7 @@
     <span class="star-rating {% if review.star_rating >= 4 %}star-active{% endif %}">☆</span>
     <span class="star-rating {% if review.star_rating == 5 %}star-active{% endif %}">☆</span>
     <span itemprop="reviewRating" itemscope itemtype="http://schema.org/Rating">
-      <span itemprop="ratingValue">{{ review.star_rating }}</span>
-      /
-      <span itemprop="bestRating">5</span>
+      <span itemprop="ratingValue">{{ review.star_rating }}</span>/<span itemprop="bestRating">5</span>
     </span>
   </span>
 {% endif %}

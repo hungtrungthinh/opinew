@@ -40,7 +40,7 @@ NEW_REVIEW_YOUTUBE_VIDEO_ID = "dQw4w9WgXcQ"
 NEW_REVIEW_YOUTUBE_LINK = "https://www.youtube.com/watch?v=" + NEW_REVIEW_YOUTUBE_VIDEO_ID
 NEW_REVIEW_YOUTUBE_SHORT = "https://www.youtu.be/" + NEW_REVIEW_YOUTUBE_VIDEO_ID
 
-RENDERED_STARS = """<span> 4/5</span>"""
+RENDERED_STARS = """<span itemprop="ratingValue">4</span>/<span itemprop="bestRating">5</span>"""
 
 RENDERED_YOUTUBE = """<iframe class="review-youtube" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>"""
 

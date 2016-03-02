@@ -15,8 +15,6 @@ from flask.ext.assets import Environment, Bundle
 from flask.ext.limiter import Limiter
 from flask_resize import Resize
 from flask_mail import Mail
-from flask_whooshalchemyplus import index_all
-from werkzeug.exceptions import default_exceptions
 from config import config_factory, Constants
 from assets import strings
 from flask.ext.compress import Compress
@@ -45,11 +43,19 @@ class AnalyticsView(BaseView):
     def stats(self):
         from webapp import models
         from async import celery_async
-        tasks = celery_async.get_scheduled_tasks()
-        shops = models.Shop.query.all()
+        customers=models.Customer.query.all()
         return self.render('admin/analytics.html',
-                           shops=shops,
-                           tasks=tasks)
+                           customers=customers)
+
+
+class EmailRenderView(BaseView):
+    @expose('/')
+    @login_required
+    @roles_required(Constants.ADMIN_ROLE)
+    def stats(self):
+        from webapp import models
+        template_names = Constants.HTML_TO_INLINE_FILENAMES
+        return self.render('admin/email_render.html', template_names=template_names)
 
 
 csrf = CsrfProtect()
@@ -61,6 +67,7 @@ limiter = Limiter()
 mail = Mail()
 admin = Admin(template_mode='bootstrap3', index_view=MyHomeView())
 admin.add_view(AnalyticsView(name="Analytics", endpoint='analytics'))
+admin.add_view(EmailRenderView(name="Email Renders", endpoint='email-renders'))
 security = Security()
 api_manager = APIManager()
 compress = Compress()
@@ -113,7 +120,7 @@ def create_app(option):
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
     with app.app_context():
-        index_all(app)
+        from providers import database, payment
 
         if app.testing:
             from async import tasks
@@ -139,6 +146,8 @@ def create_app(option):
             g.mode = app.config.get('MODE')
             g.response_context = []
             g.s = strings
+            g.payment = payment.OpinewStripeFacade()
+            g.db = database.OpinewSQLAlchemyFacade()
 
         @app.after_request
         def redirect_if_next(response_class):

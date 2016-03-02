@@ -16,12 +16,16 @@ class SubscribeForm(Form):
     website = StringField('Your Website', validators=[])
 
 
-class ExtendedRegisterForm(ConfirmRegisterForm):
+class ExtendedRegisterForm(Form):
     name = StringField('Name', [DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired(),
+                                                     Length(min=6, max=128)])
     password_confirm = PasswordField(
         'Retype Password',
         validators=[EqualTo('password', message='Passwords do not match')])
     is_shop_owner = BooleanField('I am a shop owner')
+    submit = SubmitField('Register')
 
 
 class ShopForm(Form):
