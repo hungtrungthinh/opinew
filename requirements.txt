@@ -40,14 +40,13 @@ bcrypt==2.0.0
 billiard==3.3.0.20
 blinker==1.4
 celery==3.1.18
-certifi==2015.09.06.2
+certifi==2015.9.6.2
 cffi==1.2.1
 coverage==4.0.1
 cssmin==0.2.0
 cssselect==0.9.1
 cssutils==1.0.1
 decorator==4.0.4
-distribute==0.6.24
 facebook-sdk==0.4.0
 flower==0.8.3
 freezegun==0.3.5
