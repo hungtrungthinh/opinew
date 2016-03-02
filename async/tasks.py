@@ -1,13 +1,15 @@
 # Create celery app based on flask app configurations
 import datetime
-from flask import current_app, url_for
+from flask import current_app, g
 from webapp import create_app, models, db
 from providers import magento_api
 from celery_async import make_celery
 from config import Constants
 from providers.shopify_api import OpinewShopifyFacade
+from providers import database
 
 app = current_app or create_app('db_prod')
+
 this_celery = make_celery(app)
 
 
@@ -20,7 +22,8 @@ def send_email(*args, **kwargs):
 
 @this_celery.task()
 def create_shopify_shop(shop_id):
-    shop = models.Shop.query.filter_by(id=shop_id).first()
+    g.db = database.OpinewSQLAlchemyFacade()
+    shop = g.db.Shop.get_by_id(shop_id)
     opinew_shopify = OpinewShopifyFacade(shop=shop)
     opinew_shopify.create_webhooks()
     opinew_shopify.import_products()

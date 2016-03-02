@@ -28,7 +28,7 @@ class SqlAlchemyDao(Dao):
 
     @classmethod
     def get_by_name(cls, name):
-        cls.model.query.filter_by(name=name).first()
+        return cls.model.query.filter_by(name=name).first()
 
 
 class OpinewSQLAlchemyFacade(object):
@@ -46,13 +46,11 @@ class OpinewSQLAlchemyFacade(object):
 
         @classmethod
         def get_or_create_shop_owner(cls, email, **kwargs):
-            shop_owner = cls.get_by_email(email=email)
-            if shop_owner:
-                shop_owner.is_shop_owner = True
-                role = OpinewSQLAlchemyFacade.Role.get_by_name(name=Constants.SHOP_OWNER_ROLE)
-                if role:
-                    shop_owner.roles.append(role)
-                return shop_owner
+            instance = cls.get_by_email(email=email)
+            if instance:
+                instance.is_shop_owner = True
+                cls._add_roles(instance)
+                return instance
             else:
                 return cls.create(email=email,
                                   password=common.generate_temp_password(),
@@ -60,12 +58,49 @@ class OpinewSQLAlchemyFacade(object):
                                   **kwargs)
 
         @classmethod
+        def _add_roles(cls, instance):
+            if instance.is_shop_owner:
+                role = OpinewSQLAlchemyFacade.Role.get_by_name(name=Constants.SHOP_OWNER_ROLE)
+            else:
+                role = OpinewSQLAlchemyFacade.Role.get_by_name(name=Constants.REVIEWER_ROLE)
+            if role:
+                instance.roles.append(role)
+
+        @classmethod
+        def _send_welcome_email(cls, instance):
+            if instance.temp_password:
+                if instance.is_shop_owner:
+                    email_template = Constants.DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE
+                    email_subject = Constants.DEFAULT_NEW_SHOP_OWNER_SUBJECT
+                else:
+                    email_template = Constants.DEFAULT_NEW_REVIEWER_EMAIL_TEMPLATE
+                    email_subject = Constants.DEFAULT_NEW_REVIEWER_SUBJECT
+            else:
+                email_template = Constants.DEFAULT_NEW_USER_EMAIL_TEMPLATE
+                email_subject = Constants.DEFAULT_NEW_USER_SUBJECT
+            from async import tasks
+
+            args = dict(recipients=[instance.email],
+                        template=email_template,
+                        template_ctx={'user_email': instance.email,
+                                      'user_temp_password': instance.temp_password,
+                                      'user_name': instance.name
+                                      },
+                        subject=email_subject)
+            task = OpinewSQLAlchemyFacade.Task.create(method=tasks.send_email, args=args)
+            db.session.add(task)
+
+
+        @classmethod
         def create(cls, **kwargs):
             cls._prepare_user_kwargs(kwargs)
             existing_legacy_user = cls._check_for_existing_legacy_user(**kwargs)
             if existing_legacy_user:
                 return cls._create_from_legacy(existing_legacy_user, **kwargs)
-            return cls.model(**kwargs)
+            instance = cls.model(**kwargs)
+            cls._add_roles(instance)
+            cls._send_welcome_email(instance)
+            return instance
 
         @classmethod
         def create_legacy(cls, email, **kwargs):
@@ -120,7 +155,7 @@ class OpinewSQLAlchemyFacade(object):
 
         @classmethod
         def get_by_domain(cls, domain):
-            cls.model.query.filter_by(domain=domain).first()
+            return cls.model.query.filter_by(domain=domain).first()
 
     class Platform(SqlAlchemyDao):
         model = models.Platform
@@ -236,3 +271,25 @@ class OpinewSQLAlchemyFacade(object):
         @classmethod
         def get_by_customer_and_shop(cls, customer, shop):
             return cls.model.query.filter_by(customer=customer, shop=shop).first()
+
+    class Task(SqlAlchemyDao):
+        model = models.Task
+
+        @classmethod
+        def create(cls, method, args, funnel_stream_id=None, eta=None, **kwargs):
+            from async import celery_async
+            instance = cls.model(method=method.__name__, eta=eta, kwargs=str(args), funnel_stream_id=funnel_stream_id)
+            g.db.add(instance)
+            g.db.push()
+            task_instance_id = instance.id
+            # create the celery task
+            if eta:
+                celery_task = celery_async.schedule_task_at(method, args, eta, task_instance_id)
+            else:
+                celery_task = celery_async.delay_execute(method, args, task_instance_id)
+            # Update task with celery id
+            instance = cls.model.query.filter_by(id=task_instance_id).first()
+            instance.celery_uuid = celery_task.task_id
+            instance.status = celery_task.status
+            return instance
+

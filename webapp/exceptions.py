@@ -11,6 +11,11 @@ class ExceptionMessages(object):
                     "Are you sure it looks like one of these? " \
                     "https://www.shop.com, http://www.shop.com, www.shop.com"
 
+    SHOPIFY_INVALID_SHOP_DOMAIN = "Invalid shop domain."
+    SHOPIFY_INVALID_SHOP_NAME = "Invalid shop name."
+    SHOPIFY_INCORRECT_NONCE = 'Incorrect nonce.'
+    SHOPIFY_INVALID_HMAC = 'Invalid hmac.'
+
     NOT_YOUR_INSTANCE = "Not your {instance}"
     NOT_YOUR_SHOP = "Not your shop"
     NOT_YOUR_REVIEW = "Not your review."

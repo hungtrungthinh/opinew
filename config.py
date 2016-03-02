@@ -35,9 +35,11 @@ class Constants(object):
     DEFAULT_REVIEW_EMAIL_TEMPLATE = 'email/review_order.html'
     DEFAULT_NEW_REVIEWER_EMAIL_TEMPLATE = 'email/new_reviewer_user.html'
     DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE = 'email/new_shop_owner_user.html'
+    DEFAULT_NEW_USER_EMAIL_TEMPLATE = 'email/new_user.html'
 
     DEFAULT_NEW_REVIEWER_SUBJECT = "Welcome to Opinew"
     DEFAULT_NEW_SHOP_OWNER_SUBJECT = "Welcome to Opinew"
+    DEFAULT_NEW_USER_SUBJECT = "Welcome to Opinew"
 
     MODE_DEVELOPMENT = 'development'
     MODE_PRODUCTION = 'production'

@@ -22,6 +22,7 @@ from webapp.strategies import rank_objects_for_product, get_scheduled_tasks, get
     get_analytics
 from messages import SuccessMessages
 from werkzeug.routing import BuildError
+from werkzeug.datastructures import ImmutableMultiDict
 
 
 def verify_requirements(*redirect_url_for):
@@ -75,6 +76,16 @@ def verify_requirements(*redirect_url_for):
                                 url_for('client.index'))
         return wrapper
     return outer_wrapper
+
+
+def always_async(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        request_args = dict(request.args)
+        request_args['async'] = 1
+        request.args = ImmutableMultiDict(request_args)
+        return f(*args, **kwargs)
+    return wrapper
 
 
 def verify_required_condition(condition, error_msg, error_code=httplib.BAD_REQUEST, error_category=Constants.ALERT_ERROR_LABEL):
@@ -151,8 +162,10 @@ def privacy_policy():
     return render_template('legal/privacy_policy.html', page_title="Privacy Policy - ")
 
 
+@client.route('/platforms/', defaults={'platform_name': ''})
 @client.route('/platforms/<platform_name>/shops/install')
-@catch_exceptions
+@always_async
+@verify_requirements('client.index')
 def platform_shop_install(platform_name):
     """
     First step of the oauth process - generate address
@@ -160,8 +173,8 @@ def platform_shop_install(platform_name):
     :return:
     """
     if platform_name == Constants.SHOPIFY_PLATFORM_NAME:
-        return redirect(generate_oath_callback_url_for_shopify_app())
-    return redirect('/register', **request.args)
+        return generate_oath_callback_url_for_shopify_app()
+    return redirect('/register')
 
 
 def generate_oath_callback_url_for_shopify_app():
@@ -171,17 +184,19 @@ def generate_oath_callback_url_for_shopify_app():
     """
     shop_domain = get_required_parameter(request.args, 'shop')
     shop = g.db.Shop.get_by_domain(shop_domain)
-    opinew_shopify = OpinewShopifyFacade(shop=shop)
+    if shop:
+        opinew_shopify = OpinewShopifyFacade(shop=shop)
+        if opinew_shopify.shop_has_valid_token():
+            return redirect(url_for('client.shop_dashboard_id', shop_id=shop.id))
 
-    if not opinew_shopify.shop_has_valid_token():
-        return redirect(url_for('client.shop_dashboard'))
+    shop_name = OpinewShopifyFacade.get_shop_name_by_domain(shop_domain)
 
     client_id = current_app.config.get('SHOPIFY_APP_API_KEY')
     scopes = current_app.config.get('SHOPIFY_APP_SCOPES')
 
-    nonce = opinew_shopify.shop_name
+    nonce = shop_name
 
-    redirect_uri = '%s/platforms/shopify/create' % g.config.get('OPINEW_API_SERVER')
+    redirect_uri = '%s/platforms/shopify/shops/create' % g.config.get('OPINEW_API_SERVER')
 
     url = 'https://{shop}/admin/oauth/authorize' \
           '?client_id={api_key}' \
@@ -189,10 +204,12 @@ def generate_oath_callback_url_for_shopify_app():
           '&redirect_uri={redirect_uri}' \
           '&state={nonce}'.format(
             shop=shop_domain, api_key=client_id, scopes=scopes, redirect_uri=redirect_uri, nonce=nonce)
-    return url
+    return redirect(url)
 
 
+@client.route('/platforms/', defaults={'platform_name': ''})
 @client.route('/platforms/<platform_name>/shops/create')
+@always_async
 @verify_requirements('client.home')
 def platform_shop_create(platform_name):
     """
@@ -202,7 +219,7 @@ def platform_shop_create(platform_name):
     """
     if platform_name == Constants.SHOPIFY_PLATFORM_NAME:
         return create_shopify_shop()
-    return redirect('/register', **request.args)
+    return redirect('/register')
 
 
 def create_shopify_shop():
@@ -211,8 +228,7 @@ def create_shopify_shop():
     shop_domain = get_required_parameter(request.args, 'shop')
     code = get_required_parameter(request.args, 'code')
 
-    opinew_shopify = OpinewShopifyFacade()
-    shop = opinew_shopify.create_shop(shop_domain=shop_domain, hmac_request=hmac_request,
+    shop = OpinewShopifyFacade.create_shop(shop_domain=shop_domain, hmac_request=hmac_request,
                                       code=code, nonce_request=nonce_request)
 
     # Login shop_user
@@ -241,6 +257,7 @@ def register():
         user = g.db.User.create(**request.form.to_dict())
         g.db.add(user)
         g.db.push()
+        return redirect(url_for('client.index'))
     return render_template('security/register_user.html', register_user_form=register_user_form)
 
 
@@ -402,7 +419,7 @@ def shop_dashboard_id(shop_id):
                            stats=stats)
 
 
-@client.route('/setup-plugin/<int:shop_id>')
+@client.route('/setup-plugin/<int:shop_id>', defaults={'shop_id': 0})
 @verify_requirements('client.dashboard')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
@@ -1183,7 +1200,7 @@ def add_review_share(review_id):
 
 
 @client.route('/ref')
-@verify_requirements
+@verify_requirements('client.index')
 def add_referer():
     # Verify required objects
     url = get_required_parameter(request.form, 'url')

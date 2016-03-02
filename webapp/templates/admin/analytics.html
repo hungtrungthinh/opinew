@@ -5,18 +5,18 @@
   <br><br>
   <h2>Analytics</h2>
   <table class="table">
-  <tr>
-    <th>Customer</th>
-    <th>Shops</th>
-    <th>Products</th>
-    <th>Orders</th>
-    <th>Emails sent</th>
-    <th>Subscription</th>
-    <th>Conf at</th>
-    <th>Login cnt</th>
-  </tr>
-      {% for customer in customers %}
-        <tr>
+    <tr>
+      <th>Customer</th>
+      <th>Shops</th>
+      <th>Products</th>
+      <th>Orders</th>
+      <th>Emails sent</th>
+      <th>Subscription</th>
+      <th>Conf at</th>
+      <th>Login cnt</th>
+    </tr>
+    {% for customer in customers %}
+      <tr>
         <td>
           {{ customer.user.email }}
         </td>
@@ -41,9 +41,11 @@
           {% endfor %}
         </td>
         <td>
-          {{ customer.subscription[0].timestamp|timesince }}<br>
-          {{ customer.subscription[0].timestamp }}<br>
-          {{ customer.subscription[0].plan.name }}<br>
+          {% if customer.subscription %}
+            {{ customer.subscription[0].timestamp|timesince }}<br>
+            {{ customer.subscription[0].timestamp }}<br>
+            {{ customer.subscription[0].plan.name }}<br>
+          {% endif %}
         </td>
         <td>
           {{ customer.user.confirmed_at|timesince }}<br>
@@ -52,7 +54,7 @@
         <td>
           {{ customer.user.login_count }}
         </td>
-        </tr>
-      {% endfor %}
+      </tr>
+    {% endfor %}
   </table>
 {% endblock %}

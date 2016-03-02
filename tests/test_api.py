@@ -987,25 +987,15 @@ class TestAPI(TestFlaskApplication):
 
     def test_review_like_first_time(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        payload = json.dumps({"review_id": 1})
-        response_actual = self.desktop_client.post("/api/v1/review_like",
-                                                   headers={'content-type': 'application/json'},
-                                                   data=payload)
+        response_actual = self.desktop_client.post(url_for("client.add_review_like", review_id=1))
         self.assertEquals(response_actual.status_code, 201)
         self.logout()
         self.refresh_db()
 
     def test_review_unlike(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        payload1 = json.dumps({"review_id": 1})
-        self.desktop_client.post("/api/v1/review_like",
-                                 headers={'content-type': 'application/json'},
-                                 data=payload1)
-
-        payload2 = json.dumps({"review_id": 1, "action": '0'})
-        response_actual = self.desktop_client.patch("/api/v1/review_like/1",
-                                                    headers={'content-type': 'application/json'},
-                                                    data=payload2)
+        self.desktop_client.post(url_for("client.add_review_like", review_id=1))
+        response_actual = self.desktop_client.post(url_for("client.add_review_like", review_id=1))
         response_json_dict = json.loads(response_actual.data)
         self.assertEquals(response_json_dict["action"], 0)
         self.logout()
@@ -1013,20 +1003,12 @@ class TestAPI(TestFlaskApplication):
 
     def test_review_like_again(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        payload1 = json.dumps({"review_id": 1})
-        self.desktop_client.post("/api/v1/review_like",
-                                 headers={'content-type': 'application/json'},
-                                 data=payload1)
-
-        payload2 = json.dumps({"review_id": 1, "action": '0'})
-        self.desktop_client.patch("/api/v1/review_like/1",
-                                  headers={'content-type': 'application/json'},
-                                  data=payload2)
-
-        payload3 = json.dumps({"review_id": 1, "action": '1'})
-        response_actual = self.desktop_client.patch("/api/v1/review_like/1",
-                                                    headers={'content-type': 'application/json'},
-                                                    data=payload3)
+        # like
+        self.desktop_client.post(url_for("client.add_review_like", review_id=1))
+        # dislike
+        self.desktop_client.post(url_for("client.add_review_like", review_id=1))
+        # like
+        response_actual = self.desktop_client.post(url_for("client.add_review_like", review_id=1))
         response_json_dict = json.loads(response_actual.data)
         self.assertEquals(response_json_dict["action"], 1)
         self.logout()

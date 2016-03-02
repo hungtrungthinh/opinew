@@ -1,5 +1,4 @@
-import datetime
-from flask import jsonify, request
+from flask import jsonify, request, g
 from webapp import db, models, exceptions, csrf
 from webapp.api import api
 from webapp.common import get_post_payload, catch_exceptions, verify_webhook, build_created_response
@@ -147,7 +146,7 @@ def platform_shopify_app_uninstalled():
     db.session.add(shop)
 
     # Find subscription
-    subscription = shop.owner.customer[0].subscription
+    subscription = shop.owner.customer[0].subscription[0]
 
     #Update trialed for days
     g.db.Subscription.cancel(subscription)

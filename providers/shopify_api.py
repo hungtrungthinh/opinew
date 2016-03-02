@@ -3,8 +3,9 @@ import hashlib
 import hmac
 import pytz
 import requests
+import httplib
 from flask import request, current_app, g
-from webapp.exceptions import ApiException, ParamException
+from webapp.exceptions import ApiException, RequirementException, ExceptionMessages
 from config import Constants
 from webapp import models, db, exceptions
 from dateutil import parser as date_parser
@@ -28,39 +29,40 @@ class ShopifyAPI(object):
 
     def initialize_api(self, shop_domain, nonce_request, hmac_request, code):
         self.shop_domain = shop_domain
+        self.shop_name = OpinewShopifyFacade.get_shop_name_by_domain(shop_domain)
         self.verify_nonce(nonce_request)
         self.verify_hmac(hmac_request)
         self.verify_shop_name()
         self.get_access_token(code)
 
     def verify_nonce(self, nonce_request):
-        if not nonce_request:
-            raise ParamException('no nonce', 400)
         if not nonce_request == self.shop_name:
-            raise ParamException('incorrect nonce', 400)
+            raise RequirementException(message=ExceptionMessages.SHOPIFY_INCORRECT_NONCE,
+                                       error_code=httplib.BAD_REQUEST,
+                                       error_category=Constants.ALERT_ERROR_LABEL)
 
     def verify_hmac(self, hmac_request):
-        if not hmac_request:
-            raise ParamException('incorrect shop name', 400)
         req = dict(request.args)
-        if not 'signature' in req:
-            raise ParamException('signature required', 400)
         del req['signature']
         del req['hmac']
         unsorted = []
         for key, value in req.iteritems():
-            key = key.replace('%', '%25').replace('&', '%26').replace('=', '%3D')
-            value = value[0].replace('%', '%25').replace('&', '%26')
+            key = str(key).replace('%', '%25').replace('&', '%26').replace('=', '%3D')
+            value = str(value[0]).replace('%', '%25').replace('&', '%26')
             pair = '%s=%s' % (key, value)
             unsorted.append(pair)
         hmac_message = '&'.join(sorted(unsorted))
         dig = hmac.new(self.client_secret, msg=hmac_message, digestmod=hashlib.sha256).hexdigest()
         if not hmac_request == dig:
-            raise ParamException('hmac unverified', 400)
+            raise RequirementException(message=ExceptionMessages.SHOPIFY_INVALID_HMAC,
+                                       error_code=httplib.BAD_REQUEST,
+                                       error_category=Constants.ALERT_ERROR_LABEL)
 
     def verify_shop_name(self):
         if not self.shop_domain[-14:] == '.myshopify.com':
-            raise ParamException('incorrect shop name', 400)
+            raise RequirementException(message=ExceptionMessages.SHOPIFY_INVALID_SHOP_DOMAIN,
+                                       error_code=httplib.BAD_REQUEST,
+                                       error_category=Constants.ALERT_ERROR_LABEL)
 
     def get_access_token(self, code):
         r = requests.post('%s/admin/oauth/access_token' % self.url_prefix,
@@ -206,6 +208,7 @@ class ShopifyOpinewAdapter(object):
                 order.products.append(variant.product)
         return order
 
+
 class OpinewShopifyFacade(object):
     def __init__(self, shop=None):
         self.shop = shop
@@ -264,14 +267,22 @@ class OpinewShopifyFacade(object):
                     g.db.add(order)
         g.db.push()
 
-    def get_shop_name(self):
-        if not len(self.shop.domain) > 14:
-            raise ParamException('invalid shop domain', 400)
-        shop_domain_ends_in = self.shop.domain[-14:]
-        shop_name = self.shop.domain[:-14]
+    @classmethod
+    def get_shop_name_by_domain(cls, shop_domain):
+        if not len(shop_domain) > 14:
+            raise RequirementException(message=ExceptionMessages.SHOPIFY_INVALID_SHOP_DOMAIN,
+                                       error_code=httplib.BAD_REQUEST,
+                                       error_category=Constants.ALERT_ERROR_LABEL)
+        shop_domain_ends_in = shop_domain[-14:]
+        shop_name = shop_domain[:-14]
         if not shop_domain_ends_in or not shop_domain_ends_in == '.myshopify.com':
-            raise ParamException('incorrect shop name', 400)
+            raise RequirementException(message=ExceptionMessages.SHOPIFY_INVALID_SHOP_DOMAIN,
+                                       error_code=httplib.BAD_REQUEST,
+                                       error_category=Constants.ALERT_ERROR_LABEL)
         return shop_name
+
+    def get_shop_name(self):
+        return self.get_shop_name_by_domain(self.shop.domain)
 
     def shop_has_valid_token(self):
         webhooks_count = self.shopify_api.check_webhooks_count()
@@ -291,6 +302,7 @@ class OpinewShopifyFacade(object):
         order = models.Order(platform_order_id=platform_order_id, shop=self.shop, purchase_timestamp=created_at_dt,
                              browser_ip=browser_ip)
 
+        # TODO: Extract to ShopifyOpinewAdapter
         # try to speculatively find a FunnelStream to match for this order - from this browser IP, latest
         funnel_stream = None
         if browser_ip:
@@ -339,13 +351,15 @@ class OpinewShopifyFacade(object):
                 order.ship(delivery_tracking_number, shipment_timestamp=st)
                 order.set_notifications()
 
-    def shopify_shop_to_user_adapter(self, shopify_shop):
+    @classmethod
+    def shopify_shop_to_user_adapter(cls, shopify_shop):
         shop_owner_email = shopify_shop.get('email', '')
         shop_owner_name = shopify_shop.get('shop_owner', '')
         return g.db.User.get_or_create_shop_owner(email=shop_owner_email,
-                                                        name=shop_owner_name)
+                                                  name=shop_owner_name)
 
-    def create_shop(self, shop_domain, hmac_request, code, nonce_request):
+    @classmethod
+    def create_shop(cls, shop_domain, hmac_request, code, nonce_request):
         client_id = current_app.config.get('SHOPIFY_APP_API_KEY')
         client_secret = current_app.config.get('SHOPIFY_APP_SECRET')
 
@@ -359,7 +373,7 @@ class OpinewShopifyFacade(object):
 
         # Create db records
         # Create shop user, generate pass
-        shop_owner = self.shopify_shop_to_user_adapter(shopify_shop)
+        shop_owner = cls.shopify_shop_to_user_adapter(shopify_shop)
 
         # Create shop with owner = shop_user
         shopify_platform = g.db.Platform.get_by_name(Constants.SHOPIFY_PLATFORM_NAME)
@@ -367,8 +381,8 @@ class OpinewShopifyFacade(object):
                                 platform=shopify_platform,
                                 access_token=shopify_api.access_token,
                                 owner=shop_owner)
-        self.shop = shop
-        shop.name = self.get_shop_name()
+
+        shop.name = cls.get_shop_name_by_domain(shop_domain)
         shop_owner.shops.append(shop)
         g.db.add(shop)
 

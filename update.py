@@ -67,7 +67,7 @@ c5 = models.Customer.query.filter_by(id=35).first()
 c5.stripe_customer_id = "cus_7zxGaoutiZyLUX"
 db.session.add(c5)
 
-for cid in [38, 39, 42, 45, 46, 50, 53, 56, 57, 60, 27, 34, 35, 62, 63]:
+for cid in [38, 39, 42, 45, 46, 50, 53, 56, 57, 60, 27, 34, 35, 62, 63, 52, 64]:
     c = models.Customer.query.filter_by(id=cid).first()
     c.active = False
     c.subscription[0].plan = None
@@ -78,6 +78,8 @@ for cid in [38, 39, 42, 45, 46, 50, 53, 56, 57, 60, 27, 34, 35, 62, 63]:
     elif cid == 38:
         c.subscription[0].trialed_for = 8
     elif cid == 46:
+        c.subscription[0].trialed_for = 6
+    elif cid == 52:
         c.subscription[0].trialed_for = 6
     else:
         c.subscription[0].trialed_for = 0

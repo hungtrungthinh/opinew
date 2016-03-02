@@ -23,9 +23,7 @@ class TestClient(TestFlaskApplication):
             # Filter out rules we can't navigate to in a browser
             # and rules that require parameters
             if "GET" in rule.methods:
-                if rule.endpoint in ['static', 'admin.static', 'security.reset_password']:
-                    continue
-                if rule.endpoint in ['security.confirm_email']:
+                if rule.endpoint in ['static', 'admin.static', 'security.reset_password', 'security.confirm_email']:
                     continue
                 url = url_for(rule.endpoint, **(rule.defaults or {}))
                 if 'admin' in url:
@@ -33,75 +31,72 @@ class TestClient(TestFlaskApplication):
                 self.desktop_client.get(url, follow_redirects=True)
 
     def test_shopify_install_no_shop(self):
-        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify'})
-        response_expected = {"error": "shop parameter is required"}
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/install", query_string={'async': 1})
+        response_expected = {u'error': u'Param shop is missing'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_shopify_install_no_shop_domain(self):
-        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
-                                                                            'shop': '123'})
-        response_expected = {"error": 'invalid shop domain'}
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/install", query_string={'shop': '123'})
+        response_expected = {u'error': u'Invalid shop domain.'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_shopify_install_incorrect_shop_name(self):
-        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
-                                                                            'shop': '123456789123456789'})
-        response_expected = {"error": 'incorrect shop name'}
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/install", query_string={'shop': '123456789123456789'})
+        response_expected = {u'error': u'Invalid shop domain.'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_shopify_install_redirect(self):
-        response_actual = self.desktop_client.get("/install", query_string={'ref': 'shopify',
-                                                                            'shop': testing_constants.NEW_SHOP_DOMAIN})
-        location_expected = 'https://opinewTesting.myshopify.com/admin/oauth/authorize?client_id=7260cb38253b9adc4af0c90eb622f4ce&scope=read_products,read_orders,read_fulfillments&redirect_uri=http://localhost:5000/oauth/callback&state=opinewTesting'
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/install", query_string={'shop': testing_constants.NEW_SHOP_DOMAIN})
+        location_expected = 'https://opinewTesting.myshopify.com/admin/oauth/authorize?client_id=7260cb38253b9adc4af0c90eb622f4ce&scope=read_products,read_orders,read_fulfillments&redirect_uri=http://localhost:5000/platforms/shopify/shops/create&state=opinewTesting'
         self.assertEquals(response_actual.status_code, 302)
         self.assertEquals(location_expected, response_actual.location)
 
     def test_oauth_callback_no_state(self):
-        response_actual = self.desktop_client.get("/oauth/callback")
-        response_expected = {u'error': u'state parameter is required'}
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/create", query_string={})
+        response_expected = {u'error': u'Param state is missing'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_hmac(self):
-        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing'})
-        response_expected = {u'error': u'hmac parameter is required'}
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/create", query_string={'state': 'opinew-testing'})
+        response_expected = {u'error': u'Param hmac is missing'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_shop(self):
-        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/create", query_string={'state': 'opinew-testing',
                                                                                    'hmac': 'fdsa'})
-        response_expected = {u'error': u'shop parameter is required'}
+        response_expected = {u'error': u'Param shop is missing'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_code(self):
-        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinew-testing',
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/create", query_string={'state': 'opinew-testing',
                                                                                    'hmac': 'fdsa',
                                                                                    'shop': testing_constants.NEW_SHOP_DOMAIN})
-        response_expected = {u'error': u'code parameter is required'}
+        response_expected = {u'error': u'Param code is missing'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_wrong_nonce(self):
-        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'WRONG_NONCE',
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/create", query_string={'state': 'WRONG_NONCE',
                                                                                    'hmac': 'fdsa',
                                                                                    'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                                    'code': 'abc'})
-        response_expected = {u'error': u'incorrect nonce'}
+        response_expected = {u'error': u'Incorrect nonce.'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_no_signature(self):
-        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinewTesting',
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/create", query_string={'state': 'opinewTesting',
                                                                                    'hmac': 'fdsa',
                                                                                    'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                                    'code': 'abc'})
-        response_expected = {u'error': u'signature required'}
+        response_expected = {u'error': u'signature'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_oauth_callback_hmac_wrong(self):
-        response_actual = self.desktop_client.get("/oauth/callback", query_string={'state': 'opinewTesting',
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/create", query_string={'state': 'opinewTesting',
                                                                                    'hmac': 'fdsa',
                                                                                    'shop': testing_constants.NEW_SHOP_DOMAIN,
                                                                                    'code': 'abc',
                                                                                    'signature': 'abc'})
-        response_expected = {u'error': u'hmac unverified'}
+        response_expected = {u'error': u'Invalid hmac.'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 
     def test_register_get(self):
@@ -113,20 +108,17 @@ class TestClient(TestFlaskApplication):
         response_actual = self.desktop_client.post("/register")
         self.assertEquals(response_actual.status_code, 200)
         self.assertTrue('This field is required.' in response_actual.data)
-        self.assertTrue('Email not provided' in response_actual.data)
-        self.assertTrue('Password not provided' in response_actual.data)
 
     def test_register_post_name(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME})
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('Email not provided' in response_actual.data)
-        self.assertTrue('Password not provided' in response_actual.data)
+        self.assertTrue('This field is required.' in response_actual.data)
 
     def test_register_post_name_and_email(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
                                                                       'email': testing_constants.NEW_USER_EMAIL})
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('Password not provided' in response_actual.data)
+        self.assertTrue('This field is required.' in response_actual.data)
 
     def test_register_post_no_password_confirm(self):
         response_actual = self.desktop_client.post("/register", data={'name': testing_constants.NEW_USER_NAME,
@@ -531,7 +523,7 @@ class TestClient(TestFlaskApplication):
                                                        'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
         self.assertEquals(response_actual.status_code, 200)
         shop = Shop.query.filter_by(id=testing_constants.SHOPIFY_SHOP_ID).first()
-        self.assertIsNone(shop)
+        self.assertFalse(shop.active)
 
         # make sure tasks are revoked
         db.session.delete(order)
@@ -582,60 +574,63 @@ class TestClient(TestFlaskApplication):
         db.session.commit()
         self.logout()
 
-    def test_plugin_is_invalid_after_trial(self):
-        old_confirmed_at = self.shop_owner_user.confirmed_at
-        # set 1 day after expiry
-        self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(
-            days=Constants.TRIAL_PERIOD_DAYS + 1)
-        self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
-        db.session.add(self.shop_owner_user)
-        db.session.commit()
-        # test
-        response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
-            shop_id=2, product_url='opinew_shop.local:5001/product/1', get_by='url'
-        ))
-        self.assertEquals(response_actual.status_code, 404)
-        self.assertTrue(response_actual.data == '')
-        # revert
-        self.shop_owner_user.confirmed_at = old_confirmed_at
-        db.session.add(self.shop_owner_user)
-        db.session.commit()
+    # TODO: Temporary deprecated
+    # def test_plugin_is_invalid_after_trial(self):
+    #     old_confirmed_at = self.shop_owner_user.confirmed_at
+    #     # set 1 day after expiry
+    #     self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(
+    #         days=Constants.TRIAL_PERIOD_DAYS + 1)
+    #     self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
+    #     db.session.add(self.shop_owner_user)
+    #     db.session.commit()
+    #     # test
+    #     response_actual = self.desktop_client.get(url_for('client.get_plugin'), query_string=dict(
+    #         shop_id=2, product_url='opinew_shop.local:5001/product/1', get_by='url'
+    #     ))
+    #     self.assertEquals(response_actual.status_code, 404)
+    #     self.assertTrue(response_actual.data == '')
+    #     # revert
+    #     self.shop_owner_user.confirmed_at = old_confirmed_at
+    #     db.session.add(self.shop_owner_user)
+    #     db.session.commit()
 
-    def test_dashboard_trial_expiry_in_26_days(self):
-        old_confirmed_at = self.shop_owner_user.confirmed_at
-        # set 1 day after expiry
-        self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS - 27)
-        self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
-        db.session.add(self.shop_owner_user)
-        db.session.commit()
-        # test
-        self.login(self.shop_owner_user.email, self.shop_owner_password)
-        response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('Your trial expires in 26 days' in response_actual.data)
-        self.logout()
-        # revert
-        self.shop_owner_user.confirmed_at = old_confirmed_at
-        db.session.add(self.shop_owner_user)
-        db.session.commit()
+    # TODO: Temporary deprecated
+    # def test_dashboard_trial_expiry_in_26_days(self):
+    #     old_confirmed_at = self.shop_owner_user.confirmed_at
+    #     # set 1 day after expiry
+    #     self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS - 27)
+    #     self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
+    #     db.session.add(self.shop_owner_user)
+    #     db.session.commit()
+    #     # test
+    #     self.login(self.shop_owner_user.email, self.shop_owner_password)
+    #     response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
+    #     self.assertEquals(response_actual.status_code, 200)
+    #     self.assertTrue('Your trial expires in 26 days' in response_actual.data)
+    #     self.logout()
+    #     # revert
+    #     self.shop_owner_user.confirmed_at = old_confirmed_at
+    #     db.session.add(self.shop_owner_user)
+    #     db.session.commit()
 
-    def test_dashboard_trial_expired(self):
-        old_confirmed_at = self.shop_owner_user.confirmed_at
-        # set 1 day after expiry
-        self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS + 1)
-        self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
-        db.session.add(self.shop_owner_user)
-        db.session.commit()
-        # test
-        self.login(self.shop_owner_user.email, self.shop_owner_password)
-        response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
-        self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('Your trial has expired!' in response_actual.data)
-        self.logout()
-        # revert
-        self.shop_owner_user.confirmed_at = old_confirmed_at
-        db.session.add(self.shop_owner_user)
-        db.session.commit()
+    # TODO: Temporary deprecated
+    # def test_dashboard_trial_expired(self):
+    #     old_confirmed_at = self.shop_owner_user.confirmed_at
+    #     # set 1 day after expiry
+    #     self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS + 1)
+    #     self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
+    #     db.session.add(self.shop_owner_user)
+    #     db.session.commit()
+    #     # test
+    #     self.login(self.shop_owner_user.email, self.shop_owner_password)
+    #     response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
+    #     self.assertEquals(response_actual.status_code, 200)
+    #     self.assertTrue('Your trial has expired!' in response_actual.data)
+    #     self.logout()
+    #     # revert
+    #     self.shop_owner_user.confirmed_at = old_confirmed_at
+    #     db.session.add(self.shop_owner_user)
+    #     db.session.commit()
 
     def test_display_post_email_add_review_screen(self):
         order = Order()
@@ -1004,8 +999,8 @@ class TestClient(TestFlaskApplication):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/dashboard", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('General settings' in response_actual.data)
-        self.assertTrue('Orders' in response_actual.data)
+        self.assertTrue('Incoming' in response_actual.data)
+        self.assertTrue('Scheduled' in response_actual.data)
         self.assertTrue('Reviews' in response_actual.data)
         self.logout()
 
@@ -1013,8 +1008,8 @@ class TestClient(TestFlaskApplication):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('General settings' in response_actual.data)
-        self.assertTrue('Orders' in response_actual.data)
+        self.assertTrue('Incoming' in response_actual.data)
+        self.assertTrue('Scheduled' in response_actual.data)
         self.assertTrue('Reviews' in response_actual.data)
         self.logout()
 
