@@ -575,13 +575,13 @@ def get_plugin():
         else:
             return '', 404
         shop = product.shop
-        if shop.owner and \
-                shop.owner.customer and \
-                shop.owner.customer[0] and \
-                shop.owner.confirmed_at and \
-                        (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
-                not shop.owner.customer[0].last4:
-            return '', 404
+        # if shop.owner and \
+        #         shop.owner.customer and \
+        #         shop.owner.customer[0] and \
+        #         shop.owner.confirmed_at and \
+        #                 (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
+        #         not shop.owner.customer[0].last4:
+        #     return '', 404
 
         product_objs = rank_objects_for_product(product.id)
         next_arg = request.url
