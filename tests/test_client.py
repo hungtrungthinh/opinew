@@ -31,7 +31,7 @@ class TestClient(TestFlaskApplication):
                 self.desktop_client.get(url, follow_redirects=True)
 
     def test_shopify_install_no_shop(self):
-        response_actual = self.desktop_client.get("/platforms/shopify/shops/install", query_string={'async': 1})
+        response_actual = self.desktop_client.get("/platforms/shopify/shops/install")
         response_expected = {u'error': u'Param shop is missing'}
         self.assertEquals(response_expected, json.loads(response_actual.data))
 

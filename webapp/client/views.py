@@ -2,9 +2,10 @@ from __future__ import division
 import datetime
 import os
 import httplib
+import json
 from functools import wraps
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
-    current_app, make_response, abort, jsonify, send_file, Response
+    current_app, make_response, abort, jsonify, send_file, Response, session
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 from providers.shopify_api import OpinewShopifyFacade
@@ -35,7 +36,7 @@ def verify_requirements(*redirect_url_for):
         @wraps(f)
         def wrapper(*args, **kwargs):
             # Create a response context - is it asyncrounous call (e.g. from ajax)
-            payload = request.args if request.method in ['GET'] else request.form
+            payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data or '{}')
             is_async = payload.get('async')
 
             # get as many default redirects as possible
@@ -131,11 +132,16 @@ def get_required_model_instance_by_id(model, instance_id):
 
 
 def generate_success_response_from_obj(obj, obj_name):
-    ctx = g.response_context.pop()
-    if ctx.is_async:
-        return jsonify(obj.serialize()), httplib.CREATED
+    payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data)
+    is_async = payload.get('async')
+    if is_async:
+        return jsonify(obj), httplib.CREATED
     flash(SuccessMessages.SUCCESS_CREATING_OBJECT.format(object_name=obj_name))
-    return redirect(request.referrer or ctx.default_redirect)
+    return redirect(request.referrer)
+
+
+def generate_success_response_from_model(model, obj_name):
+    return generate_success_response_from_obj(model.serialize(), obj_name)
 
 
 @client.route('/')
@@ -1087,80 +1093,92 @@ def unsubscribe():
     db.session.commit()
     return "%s has been successfully unsubscribed." % email
 
+#######################
+# OPINEW API DEFINITION
+#######################
+# GET  /resources                               -> get all resources
+# GET  /resources/<id>                          -> get resource by id
+# GET  /resources/<id>/act                      -> execute idempotent action on single resource (e.g. search)
+# POST /resources/<id>/act                      -> execute action on single resource (e.g. create, like)
 
-@client.route('/review-like', defaults={'review_id': None})
-@client.route('/review-like/<review_id>')
-@login_required
-def add_review_like(review_id):
-    review = Review.query.filter_by(id=review_id).first()
-    if not review:
-        return jsonify({
-            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id)
-        }), httplib.BAD_REQUEST
-    review_like = ReviewLike.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+# GET  /resources/<id>/sub_resources            -> get sub_resources for resource_id
+# GET  /resources/<id>/sub_resources/act        -> execute idempotent action on single sub_resource of resource
+# POST /resources/<id>/sub_resources/act        -> execute action on single sub_resource of resource
+
+def get_real_or_anonymous_user():
+    """
+    Gets the currently saved user - either anonymous or authenticated.
+    If no user is authenticated, create one with the next id and store
+    it in the session.
+    :return:
+    """
+    if current_user and current_user.is_authenticated():
+        return current_user
+    # validate that the session cookie is sent - this protects against
+    # empty session attacks
+    assert not session.new
+    # try to get the user_id from the session
+    user_id = session.get('anonymous_user_id')
+    if user_id:
+        user = User.query.filter_by(id=int(user_id)).first()
+        if user:
+            return user
+    user = User()
+    db.session.add(user)
+    db.session.commit()
+    session['anonymous_user_id'] = user.id
+    return user
+
+
+@client.route('/reviews/<int:review_id>/like', methods=['POST'])
+@verify_requirements('client.reviews')
+def route_review_like(review_id):
+    review = get_required_model_instance_by_id(Review, review_id)
+    user = get_real_or_anonymous_user()
+    # verify that this user hasn't liked it before
+    review_like = ReviewLike.query.filter_by(review_id=review_id, user_id=user.id).first()
     if not review_like:
         now = datetime.datetime.utcnow()
         new_action = True
-        review_like = ReviewLike(review_id=review_id, user_id=current_user.id, timestamp=now)
+        review_like = ReviewLike(review_id=review_id, user_id=user.id, timestamp=now)
         db.session.add(review_like)
     else:
         new_action = False
         db.session.delete(review_like)
     db.session.commit()
-    if request.args.get('async'):
-        return jsonify({
-            'action': new_action,
-            'count': len(review.likes)
-        })
-    return redirect(request.referrer or url_for('client.reviews'))
+    obj = {'action': new_action,
+           'count': len(review.likes)}
+    return generate_success_response_from_obj(obj=obj, obj_name='Review Like')
 
 
-@client.route('/review-report', defaults={'review_id': None})
-@client.route('/review-report/<review_id>')
-@login_required
-def add_review_report(review_id):
-    review = Review.query.filter_by(id=review_id).first()
-    if not review:
-        return jsonify({
-            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review', id=review_id)
-        }), httplib.BAD_REQUEST
-    review_report = ReviewReport.query.filter_by(review_id=review_id, user_id=current_user.id).first()
+@client.route('/reviews/<int:review_id>/report', methods=['POST'])
+@verify_requirements('client.reviews')
+def route_review_report(review_id):
+    review = get_required_model_instance_by_id(Review, review_id)
+    user = get_real_or_anonymous_user()
+    review_report = ReviewReport.query.filter_by(review_id=review_id, user_id=user.id).first()
     if not review_report:
         now = datetime.datetime.utcnow()
         new_action = True
-        review_report = ReviewReport(review_id=review_id, user_id=current_user.id, timestamp=now)
+        review_report = ReviewReport(review_id=review_id, user_id=user.id, timestamp=now)
         db.session.add(review_report)
     else:
         new_action = False
         db.session.delete(review_report)
     db.session.commit()
-    if request.args.get('async'):
-        return jsonify({
-            'action': new_action,
-            'count': len(review.reports)
-        })
-    return redirect(request.referrer or url_for('client.reviews'))
+    obj = {'action': new_action,
+           'count': len(review.reports)}
+    return generate_success_response_from_obj(obj=obj, obj_name='Review Report')
 
 
-@client.route('/review-feature', defaults={'review_id': None})
-@client.route('/review-feature/<review_id>')
+@client.route('/reviews/<int:review_id>/feature', methods=['POST'])
+@verify_requirements('client.reviews')
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
-def add_review_feature(review_id):
-    review = Review.query.filter_by(id=review_id).first()
-    if not review:
-        return jsonify({
-            "error": ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance='review')
-        }), httplib.BAD_REQUEST
-    if not (review.product and review.product.shop):
-        return jsonify({
-            "error": ExceptionMessages.CANT_FEATURE_THAT_REVIEW
-        }), httplib.BAD_REQUEST
-    review_shop = review.product.shop
-    if review_shop not in current_user.shops:
-        return jsonify({
-            "error": ExceptionMessages.CANT_FEATURE_THAT_REVIEW
-        }), httplib.UNAUTHORIZED
+def route_review_feature(review_id):
+    review = get_required_model_instance_by_id(Review, review_id)
+    verify_required_condition(condition=review.product and review.product.shop and review.product.shop in current_user.shops,
+                              error_msg=ExceptionMessages.CANT_FEATURE_THAT_REVIEW)
     review_feature = ReviewFeature.query.filter_by(review_id=review_id).first()
     if not review_feature:
         now = datetime.datetime.utcnow()
@@ -1171,20 +1189,14 @@ def add_review_feature(review_id):
         new_action = False
         db.session.delete(review_feature)
     db.session.commit()
-    if request.args.get('async'):
-        return jsonify({
-            'action': new_action,
-            'count': 1 if review.featured else 0
-        })
-    return redirect(request.referrer or url_for('client.reviews'))
+    obj = {'action': new_action,
+           'count': 1 if review.featured else 0}
+    return generate_success_response_from_obj(obj=obj, obj_name='Review Report')
 
 
-# TODO: From below - refactored with new quick verification functions (see top of file). Refactor the ones above too.
-
-@client.route('/review-share', defaults={'review_id': None})
-@client.route('/review-share/<review_id>')
+@client.route('/reviews/<int:review_id>/share', methods=['POST'])
 @verify_requirements('client.reviews')
-def add_review_share(review_id):
+def route_review_share(review_id):
     # Verify required objects
     review = get_required_model_instance_by_id(Review, review_id)
 
@@ -1195,8 +1207,7 @@ def add_review_share(review_id):
         review_share.user = current_user
     db.session.add(review_share)
     db.session.commit()
-
-    return generate_success_response_from_obj(obj=review_share, obj_name='Review Share')
+    return generate_success_response_from_model(review_share, obj_name='Review Share')
 
 
 @client.route('/ref')
@@ -1235,7 +1246,7 @@ def create_comment():
                       created_ts=now)
     db.session.add(comment)
     db.session.commit()
-    return generate_success_response_from_obj(obj=comment, obj_name='comment')
+    return generate_success_response_from_model(comment, obj_name='comment')
 
 
 @client.route('/questions/create', methods=['POST'])
@@ -1255,7 +1266,7 @@ def create_question():
                         created_ts=now)
     db.session.add(question)
     db.session.commit()
-    return generate_success_response_from_obj(obj=question, obj_name='question')
+    return generate_success_response_from_model(question, obj_name='question')
 
 
 @client.route('/answers/create', methods=['POST'])
@@ -1275,7 +1286,7 @@ def create_answer():
                     created_ts=now)
     db.session.add(answer)
     db.session.commit()
-    return generate_success_response_from_obj(obj=answer, obj_name='answer')
+    return generate_success_response_from_model(answer, obj_name='answer')
 
 
 @client.route('/simple')

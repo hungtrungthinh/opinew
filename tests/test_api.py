@@ -108,7 +108,7 @@ class TestAPI(TestFlaskApplication):
                 review_dict = review
         self.assertEquals(dict(review_dict["user"]),
                           {u'is_shop_owner': False, u'image_url': u'https://opinew.com/media/user/3_rose_castro.jpg',
-                           u'email': u'rose.castro@example.com', u'name': u'Rose Castro', u'id': 2,
+                           u'email': u'rose.castro@example.com', u'name': u'Rose Castro', u'id': 2, u'is_legacy': False,
                            u'unsubscribe_token': None, u'unsubscribed': False})
 
     def test_get_reviews_review_id1_image_url(self):
@@ -986,127 +986,75 @@ class TestAPI(TestFlaskApplication):
     ###########REVIEW LIKE###############
 
     def test_review_like_first_time(self):
-        self.login(self.reviewer_user.email, self.reviewer_password)
-        response_actual = self.desktop_client.post(url_for("client.add_review_like", review_id=1))
-        self.assertEquals(response_actual.status_code, 201)
-        self.logout()
+        response_actual = self.desktop_client.post(url_for("client.route_review_like", review_id=1),
+                                                   data=json.dumps({'async': 1}))
+        self.assertEqual(response_actual.status_code, httplib.CREATED)
         self.refresh_db()
 
     def test_review_unlike(self):
-        self.login(self.reviewer_user.email, self.reviewer_password)
-        self.desktop_client.post(url_for("client.add_review_like", review_id=1))
-        response_actual = self.desktop_client.post(url_for("client.add_review_like", review_id=1))
+        self.desktop_client.post(url_for("client.route_review_like", review_id=1))
+        response_actual = self.desktop_client.post(url_for("client.route_review_like", review_id=1),
+                                                   data=json.dumps({'async': 1}))
         response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_actual.status_code, httplib.CREATED)
         self.assertEquals(response_json_dict["action"], 0)
-        self.logout()
         self.refresh_db()
 
     def test_review_like_again(self):
-        self.login(self.reviewer_user.email, self.reviewer_password)
         # like
-        self.desktop_client.post(url_for("client.add_review_like", review_id=1))
+        self.desktop_client.post(url_for("client.route_review_like", review_id=1))
         # dislike
-        self.desktop_client.post(url_for("client.add_review_like", review_id=1))
+        self.desktop_client.post(url_for("client.route_review_like", review_id=1))
         # like
-        response_actual = self.desktop_client.post(url_for("client.add_review_like", review_id=1))
+        response_actual = self.desktop_client.post(url_for("client.route_review_like", review_id=1),
+                                                   data=json.dumps({'async': 1}))
         response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_actual.status_code, httplib.CREATED)
         self.assertEquals(response_json_dict["action"], 1)
-        self.logout()
         self.refresh_db()
 
     ###########REVIEW REPORT###############
 
     def test_review_report_first_time(self):
-        self.login(self.reviewer_user.email, self.reviewer_password)
-        payload = json.dumps({"review_id": 1})
-        response_actual = self.desktop_client.post("/api/v1/review_report",
-                                                   headers={'content-type': 'application/json'},
-                                                   data=payload)
-        self.assertEquals(response_actual.status_code, 201)
-        self.logout()
+        response_actual = self.desktop_client.post(url_for("client.route_review_report", review_id=1),
+                                                   data=json.dumps({'async': 1}))
+        self.assertEqual(response_actual.status_code, httplib.CREATED)
         self.refresh_db()
 
     def test_review_unreport(self):
-        self.login(self.reviewer_user.email, self.reviewer_password)
-        payload1 = json.dumps({"review_id": 1})
-        self.desktop_client.post("/api/v1/review_report",
-                                 headers={'content-type': 'application/json'},
-                                 data=payload1)
-
-        payload2 = json.dumps({"review_id": 1, "action": '0'})
-        response_actual = self.desktop_client.patch("/api/v1/review_report/1",
-                                                    headers={'content-type': 'application/json'},
-                                                    data=payload2)
+        # report
+        self.desktop_client.post(url_for("client.route_review_report", review_id=1),
+                                                   data=json.dumps({'async': 1}))
+        # unreport
+        response_actual = self.desktop_client.post(url_for("client.route_review_report", review_id=1),
+                                                   data=json.dumps({'async': 1}))
         response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_actual.status_code, httplib.CREATED)
         self.assertEquals(response_json_dict["action"], 0)
-        self.logout()
         self.refresh_db()
 
     def test_review_report_again(self):
-        self.login(self.reviewer_user.email, self.reviewer_password)
-        payload1 = json.dumps({"review_id": 1})
-        self.desktop_client.post("/api/v1/review_report",
-                                 headers={'content-type': 'application/json'},
-                                 data=payload1)
-
-        payload2 = json.dumps({"review_id": 1, "action": '0'})
-        self.desktop_client.patch("/api/v1/review_report/1",
-                                  headers={'content-type': 'application/json'},
-                                  data=payload2)
-
-        payload3 = json.dumps({"review_id": 1, "action": '1'})
-        response_actual = self.desktop_client.patch("/api/v1/review_report/1",
-                                                    headers={'content-type': 'application/json'},
-                                                    data=payload3)
+        # report
+        self.desktop_client.post(url_for("client.route_review_report", review_id=1),
+                                                   data=json.dumps({'async': 1}))
+        # unreport
+        self.desktop_client.post(url_for("client.route_review_report", review_id=1),
+                                                   data=json.dumps({'async': 1}))
+        # report again
+        response_actual = self.desktop_client.post(url_for("client.route_review_report", review_id=1),
+                                                   data=json.dumps({'async': 1}))
         response_json_dict = json.loads(response_actual.data)
+        self.assertEqual(response_actual.status_code, httplib.CREATED)
         self.assertEquals(response_json_dict["action"], 1)
-        self.logout()
         self.refresh_db()
 
     ###########REVIEW FEATURE REVIEWER###############
 
     def test_review_feature_first_time_by_reviewer(self):
         self.login(self.reviewer_user.email, self.reviewer_password)
-        payload = json.dumps({"review_id": 1})
-        self.desktop_client.post("/api/v1/review_feature",
-                                 headers={'content-type': 'application/json'},
-                                 data=payload)
-        self.assertRaises(ProcessingException)
-        self.logout()
-        self.refresh_db()
-
-    def test_review_unfeature_by_reviewer(self):
-        self.login(self.reviewer_user.email, self.reviewer_password)
-        payload1 = json.dumps({"review_id": 1})
-        self.desktop_client.post("/api/v1/review_feature",
-                                 headers={'content-type': 'application/json'},
-                                 data=payload1)
-
-        payload2 = json.dumps({"review_id": 1, "action": '0'})
-        response_actual = self.desktop_client.patch("/api/v1/review_feature/1",
-                                                    headers={'content-type': 'application/json'},
-                                                    data=payload2)
-        self.assertRaises(ProcessingException)
-        self.logout()
-        self.refresh_db()
-
-    def test_review_feature_again_by_reviewer(self):
-        self.login(self.reviewer_user.email, self.reviewer_password)
-        payload1 = json.dumps({"review_id": 1})
-        self.desktop_client.post("/api/v1/review_feature",
-                                 headers={'content-type': 'application/json'},
-                                 data=payload1)
-
-        payload2 = json.dumps({"review_id": 1, "action": '0'})
-        self.desktop_client.patch("/api/v1/review_feature/1",
-                                  headers={'content-type': 'application/json'},
-                                  data=payload2)
-
-        payload3 = json.dumps({"review_id": 1, "action": '1'})
-        response_actual = self.desktop_client.patch("/api/v1/review_feature/1",
-                                                    headers={'content-type': 'application/json'},
-                                                    data=payload3)
-        self.assertRaises(ProcessingException)
+        response_actual = self.desktop_client.post(url_for("client.route_review_feature", review_id=1),
+                                                   follow_redirects=True)
+        self.assertTrue("You do not have permission to view this resource" in response_actual.data)
         self.logout()
         self.refresh_db()
 
@@ -1114,46 +1062,32 @@ class TestAPI(TestFlaskApplication):
 
     def test_review_feature_first_time_by_shop_owner(self):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
-        payload = json.dumps({"review_id": 1})
-        response_actual = self.desktop_client.post("/api/v1/review_feature",
-                                                   headers={'content-type': 'application/json'},
-                                                   data=payload)
-        self.assertEquals(response_actual.status_code, 201)
+        response_actual = self.desktop_client.post(url_for("client.route_review_feature", review_id=1),
+                                                   data=json.dumps({'async': 1}))
+        self.assertEquals(response_actual.status_code, httplib.CREATED)
         self.logout()
         self.refresh_db()
 
     def test_review_unfeature_by_shop_owner(self):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
-        payload1 = json.dumps({"review_id": 1})
-        self.desktop_client.post("/api/v1/review_feature",
-                                 headers={'content-type': 'application/json'},
-                                 data=payload1)
-
-        payload2 = json.dumps({"review_id": 1, "action": '0'})
-        response_actual = self.desktop_client.patch("/api/v1/review_feature/1",
-                                                    headers={'content-type': 'application/json'},
-                                                    data=payload2)
+        self.desktop_client.post(url_for("client.route_review_feature", review_id=1),
+                                                   data=json.dumps({'async': 1}))
+        response_actual = self.desktop_client.post(url_for("client.route_review_feature", review_id=1),
+                                                   data=json.dumps({'async': 1}))
         response_json_dict = json.loads(response_actual.data)
+        self.assertEquals(response_actual.status_code, httplib.CREATED)
         self.assertEquals(response_json_dict["action"], 0)
         self.logout()
         self.refresh_db()
 
     def test_review_feature_again_by_shop_owner(self):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
-        payload1 = json.dumps({"review_id": 1})
-        self.desktop_client.post("/api/v1/review_feature",
-                                 headers={'content-type': 'application/json'},
-                                 data=payload1)
-
-        payload2 = json.dumps({"review_id": 1, "action": '0'})
-        self.desktop_client.patch("/api/v1/review_feature/1",
-                                  headers={'content-type': 'application/json'},
-                                  data=payload2)
-
-        payload3 = json.dumps({"review_id": 1, "action": '1'})
-        response_actual = self.desktop_client.patch("/api/v1/review_feature/1",
-                                                    headers={'content-type': 'application/json'},
-                                                    data=payload3)
+        self.desktop_client.post(url_for("client.route_review_feature", review_id=1),
+                                                   data=json.dumps({'async': 1}))
+        self.desktop_client.post(url_for("client.route_review_feature", review_id=1),
+                                                   data=json.dumps({'async': 1}))
+        response_actual = self.desktop_client.post(url_for("client.route_review_feature", review_id=1),
+                                                   data=json.dumps({'async': 1}))
         response_json_dict = json.loads(response_actual.data)
         self.assertEquals(response_json_dict["action"], 1)
         self.logout()
