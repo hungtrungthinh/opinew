@@ -1,0 +1,5 @@
+<li role="presentation" {% if active_tab %}class="active"{% endif %}>
+  <a href="#{{ tab.name }}" aria-controls="{{ tab.name }}" role="tab" data-toggle="tab">
+    <span class="glyphicon glyphicon-{{ tab.icon }}"></span> {{ tab.name|capitalize }}
+  </a>
+</li>

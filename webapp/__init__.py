@@ -22,6 +22,7 @@ from logging.handlers import SMTPHandler
 from logging import Formatter
 from user_agents import parse
 from werkzeug.datastructures import ImmutableTypeConversionDict
+from exceptions import RequirementException
 
 
 class MyHomeView(AdminIndexView):
@@ -79,10 +80,8 @@ shop_images = UploadSet('shopimages', IMAGES)
 
 resize = Resize()
 assets = Environment()
-js_assets = Bundle('js/min/jquery-1.11.3.min.js', 'js/min/bootstrap.min.js', 'js/main.js',
-            filters='rjsmin', output='js/main.min.js')
-css_assets = Bundle('css/min/bootstrap.min.css', 'css/global.css',
-            filters='cssmin', output='css/global.min.css')
+js_assets = Bundle('js/main.js', filters='rjsmin', output='js/main.min.js')
+css_assets = Bundle('css/global.css', filters='cssmin', output='css/global.min.css')
 
 
 def create_app(option):

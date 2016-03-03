@@ -108,12 +108,27 @@ a {
   color: #eee;
 }
 
-.alert {
-  border-radius: 0;
+.alert,
+.nav-pills > li > a,
+.well {
+  border-radius: 2px;
 }
 
-.well {
-  border-radius: 0;
+.nav-pills > li > a {
+  color: #333;
+}
+
+.nav-pills > li.active > a {
+  background-color: #1c9298;
+  border-color: #198388;
+  color: #eee;
+}
+
+.nav-pills > li.active > a:hover,
+.nav-pills > li.active > a:focus {
+  background-color: #167479 !important;
+  border-color: #13666a;
+  color: #eee;
 }
 
 /* /END Overriding default styles to match branding */
@@ -134,12 +149,9 @@ a {
 
 /* /END Flashed messages overriding */
 
-
-
 /* Reviews styles */
 
 .review-container {
-  -webkit-box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
   box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
   background-color: #fefefe;
   margin: 0 0 16px 0;
@@ -280,10 +292,54 @@ a {
 
 /* /END Review Styles */
 
-/* Make sure that the content is at least 500px - avoids footer going to top on no content */
-#content-wrapper {
-  min-height: 500px;
+/* dashboard styles */
+
+.dashboard-navigation-tabs {
+  min-height: 600px;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  background-color: #fefefe;
+  margin: 0 0 16px 0;
+  border-radius: 2px;
+  padding: 0;
 }
+
+.dashboard-container {
+  min-height: 600px;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  background-color: #fafaff;
+  margin: 0 0 16px 0;
+  border-radius: 2px;
+}
+
+.incoming-message {
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  background-color: #fefefe;
+  margin: 0 0 16px 0;
+  border-radius: 2px;
+  overflow: auto;
+}
+
+.incoming-message-title {
+  margin: 8px;
+  color: black;
+}
+
+.message-action-image {
+  height: 40px;
+  width: 40px;
+  display: inline-block;
+  background-color: #2c54a8;
+  border-radius: 50%;
+  margin: 8px;
+}
+
+.message-action-icon {
+  margin: 8px;
+  color: white;
+  font-size: 18px;
+}
+
+/* /END dashboard styles */
 
 .spacer {
   height: 60px;
@@ -645,7 +701,8 @@ footer .nav > li > a:hover {
 }
 
 .img-instruction {
-  width: 100%;
+  width: auto;
+  max-height: 500px;
   margin: 20px 0 20px 0;
 }
 
@@ -710,4 +767,10 @@ footer .nav > li > a:hover {
 
 .product-image {
   max-height: 120px;
+}
+
+/* Make sure that the content is at least 500px - avoids footer going to top on no content */
+
+.min-content-height {
+  min-height: 600px;
 }

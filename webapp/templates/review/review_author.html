@@ -1,4 +1,4 @@
-<div class="review-author">
+<div class="review-author" itemprop="author" itemscope itemtype="http://schema.org/Person">
   {% if review.user_image_url %}
     {%- if review.user_id %}
       <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
@@ -14,7 +14,7 @@
       <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}"
          {% if in_plugin %}target="_blank"{% endif %}>
     {%- endif %}
-    {{ review.user_name }}
+    <span itemprop="name">{{ review.user_name }}</span>
     {%- if review.user_id %}
       </a>
     {%- endif %}
@@ -22,7 +22,11 @@
     {% if show_product_info %}
       <br>
       ▸ <a href="{{ url_for('client.get_product', product_id=review.product.id) }}">
-      <b>{{ review.product.name }}</b> from <b>{{ review.product.shop.name }}</b>
+      <b>
+        <span itemprop="itemReviewed" itemscope itemtype="http://schema.org/Thing">
+          <span itemprop="name">{{ review.product.name }}</span>
+        </span>
+      </b> from <b>{{ review.product.shop.name }}</b>
     </a>
     {% endif %}
   </p>

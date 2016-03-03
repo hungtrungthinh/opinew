@@ -3,6 +3,7 @@ import os
 import sensitive
 from celery.schedules import crontab
 from flask.ext.babel import gettext
+from assets import strings
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -114,6 +115,7 @@ class Constants(object):
 
     PLAN_NAME_BASIC = 'basic'
     PLAN_NAME_SIMPLE = 'simple'
+    PLAN_NAME_SHOPIFY_SIMPLE = 'shopify_simple'
 
     FUNNEL_STREAM_ACTIONS = ['glimpse', 'fully_seen', 'mouse_hover', 'mouse_click', 'mouse_scroll']
 
@@ -141,6 +143,45 @@ class Constants(object):
     DASHBOARD_ORDERS_LIMIT = 50
 
     DEFAULT_LOCALE = 'en'
+
+    DASHBOARD_TABS = [
+        {
+            'name': strings.DASHBOARD_INCOMING_TAB_NAME,
+            'icon': 'inbox'
+        },
+        {
+            'name': strings.DASHBOARD_SCHEDULED_TAB_NAME,
+            'icon': 'time'
+        },
+        {
+            'name': strings.DASHBOARD_REVIEWS_TAB_NAME,
+            'icon': 'comment'
+        },
+        {
+            'name': strings.DASHBOARD_ANALYTICS_TAB_NAME,
+            'icon': 'dashboard'
+        },
+        {
+            'name': strings.DASHBOARD_ACCOUNT_TAB_NAME,
+            'icon': 'briefcase'
+        },
+        {
+            'name': strings.DASHBOARD_SETTINGS_TAB_NAME,
+            'icon': 'wrench'
+        }
+    ]
+
+    NEXT_ACTION_ID_SETUP_YOUR_SHOP = 'SHOP_SETUP'
+    NEXT_ACTION_SETUP_YOUR_SHOP_ICON = 'copy'
+    NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR = COLOR_OPINEW_KIWI
+
+    NEXT_ACTION_ID_SETUP_BILLING = 'SETUP_BILLING'
+    NEXT_ACTION_SETUP_BILLING_ICON = 'copy'
+    NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR = COLOR_OPINEW_KIWI
+
+    NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD = 'CHANGE_PASSWORD'
+    NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON = 'pencil'
+    NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR = COLOR_OPINEW_AQUA
 
 
 class Config(object):
