@@ -444,6 +444,23 @@ def shop_dashboard_id(shop_id):
                            stats=stats)
 
 
+@client.route('/update-subscription', defaults={'shop_id': 0})
+@client.route('/update-subscription/<int:shop_id>')
+@verify_requirements('client.reviews')
+@roles_required(Constants.SHOP_OWNER_ROLE)
+@login_required
+def update_subscription_id(shop_id):
+    shop = get_required_model_instance_by_id(Shop, shop_id)
+    verify_required_condition(condition=shop.owner_id == current_user.id,
+                              error_msg=ExceptionMessages.NOT_YOUR_INSTANCE.format(instance='shop'))
+    old_subscription = shop.owner.customer[0].subscription[0]
+    new_plan = Plan.query.filter_by(name='shopify_basic').first()
+    subscription = Subscription.update(old_subscription, new_plan)
+    db.session.add(subscription)
+    db.session.commit()
+    return redirect(url_for('client.shop_dashboard_id', shop_id=shop.id))
+
+
 @client.route('/setup-plugin/<int:shop_id>')
 @verify_requirements('client.dashboard')
 @roles_required(Constants.SHOP_OWNER_ROLE)
