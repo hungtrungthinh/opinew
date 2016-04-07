@@ -19,6 +19,9 @@ Create python virtual environment, install required packages and populate the da
     pip install -r requirements.txt
     
 1. Set up postgres database
+    
+    sudo -u postgres psql -c "CREATE USER opinew_user WITH PASSWORD '"'Opinu@m4d4f4k4\!'"';"
+    sudo -u postgres psql -c "CREATE DATABASE opinew WITH ENCODING 'UTF8'"
 
 1. Initialize database
 

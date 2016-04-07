@@ -342,6 +342,7 @@ class Subscription(db.Model, Repopulatable):
     plan = db.relationship("Plan", backref=db.backref("subscription"), uselist=False)
 
     timestamp = db.Column(db.DateTime)
+    trialed_for = db.Column(db.Integer, default=0)
 
     stripe_subscription_id = db.Column(db.String)
 

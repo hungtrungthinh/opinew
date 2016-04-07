@@ -1,0 +1,6 @@
+# sudo -u postgres psql -c "DROP DATABASE opinew;"
+# sudo -u postgres psql -c "CREATE DATABASE opinew WITH ENCODING 'UTF8'"
+# export PGPASSWORD='Opinu@m4d4f4k4!'
+# psql -U opinew_user -h localhost opinew < dbexport.pgsql
+python run_development.py db upgrade
+python update.py

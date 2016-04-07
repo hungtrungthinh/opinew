@@ -118,9 +118,6 @@ def create_app(option):
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security.init_app(app, user_datastore, confirm_register_form=ExtendedRegisterForm)
     with app.app_context():
-        if not app.testing:
-            verify_initialization()
-
         if app.testing:
             from async import tasks
         api_manager.init_app(app, flask_sqlalchemy_db=db)
