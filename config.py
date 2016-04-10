@@ -116,6 +116,7 @@ class Constants(object):
     PLAN_NAME_BASIC = 'basic'
     PLAN_NAME_SIMPLE = 'simple'
     PLAN_NAME_SHOPIFY_SIMPLE = 'shopify_simple'
+    PLAN_NAME_SHOPIFY_BASIC = 'shopify_basic'
 
     FUNNEL_STREAM_ACTIONS = ['glimpse', 'fully_seen', 'mouse_hover', 'mouse_click', 'mouse_scroll']
 

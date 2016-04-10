@@ -120,7 +120,7 @@ def create_customer_account(user_id, plan_name):
     #    the session. Therefore when we return to models.post_registration_handler which returns to flask_security
     #    registrable:40, the use is no longer in the session.
     user = models.User.query.filter_by(id=user_id).first()
-    plan_name = plan_name or Constants.PLAN_NAME_SIMPLE
+    plan_name = plan_name or Constants.PLAN_NAME_SHOPIFY_BASIC
     plan = models.Plan.query.filter_by(name=plan_name).first()
     customer = models.Customer(user=user).create()
     subscription = models.Subscription(customer=customer, plan=plan).create()
