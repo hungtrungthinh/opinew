@@ -1,5 +1,4 @@
-import pytz
-from dateutil import parser as date_parser
+import datetime
 from flask import jsonify, request
 from webapp import db, models, exceptions, csrf
 from webapp.api import api
@@ -136,11 +135,22 @@ def platform_shopify_app_uninstalled():
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
 
+    shop_customer = shop.owner.customer[0]
+    shop_customer.active = False
+    db.session.add(shop_customer)
+
+    subscription = shop_customer.subscription[0]
+    subscription.cancel()
+
+    db.session.add(subscription)
+
     # revoke tasks
     for order in shop.orders:
         for task in order.tasks:
             task.revoke()
             db.session.add(task)
-    db.session.delete(shop)
+    shop.active = False
+    shop.access_token = None
+    db.session.add(shop)
     db.session.commit()
     return jsonify({}), 200

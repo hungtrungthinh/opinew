@@ -19,6 +19,8 @@ class PaymentInterface(object):
     def update_subscription(self, opinew_subscription, opinew_new_plan):
         raise NotImplementedError()
 
+    def cancel_subscription(self, opinew_subscription):
+        raise NotImplementedError()
 
 class StripeAPI(PaymentInterface):
     def __init__(self, stripe_api_key):
@@ -73,6 +75,10 @@ class StripeAPI(PaymentInterface):
         subscription.save()
         return subscription
 
+    def cancel_subscription(self, opinew_subscription):
+        customer = stripe.Customer.retrieve(opinew_subscription.customer.stripe_customer_id)
+        customer.subscriptions.retrieve(opinew_subscription.stripe_subscription_id).delete()
+
     def create_token(self, number, cvc, exp_month, exp_year):
         return self.stripe_proxy.Token.create(
             card={
@@ -123,3 +129,6 @@ class StripeOpinewAdapter(PaymentInterface):
         stripe_subscription = self.stripe_api.update_subscription(opinew_subscription, opinew_new_plan)
         opinew_subscription.stripe_subscription_id = stripe_subscription.id
         return opinew_subscription
+
+    def cancel_subscription(self, opinew_subscription):
+        self.stripe_api.cancel_subscription(opinew_subscription)

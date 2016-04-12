@@ -359,6 +359,13 @@ class Subscription(db.Model, Repopulatable):
         instance = stripe_opinew_adapter.update_subscription(instance, plan)
         instance.plan = plan
         return instance
+    
+    def cancel(self):
+        now = datetime.datetime.utcnow()
+        self.trialed_for = (now - self.timestamp).days
+        self.plan = None
+        self.timestamp = None
+        self.stripe_subscription_id = None
 
     def __repr__(self):
         return '<Subscription of %r by %r>' % (self.plan, self.customer)
@@ -1098,6 +1105,7 @@ class Shop(db.Model, Repopulatable):
     description = db.Column(db.String)
     domain = db.Column(db.String)
     image_url = db.Column(db.String)
+    active = db.Column(db.Boolean, default=True)
 
     automatically_approve_reviews = db.Column(db.Boolean, default=True)
 

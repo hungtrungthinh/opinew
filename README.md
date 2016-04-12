@@ -26,6 +26,32 @@ Create python virtual environment, install required packages and populate the da
 1. Initialize database
 
     ./run_development.py db init
+
+## Development Set Up (Vagrant)
+1. Install Vagrant
+1.1. Download from `https://www.vagrantup.com/downloads.html`
+1.1. Install with `dpkg -i vagrant-*.deb 
+1.1. Run `vagrant init`
+
+1. Setting up PyCharm:
+1.1. Change the python interpreter to be inside of Vagrant:
+
+    Project > Settings > Python Interpreters > Add Remote > Vagrant
+
+1.1. On Run/Debug create the following two entries:
+
+`Python > Add new`
+
+    Script: run_development.py
+    Params: runserver --host 0.0.0.0 --threaded
+    Working Directory: /var/www/opinew.com/
+
+`Python tests > Unit tests`
+    
+    Test: All in Folder
+    Folder: tests
+    Working Directory: /var/www/opinew.com/
+    Path mappings: <your_local_working_dir>=/var/www/opinew.com  
     
 ## Changes
 
