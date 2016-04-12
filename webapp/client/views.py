@@ -435,13 +435,15 @@ def shop_dashboard_id(shop_id):
     scheduled_tasks = get_scheduled_tasks(shop)
     reviews = get_reviews(shop)
     stats = get_analytics(shop)
+    trial_remaining = Constants.TRIAL_PERIOD_DAYS - (datetime.datetime.utcnow() - current_user.confirmed_at).days
     return render_template('dashboard/dashboard.html',
                            shop=shop,
                            dashboard_tabs=dashboard_tabs,
                            incoming_messages=incoming_messages,
                            scheduled_tasks=scheduled_tasks,
                            reviews=reviews,
-                           stats=stats)
+                           stats=stats,
+                           trial_remaining=trial_remaining)
 
 
 @client.route('/update-subscription', defaults={'shop_id': 0})
@@ -634,13 +636,13 @@ def get_plugin():
         else:
             return '', 404
         shop = product.shop
-        # if shop.owner and \
-        #         shop.owner.customer and \
-        #         shop.owner.customer[0] and \
-        #         shop.owner.confirmed_at and \
-        #                 (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
-        #         not shop.owner.customer[0].last4:
-        #     return '', 404
+        if shop.owner and \
+                shop.owner.customer and \
+                shop.owner.customer[0] and \
+                shop.owner.confirmed_at and \
+                        (datetime.datetime.utcnow() - shop.owner.confirmed_at).days > Constants.TRIAL_PERIOD_DAYS and \
+                not shop.owner.customer[0].last4:
+            return '', 404
 
         product_objs = rank_objects_for_product(product.id)
         next_arg = request.url

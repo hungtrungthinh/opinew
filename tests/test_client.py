@@ -531,12 +531,26 @@ class TestClient(TestFlaskApplication):
                                                        'X-Shopify-Shop-Domain': testing_constants.SHOPIFY_SHOP_DOMAIN})
         self.assertEquals(response_actual.status_code, 200)
         shop = Shop.query.filter_by(id=testing_constants.SHOPIFY_SHOP_ID).first()
-        self.assertIsNone(shop)
+        shop_customer = shop.owner.customer[0]
+        self.assertFalse(shop_customer.active)
+        self.assertEqual(len(shop_customer.subscription),0)
 
         # make sure tasks are revoked
         db.session.delete(order)
         db.session.delete(product)
         db.session.commit()
+
+    def test_cancel_stripe(self):
+        shop = Shop.query.filter_by(id=testing_constants.SHOPIFY_SHOP_ID).first()
+        shop.owner = self.shop_owner_user
+        shop.owner.customer.subscription.cancel()
+        self.assertNot
+        self.assertEquals(response_actual.status_code, 200)
+        shop = Shop.query.filter_by(id=testing_constants.SHOPIFY_SHOP_ID).first()
+        shop_customer = shop.owner.customer[0]
+        self.assertFalse(shop_customer.active)
+        self.assertIsNone(shop_customer.subscription[0])
+
 
     def test_password_change_get(self):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
@@ -601,10 +615,11 @@ class TestClient(TestFlaskApplication):
         db.session.add(self.shop_owner_user)
         db.session.commit()
 
+    @freeze_time(testing_constants.NEW_REVIEW_CREATED_TS)
     def test_dashboard_trial_expiry_in_26_days(self):
         old_confirmed_at = self.shop_owner_user.confirmed_at
         # set 1 day after expiry
-        self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS - 27)
+        self.shop_owner_user.confirmed_at = datetime.datetime.utcnow() - datetime.timedelta(days=Constants.TRIAL_PERIOD_DAYS - 26)
         self.assertTrue(self.shop_owner_user.customer[0].last4 is None)
         db.session.add(self.shop_owner_user)
         db.session.commit()
@@ -630,7 +645,7 @@ class TestClient(TestFlaskApplication):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('Your trial has expired!' in response_actual.data)
+        self.assertTrue('Please enter your card details to continue using Opinew after the '+str(Constants.TRIAL_PERIOD_DAYS) in response_actual.data)
         self.logout()
         # revert
         self.shop_owner_user.confirmed_at = old_confirmed_at
@@ -1004,8 +1019,8 @@ class TestClient(TestFlaskApplication):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/dashboard", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('General settings' in response_actual.data)
-        self.assertTrue('Orders' in response_actual.data)
+        self.assertTrue('Next Actions' in response_actual.data)
+        self.assertTrue('Scheduled' in response_actual.data)
         self.assertTrue('Reviews' in response_actual.data)
         self.logout()
 
@@ -1013,8 +1028,8 @@ class TestClient(TestFlaskApplication):
         self.login(self.shop_owner_user.email, self.shop_owner_password)
         response_actual = self.desktop_client.get("/dashboard/2", follow_redirects=True)
         self.assertEquals(response_actual.status_code, 200)
-        self.assertTrue('General settings' in response_actual.data)
-        self.assertTrue('Orders' in response_actual.data)
+        self.assertTrue('Next Actions' in response_actual.data)
+        self.assertTrue('Scheduled' in response_actual.data)
         self.assertTrue('Reviews' in response_actual.data)
         self.logout()
 

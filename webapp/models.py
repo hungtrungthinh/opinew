@@ -299,12 +299,12 @@ class Customer(db.Model, Repopulatable):
 
     def create(self, **kwargs):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.create_customer(self)
+        self.stripe_customer_id = stripe_opinew_adapter.create_customer(self.user.email)
         return self
 
     def add_payment_card(self, stripe_token, **kwargs):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.create_paying_customer(self, stripe_token)
+        self.last4 = stripe_opinew_adapter.create_paying_customer(self, stripe_token)
         return self
 
     def __repr__(self):
@@ -349,18 +349,19 @@ class Subscription(db.Model, Repopulatable):
     def create(self):
         self.timestamp = datetime.datetime.utcnow()
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.create_subscription(self)
+        self.stripe_subscription_id = stripe_opinew_adapter.create_subscription(self.plan.stripe_plan_id, self.customer.stripe_customer_id)
         return self
 
-    @classmethod
-    def update(cls, instance, plan):
-        assert instance is not None
+
+    def update(self, plan):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        instance = stripe_opinew_adapter.update_subscription(instance, plan)
-        instance.plan = plan
-        return instance
+        self.stripe_subscription_id = stripe_opinew_adapter.update_subscription(self.customer.stripe_customer_id, self.stripe_subscription_id,plan)
+        self.plan = plan
+        return self
     
     def cancel(self):
+        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
+        stripe_opinew_adapter.cancel_subscription(self.customer.stripe_customer_id,self.stripe_subscription_id)
         now = datetime.datetime.utcnow()
         self.trialed_for = (now - self.timestamp).days
         self.plan = None

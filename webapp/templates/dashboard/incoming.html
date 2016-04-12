@@ -1,24 +1,26 @@
 <div>
   <h2>{{ g.s.DASHBOARD_INCOMING_TITLE }}</h2>
   <p class="lead">{{ g.s.DASHBOARD_INCOMING_DESC }}</p>
-  {% if current_user.customer[0].subscription[0].plan.name == "shopify_simple" %}
+  {% if not current_user.customer[0].last4 and not current_user.customer[0].subscription[0].plan.name == "shopify_simple" %}
+    <div class="alert alert-warning">
+      <h2>Your trial expires in {{ trial_remaining }} days</h2>
+      <p>Please enter your card details to continue using Opinew after the {{ g.constants.TRIAL_PERIOD_DAYS }} day free trial</p>
+      <a href="#account" class="btn btn-default" onclick="window.location='/dashboard/{{ shop.id }}#account';location.reload(); return false;">Update</a>
+    </div>
+  {% elif current_user.customer[0].subscription[0].plan.name == "shopify_simple" %}
     <div class="alert alert-warning">
       <p>You are using a free version of Opinew. This <b>does not</b> include automatic emails.</p>
       <form action="/update-subscription/{{ shop.id }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <select class="form-control">
           <option value="shopify_basic">Shopify paid plan - £19 per month</option>
+          <option value="shopify_simple">Shopify simple plan - £0 per month</option>
         </select>
         <button class="btn btn-block btn-default">Update</button>
       </form>
     <p>This update will not affect your trial period.</p>
     </div>
-  {% elif not current_user.customer[0].last4 %}
-    <div class="alert alert-warning">
-      <p>Please enter your card details to continue using Opinew after the 30 day free trial</p>
-      <a href="#account" class="btn btn-default" onclick="window.location='/dashboard/{{ shop.id }}#account';location.reload(); return false;">Update</a>
-    </div>
-  {% endif %}
+{% endif %}
   {% for message in incoming_messages %}
     {% include "dashboard/incoming_message.html" %}
   {% endfor %}

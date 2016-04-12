@@ -195,3 +195,42 @@ def create_customer_subscription(subscription_id):
         "trial_end": None,
         "trial_start": None
     })
+
+
+@vstripe.route('/v1/customers/<customer_id>/subscriptions/<subscription_id>', methods=['POST','DELETE'])
+def delete_customer_subscription(customer_id,subscription_id):
+    return jsonify({
+        "id": "sub_7UjOQrtOFQMFQL",
+        "object": "subscription",
+        "application_fee_percent": None,
+        "cancel_at_period_end": False,
+        "canceled_at": None,
+        "current_period_end": 1452253627,
+        "current_period_start": 1449575227,
+        "customer": "cus_7SdLLs7HKKgWdK",
+        "discount": None,
+        "ended_at": None,
+        "metadata": {
+        },
+        "plan": {
+            "id": "Free",
+            "object": "plan",
+            "amount": 0,
+            "created": 1445348186,
+            "currency": "gbp",
+            "interval": "month",
+            "interval_count": 1,
+            "livemode": False,
+            "metadata": {
+            },
+            "name": "Free",
+            "statement_descriptor": None,
+            "trial_period_days": None
+        },
+        "quantity": 1,
+        "start": 1449575227,
+        "status": "canceled",
+        "tax_percent": None,
+        "trial_end": None,
+        "trial_start": None
+    })
