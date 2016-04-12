@@ -124,10 +124,16 @@ def create_customer_account(user_id, plan_name):
     plan = models.Plan.query.filter_by(name=plan_name).first()
     customer = models.Customer(user=user).create()
     subscription = models.Subscription(customer=customer, plan=plan).create()
+
     db.session.add(customer)
     db.session.add(subscription)
     db.session.commit()
 
+
+def schedule_trial_end_billing_reminders():
+    reminder_email_1 = models.Task.create()
+    reminder_email_2 = models.Task
+    final_emai = models.Task
 
 @this_celery.task()
 def update_orders():
@@ -143,7 +149,7 @@ def notify_for_review(order_id, *args, **kwargs):
     if order:
         order.notify()
 
-
+what is this?
 @this_celery.task
 def task_wrapper(task, task_instance_id, **kwargs):
     task(**kwargs)
