@@ -149,7 +149,7 @@ def notify_for_review(order_id, *args, **kwargs):
     if order:
         order.notify()
 
-what is this?
+#what is this?
 @this_celery.task
 def task_wrapper(task, task_instance_id, **kwargs):
     task(**kwargs)

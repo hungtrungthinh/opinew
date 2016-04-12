@@ -1,9 +1,11 @@
-# COPY (select customer.id, user_id, email, is_shop_owner, temp_password, confirmed_at, last_login_at, stripe_customer_id, stripe_subscription_id, subscription.timestamp as subscription_timestamp, plan.name as plan_name from customer, public.user, subscription, plan where customer.user_id=public.user.id and subscription.plan_id=plan.id and subscription.customer_id=customer.id) TO '/tmp/current_customers.csv' DELIMITER ',' CSV HEADER;
+# COPY (select customer.id, user_id, email, is_shop_owner, temp_password, confirmed_at, last_login_at, stripe_customer_id, stripe_subscription_id, subscription.timestamp as subscription_timestamp from customer, public.user, subscription where customer.user_id=public.user.id and subscription.customer_id=customer.id) TO '/tmp/current_customers.csv' DELIMITER ',' CSV HEADER;
 from webapp import models, db, create_app
+import datetime
 
 app = create_app("development")
 
 with app.app_context():
+    platform_shopify = models.Platform.query.filter_by(id=2).first()
     no_shopify_basic = models.Plan.query.filter_by(id=7).first()
     shopify_basic = models.Plan.query.filter_by(id=8).first()
     shopify_simple = models.Plan.query.filter_by(id=9).first()
@@ -86,17 +88,43 @@ with app.app_context():
     c5.stripe_customer_id = "cus_7zxGaoutiZyLUX"
     db.session.add(c5)
 
-    # Create 2 users:
-    madeline_u = models.User(email="madeleine@madelnightlights.com.au")
+    # Create 3 users:
+    madeline_u = models.User(email="madeleine@madelnightlights.com.au",
+                             is_shop_owner=True)
     madeline_c = models.Customer(user=madeline_u,
                                  stripe_customer_id="cus_8EApEJLklCJFkw")
+    madeline_s = models.Subscription(customer=madeline_c)
+    db.session.add(madeline_s)
 
-    test_u = models.User(email="aleksey.emko@gmail.com")
+    test_u = models.User(email="aleksey.emko@gmail.com",
+                         is_shop_owner=True)
     test_c = models.Customer(user=test_u,
                                  stripe_customer_id="cus_8EAt4P3noce59l")
+    test_s = models.Subscription(customer=test_c)
+    db.session.add(test_s)
+
+    now = datetime.datetime.utcnow()
+    started = datetime.datetime(2016, 3, 22, 10, 32)
+    osg_u = models.User(email="osg.trading1@gmail.com",
+                        is_shop_owner=True,
+                        confirmed_at=started)
+    osg_shop = models.Shop(name="Global Hair Extensions Australia",
+                           owner=osg_u,
+                           platform=platform_shopify,
+        domain="global-hair-extensions-australia.myshopify.com")
+    osg_c = models.Customer(user=osg_u,
+                            stripe_customer_id="cus_8FvwOPDU6NgnuG",
+                            active=True)
+    trialed_for = (now - started).days
+    osg_s = models.Subscription(customer=osg_c,
+                                stripe_subscription_id="sub_8FvxLurv2KBxw3",
+                                timestamp=started,
+                                trialed_for=trialed_for)
+    db.session.add(osg_s)
+    db.session.add(osg_shop)
 
     # Uninstalled and Trialed for
-    for cid in [118, 116, 113, 111, 109, 108, 107, 104, 103, 100, 98, 94, 93, 90, 86, 85, 84, 83, 82, 77, 76, 75, 74, 72, 71, 70, 64, 63, 62, 35, 34, 27, 42, 39, 60, 57, 56, 53, 52, 50, 46, 45, 44, 38]:
+    for cid in [118, 116, 113, 111, 109, 108, 107, 104, 103, 100, 98, 94, 93, 90, 86, 85, 84, 83, 82, 77, 76, 75, 74, 72, 71, 70, 64, 63, 62, 35, 34, 27, 42, 39, 60, 57, 56, 53, 52, 50, 46, 45, 44, 38, 88]:
         c = models.Customer.query.filter_by(id=cid).first()
         c.active = False
         c.subscription[0].plan = None
@@ -124,15 +152,16 @@ with app.app_context():
             c.subscription[0].trialed_for = 3
         elif cid == 71:
             c.subscription[0].trialed_for = 22
+        elif cid == 88:
+            c.subscription[0].trialed_for = 24
         else:
             c.subscription[0].trialed_for = 0
         db.session.add(c)
 
 
     # TRIALED FOR
-    import datetime
     now = datetime.datetime.utcnow()
-    for sid in [117, 115, 114, 112, 110, 106, 105, 102, 101, 99, 97, 96, 95, 92, 91, 89, 88, 87, 81, 80, 79, 78, 73, 69, 68, 67, 66, 65, 61, 59, 58, 55, 54, 51, 49, 48, 47, 41, 40, 37, 36, 22, 6, 7, 2]:
+    for sid in [117, 115, 114, 112, 110, 106, 105, 102, 101, 99, 97, 96, 95, 92, 91, 89, 87, 81, 80, 79, 78, 73, 69, 68, 67, 66, 65, 61, 59, 58, 55, 54, 51, 49, 48, 47, 41, 40, 37, 36, 22, 6, 7, 2]:
         c = models.Customer.query.filter_by(id=sid).first()
         s = c.subscription[0]
         started = s.timestamp
@@ -141,7 +170,7 @@ with app.app_context():
 
 
     # Re-Create users/customers/shops
-    platform_shopify = models.Platform.query.filter_by(id=2).first()
+
     u6 = models.User(email="oren.harris@shopify.com",
                      is_shop_owner=True)
     c6 = models.Customer(user=u6,
