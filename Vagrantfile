@@ -63,7 +63,7 @@ Vagrant.configure(2) do |config|
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
     sudo apt-get update
-    sudo apt-get install -y python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev screen amqp-tools postgresql-server-dev-9.3 amqp-tools
+    sudo apt-get install -y python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev screen amqp-tools postgresql-server-dev-9.3 amqp-tools sshpass
     
     # Create venv
     cd /var/www/opinew.com

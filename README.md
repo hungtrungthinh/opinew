@@ -129,3 +129,8 @@ To delete all the tasks:
     
     amqp-delete-queue -q celery
     
+## Renew ssl:
+
+Run this command:
+
+    ~/letsencrypt/letsencrypt-auto certonly -a webroot --webroot-path=/usr/share/nginx/html -d opinew.com -d www.opinew.com
