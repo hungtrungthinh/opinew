@@ -78,6 +78,19 @@ class StripeOpinewAdapter(object):
         stripe_subscription = stripe_customer.subscriptions.retrieve(stripe_subscription_id).delete()
         assert stripe_subscription['status'] == 'canceled'
 
+    def create_plan(self, opinew_plan):
+        try:
+            plan = stripe.Plan.retrieve(opinew_plan.name)
+        except stripe.InvalidRequestError:
+            plan = self.stripe_proxy.Plan.create(
+                amount=opinew_plan.amount,
+                interval=opinew_plan.interval,
+                name=opinew_plan.name,
+                currency=Constants.CURRENCY,
+                trial_period_days=opinew_plan.trial_period_days,
+                id=opinew_plan.name
+            )
+        return plan
 
     def create_token(self, number, cvc, exp_month, exp_year):
         return self.stripe_proxy.Token.create(
