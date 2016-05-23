@@ -11,7 +11,7 @@ chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}
 sudo su opinew_server
 cd
 
-PACKAGES="git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev screen"
+PACKAGES="git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev screen libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libxml2 libxml2-dev libxslt1-dev python-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk"
 
 SOCKETS_DIR=${HOME_DIR}/sockets
 SOCKET_FILE=${SOCKETS_DIR}/opinew.sock
@@ -162,7 +162,11 @@ sudo iptables -I INPUT 1 -p tcp --dport 443 -j ACCEPT
 
 echo "Create db"
 cd ${PROJECT_DIR}
-./repopulate.py db_prod
+sudo su - postgres
+createuser -P opinew_user
+createdb opinew
+exit
+# ./repopulate.py db_prod
 
 echo "Restart services"
 sudo service nginx restart
