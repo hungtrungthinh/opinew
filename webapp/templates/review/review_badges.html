@@ -1,0 +1,17 @@
+<div class="review-badges">
+  {% if review.verified_review %}
+    <span class="label badge-verified"><span class="glyphicon glyphicon-ok"></span> Verified review</span>
+  {% endif %}
+  {% if review.by_shop_owner %}
+    <span class="label label-info"><span class="glyphicon glyphicon-user"></span> By shop owner</span>
+  {% endif %}
+  {% if review.featured and review.featured.action %}
+    <span class="label label-warning"><span class="glyphicon glyphicon-star"></span> Featured</span>
+  {% endif %}
+  {% if review.user == current_user %}
+    <a class="btn btn-default" href="{{ url_for('client.edit_review', review_id=review.id) }}"><span
+        class="glyphicon glyphicon-pencil"></span> Edit</a>
+    <a class="btn btn-default" href="{{ url_for('client.delete_review', review_id=review.id) }}"><span
+        class="glyphicon glyphicon-trash"></span></a>
+  {% endif %}
+</div>

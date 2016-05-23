@@ -1,0 +1,132 @@
+{% extends "layout.html" %}
+{% block style %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/about_us.css') }}"/>
+{% endblock %}
+
+{% block content %}
+    <div id="header">
+        <div class="container">
+            <h1>
+                <a href="/">
+                    <img alt="Opinew" class="small-logo"
+                         src="{{ url_for('static', filename='img/opinew_logo.png') }}"/>
+                </a>
+                <span id="header-title">About us</span>
+            </h1>
+        </div>
+    </div>
+  {% include "snippets/colors_bar.html" %}
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-offset-2 col-sm-8">
+                <h2>Who we are</h2>
+
+                <p class="justified-text">We are a team of two developers with experience of working at Google. Our paths crossed at the University of Glasgow, Scotland almost four years ago. We like creating things that people enjoy.  Now after five months of development we already have our first clients piloting the platform.
+
+                <p class="lead">We are on the mission to unify the opinions of the world.
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-offset-2 col-sm-4">
+                <img alt="Daniel photo" class="about-us-picture img-circle"
+                     src="{{ url_for('static', filename='img/marketing/dani.jpg') }}"/>
+
+                <p class="person-name">Daniel Tsvetkov
+
+                <p class="justified-text">Daniel spent the summer of 2014 as a tech intern at Google, at the heart of
+                    the Silicon Valley in Mountain View where he caught the entrepreneurial spirit of the Valley so much
+                    he formed Opinew. Along with his passion for creating things, Daniel brings to Opinew his experience
+                    of the web and visualizations technologies to make it friendly for anyone, anywhere.
+            </div>
+            <div class="col-sm-4">
+                <img alt="Tomasz photo" class="about-us-picture img-circle"
+                     src="{{ url_for('static', filename='img/marketing/tom.jpg') }}"/>
+
+                <p class="person-name">Tomasz Sadowski
+
+                <p class="justified-text">Tomasz works with the Scottish Institute for Enterprise and has an extensive
+                    network of business contacts all around the world. His respect for the good software engineering
+                    practices gained at Verint and experience with Big Data is helping Opinew get in shape for the big
+                    days. Tomasz loves helping people find what they need which gives Opinew its guiding light.
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-offset-2 col-sm-8">
+
+                <h2>Endorsements</h2>
+
+                <p>We can't make it without the help of many of our friends and advisers. We'd like to particularly
+                    thank people
+                    below for pushing Opinew forward, constantly validating our ideas and sharing their different
+                    perspectives.
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-offset-2 col-sm-4">
+                <img alt="Huw Evans photo" class="about-us-picture img-circle"
+                     src="{{ url_for('static', filename='img/marketing/huw.jpg') }}"/>
+
+                <p class="person-name">Huw Evans
+
+                <p class="person-description">Startup Business Mentor
+
+                <p class="justified-text">With over 25 years of experience in R&D and commercial IT, and having started
+                    a number of small companies, Dr Huw Evans brings detailed technology and business knowledge to
+                    Opinew.
+            </div>
+            <div class="col-sm-4">
+                <img alt="Jonathan Tait photo" class="about-us-picture img-circle"
+                     src="{{ url_for('static', filename='img/marketing/johnathan.jpg') }}"/>
+
+                <p class="person-name">Jonathan Tait
+
+                <p class="person-description">Senior Business Advisor at the Scottish Institute for Enterprise
+
+                <p class="justified-text">Jonathan is a qualified lawyer with an MBA and has experience with companies
+                    of all sizes in the private sector as well as academia and local and national government. Opinew
+                    relies on his expertise to do the right things at the right time.
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-offset-2 col-sm-4">
+                <img alt="Jill Ramsay photo" class="about-us-picture img-circle"
+                     src="{{ url_for('static', filename='img/marketing/jill.jpg') }}"/>
+
+                <p class="person-name">Jill Ramsay
+
+                <p class="person-description">Business Development Executive at the University of Glasgow School of
+                    Computing
+                    Science
+
+                <p class="justified-text">Jill is working with Informatics Ventures, the university's Commercialisation
+                    Team, and student Enterprise. She supports entrepreneurship amongst the School's students and staff.
+                    Jill is Opinew's main gateway with businesses interested in projects around the University.
+            </div>
+            <div class="col-sm-4">
+                <img alt="Urszula Sadowska photo" class="about-us-picture img-circle"
+                     src="{{ url_for('static', filename='img/marketing/urszula.jpg') }}"/>
+
+                <p class="person-name">Urszula Sadowska
+
+                <p class="person-description">Graphic Designer
+
+                <p class="justified-text">Urszula is helping Opinew with brand recognition and make it aesthetically
+                    pleasing. Using her knowledge of architectural design and creative thinking, her eyes always find
+                    the right balance of colours and shapes to make things beautiful.
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-offset-2 col-sm-10">
+                <h2>Contacts</h2>
+
+                <p>You can write to us at <a href="mailto:team@opinew.com">team@opinew.com</a> with your comments or
+                    questions.
+
+                <h2>Press</h2>
+
+                <p>For Press packs, please email <a href="mailto:press@opinew.com">press@opinew.com</a> including your
+                    contact details.
+            </div>
+        </div>
+    </div>
+{% endblock %}

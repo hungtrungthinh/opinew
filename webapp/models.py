@@ -1,84 +1,22 @@
+from __future__ import division
 import datetime
 import re
+
 import pytz
 from dateutil import parser as date_parser
 from sqlalchemy import and_
-from webapp import db, admin
-from webapp.exceptions import DbException
-from async import stripe_payment
-from flask import url_for, abort, redirect, request, current_app
+from flask import url_for, abort, redirect, request
 from flask.ext.security.utils import encrypt_password
 from flask_admin.contrib.sqla import ModelView
 from flask.ext.security import UserMixin, RoleMixin, current_user
+from flask_resize import resize
+
+from webapp import db, admin, gravatar
+from webapp.exceptions import DbException
+from providers import stripe_payment
 from config import Constants
-from webapp import gravatar
 from webapp.common import generate_temp_password, random_pwd
-
-def create_review_requests(order_id):
-    if not order_id:
-        return
-    order = Order.query.filter_by(id=order_id).first()
-    if not order:
-        return
-    if not (order.shop and order.shop.owner and order.shop.owner.customer and order.shop.owner.customer[0]):
-        return
-    for product in order.products:
-        the_user = order.user if order.user else (order.user_legacy if order.user_legacy else None)
-        ReviewRequest.create(to_user=the_user,
-                             from_customer=order.shop.owner.customer[0],
-                             for_product=product,
-                             for_order=order)
-
-def schedule_notification_task(order_id, notify_dt):
-    if not order_id or not notify_dt:
-        return None
-    order = Order.query.filter_by(id=order_id).first()
-    if not order:
-        return None
-    from async import celery_async, tasks
-    args = dict(order_id=order.id)
-    celery_task = celery_async.schedule_task_at(tasks.notify_for_review, args, notify_dt)
-    task_notify = Task(celery_uuid=celery_task.task_id,
-                       status=celery_task.status,
-                       eta=notify_dt,
-                       method=celery_task.task_name,
-                       kwargs=str(args))
-    return task_notify
-
-def schedule_email_task(order_id, notify_dt):
-    if not order_id or not notify_dt:
-        return None
-    order = Order.query.filter_by(id=order_id).first()
-    if not order:
-        return None
-    if not order.review_requests:
-        return None
-    from async import celery_async, tasks
-
-    if order.user:
-        recipients = [order.user.email]
-        user_name = order.user.name
-    elif order.user_legacy:
-        recipients = [order.user_legacy.email] if order.user_legacy else []
-        user_name = order.user_legacy.name if order.user_legacy else ""
-    else:
-        return None
-    template = Constants.DEFAULT_REVIEW_EMAIL_TEMPLATE
-    template_ctx = order.build_review_email_context()
-    shop_name = order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
-    subject = Constants.DEFAULT_REVIEW_SUBJECT % (user_name.split()[0], shop_name)
-
-    args = dict(recipients=recipients,
-                template=template,
-                template_ctx=template_ctx,
-                subject=subject)
-    celery_task = celery_async.schedule_task_at(tasks.send_email, args, notify_dt)
-    task_email = Task(celery_uuid=celery_task.task_id,
-                status=celery_task.status,
-                eta=notify_dt,
-                method=celery_task.task_name,
-                kwargs=str(args))
-    return task_email
+from assets import strings
 
 order_products_table = db.Table('order_products',
                                 db.Column('order_id', db.Integer, db.ForeignKey('order.id')),
@@ -127,6 +65,9 @@ class User(db.Model, UserMixin, Repopulatable):
     name = db.Column(db.String)
     image_url = db.Column(db.String)
 
+    unsubscribed = db.Column(db.Boolean, default=False)
+    unsubscribe_token = db.Column(db.String)
+
     active = db.Column(db.Boolean, default=True)
     confirmed_at = db.Column(db.DateTime)
     last_login_at = db.Column(db.DateTime)
@@ -166,14 +107,6 @@ class User(db.Model, UserMixin, Repopulatable):
     def get_by_email_no_exception(cls, email):
         return cls.query.filter_by(email=email).first()
 
-    @property
-    def reviews_count(self):
-        return len(self.reviews)
-
-    @property
-    def likes_count(self):
-        return len([rl for rl in ReviewLike.query.filter_by(user_id=self.id).all()])
-
     @classmethod
     def get_by_email(cls, email):
         user = cls.query.filter_by(email=email).first()
@@ -184,6 +117,9 @@ class User(db.Model, UserMixin, Repopulatable):
     @classmethod
     def post_registration_handler(cls, *args, **kwargs):
         user = kwargs.get('user')
+        db.session.add(user)
+        db.session.commit()
+        user_id = user.id
         if user.is_shop_owner:
             # append the role of a shop owner
             shop_role = Role.query.filter_by(name=Constants.SHOP_OWNER_ROLE).first()
@@ -193,10 +129,11 @@ class User(db.Model, UserMixin, Repopulatable):
             if gravatar_image_url:
                 user.image_url = gravatar_image_url
             # create a customer account
-            plan = Plan.query.filter_by(name="Free").first()
-            customer = Customer(user=user).create()
-            subscription = Subscription(customer=customer, plan=plan).create()
-            db.session.add(subscription)
+            from async import tasks
+
+            args = dict(user_id=user_id, plan_name=kwargs.get('plan_name'))
+            task = Task.create(method=tasks.create_customer_account, args=args)
+            db.session.add(task)
             email_template = Constants.DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE
             email_subject = Constants.DEFAULT_NEW_SHOP_OWNER_SUBJECT
         else:
@@ -205,28 +142,69 @@ class User(db.Model, UserMixin, Repopulatable):
             reviewer_role = Role.query.filter_by(name=Constants.REVIEWER_ROLE).first()
             if reviewer_role and reviewer_role not in user.roles:
                 user.roles.append(reviewer_role)
+        if user and user.temp_password:
+            from async import tasks
+
+            args = dict(recipients=[user.email],
+                        template=email_template,
+                        template_ctx={'user_email': user.email,
+                                      'user_temp_password': user.temp_password,
+                                      'user_name': user.name
+                                      },
+                        subject=email_subject)
+            task = Task.create(method=tasks.send_email, args=args)
+            db.session.add(task)
+
+            # set new next action
+            now = datetime.datetime.utcnow()
+            shop = user.shops[0] if user.shops else None
+            if shop:
+                im1 = NextAction(
+                    shop=shop,
+                    timestamp=now,
+                    identifier=Constants.NEXT_ACTION_ID_SETUP_YOUR_SHOP,
+                    title=strings.NEXT_ACTION_SETUP_YOUR_SHOP,
+                    url=url_for('client.setup_plugin', shop_id=shop.id),
+                    icon=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON,
+                    icon_bg_color=Constants.NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR
+                )
+                db.session.add(im1)
+
+                im2 = NextAction(
+                    timestamp=now,
+                    shop=shop,
+                    identifier=Constants.NEXT_ACTION_ID_SETUP_BILLING,
+                    title=strings.NEXT_ACTION_SETUP_BILLING,
+                    url="javascript:showTab('#account');",
+                    icon=Constants.NEXT_ACTION_SETUP_BILLING_ICON,
+                    icon_bg_color=Constants.NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR
+                )
+                db.session.add(im2)
+
+                im3 = NextAction(
+                    timestamp=now,
+                    shop=shop,
+                    identifier=Constants.NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD,
+                    title=strings.NEXT_ACTION_CHANGE_YOUR_PASSWORD,
+                    url=url_for('security.change_password'),
+                    icon=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON,
+                    icon_bg_color=Constants.NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR
+                )
+                db.session.add(im3)
         db.session.commit()
 
-        # Send email
-        from async import tasks
-
-        tasks.send_email.delay(recipients=[user.email],
-                               template=email_template,
-                               template_ctx={'user_email': user.email,
-                                             'user_temp_password': user.temp_password,
-                                             'user_name': user.name
-                                             },
-                               subject=email_subject)
-
     @classmethod
-    def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, **kwargs):
+    def get_or_create_by_email(cls, email, role_name=Constants.REVIEWER_ROLE, user_legacy_email=None,
+                               plan_name=None, **kwargs):
         is_new = False
         instance = cls.query.filter_by(email=email).first()
         if not instance:
             is_new = True
 
             # Check for legacy user and merge if exists
-            user_legacy = UserLegacy.query.filter_by(email=email).first()
+            user_legacy = None
+            if user_legacy_email:
+                user_legacy = UserLegacy.query.filter_by(email=user_legacy_email).first()
             if user_legacy:
                 kwargs['name'] = kwargs.get('name') or user_legacy.name
                 kwargs['image_url'] = kwargs.get('image_url') or user_legacy.image_url
@@ -242,20 +220,38 @@ class User(db.Model, UserMixin, Repopulatable):
                            confirmed_at=datetime.datetime.utcnow(),
                            **kwargs)
 
-            # Reassign the orders on legacy user:
-            if user_legacy:
-                for order in user_legacy.orders:
-                    order.user_legacy = None
-                    order.user = instance
-                db.session.delete(user_legacy)
-
             # Check the role for the new user
             if role_name == Constants.SHOP_OWNER_ROLE:
                 instance.is_shop_owner = True
 
+            # Reassign the orders and review requests from legacy user
+            if user_legacy:
+                cls.reassign_legacy_user_data_and_delete(user_legacy, instance)
+
             # Handle creation of customer and roles
-            User.post_registration_handler(user=instance)
+            User.post_registration_handler(user=instance, plan_name=plan_name)
         return instance, is_new
+
+    @classmethod
+    def reassign_legacy_user_data_and_delete(cls, user_legacy, normal_user):
+        # reassign the review requests
+        review_requests = ReviewRequest.query.filter_by(to_user_legacy_id=user_legacy.id)
+        for review_request in review_requests:
+            review_request.to_user_legacy = None
+            review_request.to_user = normal_user
+
+        # reassign the orders
+        for order in user_legacy.orders:
+            order.user_legacy = None
+            order.user = normal_user
+
+        # reassign the reviews
+        for review in user_legacy.reviews:
+            review.user_legacy = None
+            review.user = normal_user
+
+        # delete legacy user
+        db.session.delete(user_legacy)
 
     def unread_notifications(self):
         notifications = Notification.query.filter(and_(Notification.user_id == self.id,
@@ -276,6 +272,9 @@ class UserLegacy(db.Model, Repopulatable):
     name = db.Column(db.String)
     image_url = db.Column(db.String)
 
+    unsubscribed = db.Column(db.Boolean, default=False)
+    unsubscribe_token = db.Column(db.String)
+
     @classmethod
     def get_or_create_by_email(cls, email, **kwargs):
         is_new = False
@@ -283,6 +282,8 @@ class UserLegacy(db.Model, Repopulatable):
         if not instance:
             is_new = True
             instance = cls(email=email, **kwargs)
+            db.session.add(instance)
+            db.session.commit()
         return instance, is_new
 
 
@@ -298,12 +299,12 @@ class Customer(db.Model, Repopulatable):
 
     def create(self, **kwargs):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.create_customer(self)
+        self.stripe_customer_id = stripe_opinew_adapter.create_customer(self.user.email)
         return self
 
     def add_payment_card(self, stripe_token, **kwargs):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.create_paying_customer(self, stripe_token)
+        self.last4 = stripe_opinew_adapter.create_paying_customer(self, stripe_token)
         return self
 
     def __repr__(self):
@@ -341,21 +342,31 @@ class Subscription(db.Model, Repopulatable):
     plan = db.relationship("Plan", backref=db.backref("subscription"), uselist=False)
 
     timestamp = db.Column(db.DateTime)
+    trialed_for = db.Column(db.Integer, default=0)
 
     stripe_subscription_id = db.Column(db.String)
 
     def create(self):
         self.timestamp = datetime.datetime.utcnow()
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.create_subscription(self)
+        self.stripe_subscription_id = stripe_opinew_adapter.create_subscription(self.plan.stripe_plan_id, self.customer.stripe_customer_id)
         return self
 
-    @classmethod
-    def update(cls, instance, plan):
-        assert instance is not None
+
+    def update(self, plan):
         stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        instance = stripe_opinew_adapter.update_subscription(instance, plan)
-        return instance
+        self.stripe_subscription_id = stripe_opinew_adapter.update_subscription(self.customer.stripe_customer_id, self.stripe_subscription_id,plan)
+        self.plan = plan
+        return self
+    
+    def cancel(self):
+        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
+        stripe_opinew_adapter.cancel_subscription(self.customer.stripe_customer_id,self.stripe_subscription_id)
+        now = datetime.datetime.utcnow()
+        self.trialed_for = (now - self.timestamp).days
+        self.plan = None
+        self.timestamp = None
+        self.stripe_subscription_id = None
 
     def __repr__(self):
         return '<Subscription of %r by %r>' % (self.plan, self.customer)
@@ -364,39 +375,66 @@ class Subscription(db.Model, Repopulatable):
 class ReviewLike(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
-                        default=current_user.id if current_user and current_user.is_authenticated() else 0)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("review_likes"))
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("review_likes"))
+    review = db.relationship("Review", backref=db.backref("likes"))
 
 
 class ReviewReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
-                        default=current_user.id if current_user and current_user.is_authenticated() else 0)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("review_reports"))
 
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("review_reports"))
+    review = db.relationship("Review", backref=db.backref("reports"))
 
 
 class ReviewFeature(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    action = db.Column(db.Integer, default=1)
     timestamp = db.Column(db.DateTime)
 
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("review_features"))
+
     review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
-    review = db.relationship("Review", backref=db.backref("feature"), uselist=False)
+    review = db.relationship("Review", backref=db.backref("featured"), uselist=False)
+
+
+class ReviewShare(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("review_shares"))
+
+    review_id = db.Column(db.Integer, db.ForeignKey('review.id'))
+    review = db.relationship("Review", backref=db.backref("shares"))
+
+    def serialize(self):
+        return {
+            'action': True,
+            'count': len(self.review.shares)
+        }
+
+
+class UrlReferer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+    url = db.Column(db.String)
+    q = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", backref=db.backref("url_referers"))
 
 
 class Notification(db.Model):
@@ -447,6 +485,7 @@ class Notification(db.Model):
         db.session.add(notification)
         db.session.commit()
 
+
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -460,11 +499,38 @@ class Task(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
     order = db.relationship("Order", backref=db.backref("tasks"))
 
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("tasks"))
+
+    @classmethod
+    def create(cls, method, args, funnel_stream_id=None, eta=None):
+        from async import celery_async
+        task_instance = Task(method=method.__name__, eta=eta, kwargs=str(args), funnel_stream_id=funnel_stream_id)
+        db.session.add(task_instance)
+        db.session.commit()
+        task_instance_id = task_instance.id
+        # create the celery task
+        if eta:
+            celery_task = celery_async.schedule_task_at(method, args, eta, task_instance_id)
+        else:
+            celery_task = celery_async.delay_execute(method, args, task_instance_id)
+        # Update task with celery id
+        task_instance = Task.query.filter_by(id=task_instance_id).first()
+        task_instance.celery_uuid = celery_task.task_id
+        task_instance.status = celery_task.status
+        return task_instance
+
+    def revoke(self):
+        from async import celery_async
+        if self.celery_uuid:
+            celery_async.revoke_task(self.celery_uuid)
+        self.status = Constants.TASK_STATUS_REVOKED
+
 
 class Order(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
 
-    platform_order_id = db.Column(db.Integer)
+    platform_order_id = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("orders"))
@@ -478,6 +544,7 @@ class Order(db.Model, Repopulatable):
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship("Shop", backref=db.backref("orders"))
 
+    browser_ip = db.Column(db.String)
     delivery_tracking_number = db.Column(db.String)
     discount = db.Column(db.String)
 
@@ -489,6 +556,9 @@ class Order(db.Model, Repopulatable):
 
     to_notify_timestamp = db.Column(db.DateTime)
     notification_timestamp = db.Column(db.DateTime)
+
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("order", uselist=False))
 
     def is_for_user(self, user):
         if not self.shop.user == user:
@@ -503,10 +573,21 @@ class Order(db.Model, Repopulatable):
         return order
 
     def build_review_email_context(self):
+        name = ''
+        email = ''
+        if self.user:
+            if self.user.email:
+                email = self.user.email
+            if self.user.name:
+                name = self.user.name.split()[0]
+        elif self.user_legacy:
+            if self.user_legacy.name:
+                name = self.user_legacy.name.split()[0]
+            if self.user_legacy.email:
+                email = self.user_legacy.email
         return {
-            'order': self,
-            'name': self.user.name.split()[0] if self.user else (self.user_legacy.name.split()[0] if self.user_legacy else ''),
-            'user_email': self.user,
+            'name': name,
+            'user_email': email,
             'shop_name': self.shop.name if self.shop else '',
             'review_requests': [{'token': rr.token, 'product_name': rr.for_product.name} for rr in
                                 self.review_requests],
@@ -521,7 +602,73 @@ class Order(db.Model, Repopulatable):
         db.session.add(self)
         db.session.commit()
 
+    def create_review_requests(self, order_id):
+        if not order_id:
+            return
+        order = Order.query.filter_by(id=order_id).first()
+        if not order:
+            return
+        if not (order.shop and order.shop.owner and order.shop.owner.customer and order.shop.owner.customer[0]):
+            return
+        if not order.products:
+            return
+        # make sure we don't have repeating products
+        product_review_requests = {}
+        for product in order.products:
+            if product.platform_product_id:
+                product_review_requests[product.platform_product_id] = product
+        for product in product_review_requests.values():
+            the_user = order.user if order.user else (order.user_legacy if order.user_legacy else None)
+            ReviewRequest.create(to_user=the_user,
+                                 from_customer=order.shop.owner.customer[0],
+                                 for_product=product,
+                                 for_order=order)
+
+    def schedule_notification_task(self, order_id, notify_dt):
+        if not order_id or not notify_dt:
+            return None
+        order = Order.query.filter_by(id=order_id).first()
+        if not order:
+            return None
+        from async import tasks
+
+        args = dict(order_id=order.id)
+        return Task.create(method=tasks.notify_for_review, args=args, eta=notify_dt)
+
+    def schedule_email_task(self, order_id, notify_dt):
+        if not order_id or not notify_dt:
+            return None
+        order = Order.query.filter_by(id=order_id).first()
+        if not order:
+            return None
+        if not order.review_requests:
+            return None
+        if order.user:
+            recipients = [order.user.email]
+            user_name = order.user.name
+        elif order.user_legacy:
+            recipients = [order.user_legacy.email] if order.user_legacy else []
+            user_name = order.user_legacy.name if order.user_legacy else ""
+        else:
+            return None
+        template = Constants.DEFAULT_REVIEW_EMAIL_TEMPLATE
+        template_ctx = order.build_review_email_context()
+        shop_name = order.shop.name if order.shop else Constants.DEFAULT_SHOP_NAME
+        subject = Constants.DEFAULT_REVIEW_SUBJECT % (user_name.split()[0] if user_name else '', shop_name)
+
+        from async import tasks
+
+        args = dict(recipients=recipients,
+                    template=template,
+                    template_ctx=template_ctx,
+                    subject=subject,
+                    funnel_stream_id=order.funnel_stream_id)
+        return Task.create(method=tasks.send_email, args=args, eta=notify_dt, funnel_stream_id=order.funnel_stream_id)
+
     def set_notifications(self):
+        if self.status == Constants.ORDER_STATUS_NOTIFIED:
+            # should probably raise an exception here if we attmpted to notify again
+            return
         # Notify timestamp = shipment + 7
         if self.shipment_timestamp is None:
             raise DbException(message="Shipment timestamp is None for this order: %d" % self.id, status_code=400)
@@ -540,9 +687,9 @@ class Order(db.Model, Repopulatable):
         if self.products is None or len(self.products) < 1:
             raise DbException(message="No products associated with this order: %d" % self.id, status_code=400)
         order_id = self.id
-        create_review_requests(order_id=order_id)
-        task_notify = schedule_notification_task(order_id=order_id, notify_dt=notify_dt)
-        task_email = schedule_email_task(order_id=order_id, notify_dt=notify_dt)
+        self.create_review_requests(order_id=order_id)
+        task_notify = self.schedule_notification_task(order_id=order_id, notify_dt=notify_dt)
+        task_email = self.schedule_email_task(order_id=order_id, notify_dt=notify_dt)
 
         db.session.add(self)
         if task_notify:
@@ -561,16 +708,15 @@ class Order(db.Model, Repopulatable):
         self.notification_timestamp = datetime.datetime.utcnow()
         if self.user:
             for review_request in self.review_requests:
-                Notification.create(for_user=self.user, token=review_request.token, for_product=review_request.for_product)
+                Notification.create(for_user=self.user, token=review_request.token,
+                                    for_product=review_request.for_product)
         db.session.add(self)
         db.session.commit()
 
     def cancel_review(self):
         for task in self.tasks:
-            from async import celery_async
             if task:
-                celery_async.revoke_task(task.celery_uuid)
-                task.status = 'REVOKED'
+                task.revoke()
                 db.session.add(task)
         self.status = Constants.ORDER_STATUS_REVIEW_CANCELED
         db.session.commit()
@@ -592,6 +738,15 @@ class Comment(db.Model):
     def __repr__(self):
         return '<Comment %r... for %r by %r>' % (self.body[:10], self.review, self.user)
 
+    def serialize(self):
+        return {
+            'body': self.body,
+            'user': {
+                'name': self.user.name,
+                'image_url': self.user.image_url
+            }
+        }
+
 
 class Source(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
@@ -608,7 +763,7 @@ class ReviewRequest(db.Model):
     token = db.Column(db.String)
 
     from_customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
-    from_customer = db.relationship('Customer')
+    from_customer = db.relationship('Customer', backref=db.backref('review_requests'))
 
     to_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     to_user = db.relationship('User', backref=db.backref('review_requests'))
@@ -628,10 +783,15 @@ class ReviewRequest(db.Model):
     received = db.Column(db.Boolean, default=False)
     completed = db.Column(db.Boolean, default=False)
 
+    opened_timestamp = db.Column(db.DateTime)
+
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("review_requests"))
+
     @classmethod
     def create(cls, to_user, from_customer, for_product=None, for_shop=None, for_order=None):
         while True:
-            token = random_pwd(5)
+            token = random_pwd(Constants.REVIEW_REQUEST_TOKEN_LENGTH)
             rrold = ReviewRequest.query.filter_by(token=token).first()
             if not rrold:
                 break
@@ -651,7 +811,13 @@ class ReviewRequest(db.Model):
         return token
 
 
-class Review(db.Model, Repopulatable):
+class RenderableObject(object):
+    @property
+    def object_type(self):
+        return self.__class__.__name__
+
+
+class Review(db.Model, Repopulatable, RenderableObject):
     id = db.Column(db.Integer, primary_key=True)
 
     body = db.Column(db.String)
@@ -661,17 +827,23 @@ class Review(db.Model, Repopulatable):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     product = db.relationship('Product', backref=db.backref('reviews'))
 
+    # if review is about a shop in general
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
     shop = db.relationship('Shop', backref=db.backref('reviews'))
 
     # CANNOT SET THESE BELOW:
     created_ts = db.Column(db.DateTime)
+    deleted = db.Column(db.Boolean, default=False)
+    deleted_ts = db.Column(db.DateTime)
 
     verified_review = db.Column(db.Boolean, default=False)
     by_shop_owner = db.Column(db.Boolean, default=False)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref=db.backref('reviews'))
+
+    user_legacy_id = db.Column(db.Integer, db.ForeignKey('user_legacy.id'))
+    user_legacy = db.relationship("UserLegacy", backref=db.backref("reviews"))
 
     source_id = db.Column(db.Integer, db.ForeignKey('source.id'))
     source = db.relationship('Source', backref=db.backref('reviews'))
@@ -689,19 +861,28 @@ class Review(db.Model, Repopulatable):
 
     youtube_video = db.Column(db.String)
 
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("reviews"))
+
     def __init__(self, body=None, image_url=None, star_rating=None, product_id=None, shop_id=None, verified_review=None,
                  user_id=None, **kwargs):
         self.body = unicode(body) if body else None
         self.image_url = image_url
         self.star_rating = star_rating
+
+        if not body:
+            if self.star_rating:
+                self.body = Constants.DEFAULT_BODY_STARS.format(star_rating=star_rating)
+            else:
+                body = ""
+
+        # differentiate between a review about a product vs a review about a shop
         if shop_id and product_id:
             raise DbException(message="[consistency: Can't set both shop_id and product_id]", status_code=400)
         self.product_id = product_id
         self.shop_id = shop_id
         self.verified_review = verified_review
-        # Set automatic variables
-        if current_user and current_user.is_authenticated():
-            self.user = current_user
+
         if user_id:
             self.user = User.query.filter_by(id=user_id).first()
         self.created_ts = datetime.datetime.utcnow()
@@ -723,6 +904,48 @@ class Review(db.Model, Repopulatable):
             # Finally, remove the link from the body
             to_remove = youtube_link + self.body.split(youtube_link)[1].split(' ')[0]
             self.body = re.sub(r"\s*" + re.escape(to_remove) + r"\s*", '', self.body)
+
+
+    """
+    We are assuming that the created_ts has type datetime (from python's datetime module)
+    """
+    @classmethod
+    def create_from_import(cls, body=None, image_url=None, star_rating=None,
+                           product_id=None, shop_id=None, verified_review=False, created_ts=None,
+                           user=None, **kwargs):
+
+        # go through Review.__init__()
+        review = Review(body=body, image_url=image_url, star_rating=star_rating,
+                           product_id=product_id, shop_id=shop_id, verified_review=verified_review)
+
+
+        """
+        Import specific things
+        1.Deciding whether imported review's user is normal or legacy
+        2.Setting up the review date
+        3.Adding review to db
+        """
+
+        if isinstance(user, User):
+            review.user = user
+        elif isinstance(user, UserLegacy):
+            review.user_legacy = user
+
+        if created_ts:
+            review.created_ts = created_ts
+
+        db.session.add(review)
+        db.session.commit()
+
+        return review
+
+    @classmethod
+    def create_for_test(cls, source_user_name=None, source_id=None, user=None, **kwargs):
+        review = Review(**kwargs)
+        review.user = user
+        review.source_user_name = source_user_name
+        review.source_id = source_id
+        return review
 
     @classmethod
     def verify_review_request(cls, data):
@@ -749,7 +972,7 @@ class Review(db.Model, Repopulatable):
 
     @classmethod
     def exclude_fields(cls):
-        excluded = []
+        excluded = ['shop.access_token']
         excluded += User.exclude_fields()
         return excluded
 
@@ -766,57 +989,69 @@ class Review(db.Model, Repopulatable):
         return self
 
     @property
-    def likes(self):
-        return sum([rl.action for rl in ReviewLike.query.filter_by(review_id=self.id).all()])
-
-    @property
-    def reports(self):
-        return sum([rr.action for rr in ReviewReport.query.filter_by(review_id=self.id).all()])
-
-    @property
-    def liked_by_current_user(self):
+    def is_liked_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return rl
+            review_like = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_like:
+                return True
         return False
 
     @property
-    def reported_by_current_user(self):
+    def is_reported_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rr = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return rr
+            review_report = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_report:
+                return True
         return False
 
     @property
-    def featured(self):
+    def is_featured_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rf = ReviewFeature.query.filter_by(review_id=self.id).first()
-            return rf
+            review_feature = ReviewFeature.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_feature:
+                return True
         return False
 
     @property
-    def next_like_action(self):
+    def is_shared_by_current_user(self):
         if current_user and current_user.is_authenticated():
-            rl = ReviewLike.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return (0 if rl.action == 1 else 1) if rl else 1
-        return 1
+            review_shared = ReviewShare.query.filter_by(review_id=self.id, user_id=current_user.id).first()
+            if review_shared:
+                return True
+        return False
 
     @property
-    def next_report_action(self):
-        if current_user and current_user.is_authenticated():
-            rr = ReviewReport.query.filter_by(review_id=self.id, user_id=current_user.id).first()
-            return (0 if rr.action == 1 else 1) if rr else 1
-        return 1
+    def user_name(self):
+        if self.source_id and not self.source_id == 1 and self.source_user_name:
+            _user_name = self.source_user_name
+        elif self.user and self.user.name:
+            _user_name = self.user.name
+        else:
+            _user_name = Constants.DEFAULT_ANONYMOUS_USER_NAME
+        return _user_name
 
     @property
-    def next_feature_action(self):
-        if current_user and current_user.is_authenticated():
-            rf = ReviewFeature.query.filter_by(review_id=self.id).first()
-            return (0 if rf.action == 1 else 1) if rf else 1
-        return 1
+    def user_image_url(self):
+        if self.user:
+            if self.user.image_url:
+                _user_image_url = self.user.image_url
+            elif self.user.email:
+                _user_image_url = gravatar(self.user.email)
+            else:
+                _user_image_url = gravatar('')
+        elif self.source_id and not self.source_id == 1 and self.source_user_image_url:
+            _user_image_url = self.source_user_image_url
+        else:
+            _user_image_url = gravatar('')
+        return _user_image_url
+
+
+    @classmethod
+    def get_all_undeleted_reviews_for_product(cls, product_id):
+        return cls.query.filter_by(product_id=product_id, deleted=False).all()
 
     def __repr__(self):
-        return '<Review %r... by %r>' % (self.body[:10] if self.body else self.id, self.user)
+        return '<Review %r %r... by %r>' % (self.id, self.body[:10] if self.body else self.id, self.user)
 
     def is_for_shop(self, shop):
         if not self.order.shop == shop:
@@ -856,7 +1091,7 @@ class Review(db.Model, Repopulatable):
 
     @classmethod
     def get_latest(cls, start, end):
-        reviews = cls.query.order_by(Review.id.desc()).all()[start:end]
+        reviews = cls.query.filter_by(deleted=False).order_by(Review.id.desc()).all()[start:end]
         return reviews
 
     @classmethod
@@ -871,6 +1106,7 @@ class Shop(db.Model, Repopulatable):
     description = db.Column(db.String)
     domain = db.Column(db.String)
     image_url = db.Column(db.String)
+    active = db.Column(db.Boolean, default=True)
 
     automatically_approve_reviews = db.Column(db.Boolean, default=True)
 
@@ -883,7 +1119,7 @@ class Shop(db.Model, Repopulatable):
     owner = db.relationship("User", backref=db.backref("shops"))
 
     platform_id = db.Column(db.Integer, db.ForeignKey('platform.id'))
-    platform = db.relationship("Platform", backref=db.backref("platform", uselist=False))
+    platform = db.relationship("Platform", backref=db.backref("platform"))
 
     def update_access_token(self, access_token):
         self.access_token = access_token
@@ -914,6 +1150,119 @@ class Shop(db.Model, Repopulatable):
             raise DbException(message="User is not an owner of this shop", status_code=403)
         return True
 
+    def last_order_ts(self):
+        return Order.query.filter_by(shop_id=self.id).order_by(Order.purchase_timestamp.desc()).first()
+
+    def orders_before_opinew(self):
+        owner_confirmed_at = self.owner.confirmed_at if self.owner and self.owner.confirmed_at else datetime.datetime.utcnow()
+        return Order.query.filter(and_(Order.shop_id == self.id, Order.purchase_timestamp < owner_confirmed_at)).all()
+
+    def orders_since_opinew(self):
+        owner_confirmed_at = self.owner.confirmed_at if self.owner and self.owner.confirmed_at else datetime.datetime.utcnow()
+        return Order.query.filter(and_(Order.shop_id == self.id, Order.purchase_timestamp >= owner_confirmed_at)).all()
+
+    def get_stats(self):
+        opinew_source = Source.query.filter_by(name='opinew').first()
+        stats = {}
+
+        orders_with_review_requests = []
+        review_requests = []
+        reviews = []
+        reviews_cnt_by_product = {}
+
+        verified_opinew_reviews = []
+        opinew_total_reviews = []
+
+        emails_converted = {}  # emails_with_at_least_one_rr_opened
+        review_requests_opened_total = []
+
+        for o in self.orders:
+            if o.review_requests:
+                orders_with_review_requests.append(o)
+
+        for p in self.products:
+            rs = p.reviews
+            reviews += rs
+            reviews_cnt = len(p.reviews)
+            for r in rs:
+                if r.source_id == opinew_source.id:
+                    if r.verified_review:
+                        verified_opinew_reviews.append(r)
+                    opinew_total_reviews.append(r)
+            rrs = p.review_requests
+            review_requests += rrs
+            for rr in rrs:
+                if rr.opened_timestamp:
+                    emails_converted[rr.for_order_id] = 1
+                    review_requests_opened_total.append(rr)
+            if reviews_cnt in reviews_cnt_by_product:
+                reviews_cnt_by_product[reviews_cnt] += 1
+            else:
+                reviews_cnt_by_product[reviews_cnt] = 1
+
+        funnel_streams_glimpsed = []
+        funnel_streams_fully_seen = []
+        funnel_streams_hovered = []
+        funnel_streams_scrolled = []
+        funnel_streams_clicked = []
+        for fs in self.funnel_streams:
+            if fs.plugin_glimpsed_ts:
+                funnel_streams_glimpsed.append(fs.plugin_glimpsed_ts)
+            if fs.plugin_fully_seen_ts:
+                funnel_streams_fully_seen.append(fs.plugin_fully_seen_ts)
+            if fs.plugin_mouse_hover_ts:
+                funnel_streams_hovered.append(fs.plugin_mouse_hover_ts)
+            if fs.plugin_mouse_scroll_ts:
+                funnel_streams_scrolled.append(fs.plugin_mouse_scroll_ts)
+            if fs.plugin_mouse_click_ts:
+                funnel_streams_clicked.append(fs.plugin_mouse_click_ts)
+
+
+        stats['since'] = self.owner.confirmed_at if self.owner else 0
+
+        stats['orders_with_review_requests'] = orders_with_review_requests
+        stats['orders_with_review_requests_cnt'] = len(stats['orders_with_review_requests'])
+
+        stats['review_requests'] = review_requests
+        stats['review_requests_cnt'] = len(stats['review_requests'])
+
+        stats['reviews'] = reviews
+        stats['reviews_cnt'] = len(stats['reviews'])
+        stats['reviews_cnt_by_product'] = sorted(reviews_cnt_by_product.items(), key=lambda t: t[0], reverse=True)
+
+        stats['funnel_streams'] = self.funnel_streams
+        stats['funnel_streams_cnt'] = len(self.funnel_streams)
+        stats['funnel_streams_glimpsed_cnt'] = len(funnel_streams_glimpsed)
+        stats['funnel_streams_fully_seen_cnt'] = len(funnel_streams_fully_seen)
+        stats['funnel_streams_hovered_cnt'] = len(funnel_streams_hovered)
+        stats['funnel_streams_scrolled_cnt'] = len(funnel_streams_scrolled)
+        stats['funnel_streams_clicked_cnt'] = len(funnel_streams_clicked)
+
+
+        stats['emails_sent'] = self.emails_sent
+        stats['emails_sent_cnt'] = len(stats['emails_sent'])
+
+        stats['emails_opened'] = [e.opened_timestamp for e in self.emails_sent if e.opened_timestamp]
+        stats['emails_opened_cnt'] = len(stats['emails_opened'])
+
+        stats['emails_opened_over_sent_pctg'] = (stats['emails_opened_cnt'] / stats['emails_sent_cnt'])*100 if stats['emails_sent_cnt'] else '-'
+
+        stats['emails_converted'] = emails_converted
+        stats['emails_converted_cnt'] =  len(stats['emails_converted'])
+        stats['emails_converted_over_emails_opened_pctg'] = (stats['emails_converted_cnt'] / stats['emails_opened_cnt'])*100 if stats['emails_opened_cnt'] else '-'
+
+        stats['verified_opinew_reviews'] =  verified_opinew_reviews
+        stats['verified_opinew_reviews_cnt'] =  len(stats['verified_opinew_reviews'])
+        stats['verified_opinew_reviews_over_email_converted_pctg'] =  (stats['verified_opinew_reviews_cnt'] / stats['emails_converted_cnt'])*100 if stats['emails_converted_cnt'] else '-'
+
+        stats['review_requests_opened_total'] =  review_requests_opened_total
+        stats['review_requests_opened_total_cnt'] =  len(stats['review_requests_opened_total'])
+
+        stats['opinew_total_reviews'] =  opinew_total_reviews
+        stats['opinew_total_reviews_cnt'] =  len(stats['opinew_total_reviews'])
+        return stats
+
+
     def __repr__(self):
         return '<Shop %r>' % self.name
 
@@ -931,6 +1280,7 @@ class Platform(db.Model, Repopulatable):
 
     def __repr__(self):
         return "<Platform %r>" % self.name
+
 
 class ProductVariant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -960,9 +1310,9 @@ class Product(db.Model, Repopulatable):
 
     @property
     def url(self):
-        for url in self.urls:
-            if not url.is_regex:
-                return url.url
+        for u in self.urls:
+            if not u.is_regex:
+                return u.url
 
     @classmethod
     def get_by_id(cls, product_id):
@@ -999,32 +1349,101 @@ class ProductUrl(db.Model, Repopulatable):
     product = db.relationship("Product", backref=db.backref("urls"))
 
 
-class Question(db.Model, Repopulatable):
+class Question(db.Model, Repopulatable, RenderableObject):
     id = db.Column(db.Integer, primary_key=True)
+    created_ts = db.Column(db.DateTime)
 
     body = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("questions"))
 
-    about_product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
-    about_product = db.relationship("Product", backref=db.backref("questions"))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("questions"))
 
     click_count = db.Column(db.Integer, default=0)
     is_public = db.Column(db.Boolean, default=False)
 
+    @classmethod
+    def get_all_questions_for_product(cls, product_id):
+        return cls.query.filter_by(product_id=product_id).all()
+
 
 class Answer(db.Model, Repopulatable):
     id = db.Column(db.Integer, primary_key=True)
+    created_ts = db.Column(db.DateTime)
 
     body = db.Column(db.String)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = db.relationship("User", backref=db.backref("answers"))
 
-    to_question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
-    to_question = db.relationship("Question", backref=db.backref("answers"))
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
+    question = db.relationship("Question", backref=db.backref("answers"))
 
+
+class SentEmail(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+    recipients = db.Column(db.String)
+    subject = db.Column(db.String)
+    template = db.Column(db.String)
+    template_ctx = db.Column(db.String)
+    body = db.Column(db.String)
+
+    tracking_pixel_id = db.Column(db.String)
+    opened_timestamp = db.Column(db.DateTime)
+
+    for_shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    for_shop = db.relationship("Shop", backref=db.backref("emails_sent"))
+
+    funnel_stream_id = db.Column(db.Integer, db.ForeignKey('funnel_stream.id'))
+    funnel_stream = db.relationship("FunnelStream", backref=db.backref("sent_email", uselist=False))
+
+
+class NextAction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    timestamp = db.Column(db.DateTime)
+    identifier = db.Column(db.String)
+    title = db.Column(db.String)
+    url = db.Column(db.String)
+    icon = db.Column(db.String)
+    icon_bg_color = db.Column(db.String)
+
+    is_completed = db.Column(db.Boolean, default=False)
+    completed_ts = db.Column(db.DateTime)
+
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    shop = db.relationship("Shop", backref=db.backref("next_actions"))
+
+
+class FunnelStream(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    shop = db.relationship("Shop", backref=db.backref("funnel_streams"))
+
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product = db.relationship("Product", backref=db.backref("funnel_streams"))
+
+    # 1. First part of the funnel - page visits
+    plugin_load_ts = db.Column(db.DateTime)
+    plugin_loaded_from_ip = db.Column(db.String)
+
+    # 2. How much interaction with our plugin
+    plugin_glimpsed_ts = db.Column(db.DateTime)  # just part of the plugin is visible
+    plugin_fully_seen_ts = db.Column(db.DateTime)  # the full plugin is visible
+    plugin_mouse_hover_ts = db.Column(db.DateTime)
+    plugin_mouse_scroll_ts = db.Column(db.DateTime)
+    plugin_mouse_click_ts = db.Column(db.DateTime)
+
+    # 3. Is there an order connected with this stream? Guess by timestamp and browser IP
+    # 4. Task - on the backref of Task
+    # 5. SentEmail - on the backref of SentEmail
+    # 6. ReviewRequests - on the backref of ReviewRequest
+    # 7. Reviews left - on the backref of review
 
 # Create customized model view class
 class AdminModelView(ModelView):
@@ -1049,6 +1468,7 @@ class AdminModelView(ModelView):
                 # login
                 return redirect(url_for('security.login', next=request.url))
 
+
 # Setup Flask-Admin
 admin.add_view(AdminModelView(Role, db.session))
 admin.add_view(AdminModelView(User, db.session))
@@ -1059,6 +1479,7 @@ admin.add_view(AdminModelView(Subscription, db.session))
 admin.add_view(AdminModelView(ReviewLike, db.session))
 admin.add_view(AdminModelView(ReviewReport, db.session))
 admin.add_view(AdminModelView(ReviewFeature, db.session))
+admin.add_view(AdminModelView(ReviewShare, db.session))
 admin.add_view(AdminModelView(ReviewRequest, db.session))
 admin.add_view(AdminModelView(Notification, db.session))
 admin.add_view(AdminModelView(Order, db.session))
@@ -1072,3 +1493,8 @@ admin.add_view(AdminModelView(ProductUrl, db.session))
 admin.add_view(AdminModelView(Question, db.session))
 admin.add_view(AdminModelView(Answer, db.session))
 admin.add_view(AdminModelView(Task, db.session))
+admin.add_view(AdminModelView(SentEmail, db.session))
+admin.add_view(AdminModelView(Source, db.session))
+admin.add_view(AdminModelView(FunnelStream, db.session))
+admin.add_view(AdminModelView(NextAction, db.session))
+admin.add_view(AdminModelView(UrlReferer, db.session))

@@ -1,8 +1,0 @@
-<form method="post" action="/api/v1/answer" class="answer-question-form">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="to_question_id" value="{{ question.id }}">
-    <div class="col-xs-12">
-        <textarea class="form-control" name="body" placeholder="Answer the question here..."></textarea><br>
-      <input type="submit" class="btn btn-primary pull-right" value="Answer" />
-    </div>
-</form>

@@ -1,49 +1,34 @@
-{% if review.source_id and not review.source_id == 1 %}
-  {% set user_name = review.source_user_name or "Anonymous" %}
-  {% set source_url = review.source_url %}
-  {% if review.source_user_image_url %}
-    {% set user_image_url = review.source_user_image_url %}
-  {% else %}
-    {% set user_image_url = review.source_user_name | gravatar %}
-  {% endif %}
-{% else %}
-  {% set user_name = review.user.name or "Anonymous" %}
-  {% if review.user.image_url %}
-    {% set user_image_url = review.user.image_url %}
-  {% elif review.user and review.user.email and review.user.email | gravatar %}
-    {% set user_image_url = review.user.email | gravatar %}
-  {% else %}
-    {% set user_image_url = url_for('media.get_user_image', filename=g.constants.DEFAULT_PROFILE_PICTURE) %}
-  {% endif %}
-{% endif %}
-{% if user_image_url %}
-  {% if review.user_id %}
+<div class="review-author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  {% if review.user_image_url %}
+    {%- if review.user_id %}
       <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}">
-          <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
-      </a>
-  {% else %}
-      <img class="review-profile-pic" src="{{ user_image_url }}" alt="{{ user_name }} profile image"/>
+    {%- endif %}
+  <img class="img-circle author-image" src="{{ review.user_image_url }}"
+       alt="{{ review.user_name }} profile image"/>
+  {%- if review.user_id %}
+    </a>
+  {%- endif %}
   {% endif %}
-{% endif %}
-<div class="review-author-name">
-  {% if review.user_id %}
+  <p class="review-author-name">
+    {%- if review.user_id %}
       <a href="{{ url_for('client.user_profile', user_id=review.user_id) }}"
          {% if in_plugin %}target="_blank"{% endif %}>
-        {{ user_name }}
+    {%- endif %}
+    <span itemprop="name">{{ review.user_name }}</span>
+    {%- if review.user_id %}
       </a>
-  {% else %}
-    {{ user_name }}
-  {% endif %}
-  {% if show_product_info %}
-      <span class="small-screen text-muted">
-                reviewed {% include "review/product_name.html" %}
-         </span>
-  {% endif %}
-</div>
+    {%- endif %}
 
-{% if review.user %}
-    <div><b>Reviews:</b> {{ review.user.reviews_count }} <b>Likes:</b> {{ review.user.likes_count }}
-    </div>
-{% else %}
-    <div>&nbsp;</div>
-{% endif %}
+    {% if show_product_info %}
+      <br>
+      ▸ <a href="{{ url_for('client.get_product', product_id=review.product.id) }}">
+      <b>
+        <span itemprop="itemReviewed" itemscope itemtype="http://schema.org/Thing">
+          <span itemprop="name">{{ review.product.name }}</span>
+        </span>
+      </b> from <b>{{ review.product.shop.name }}</b>
+    </a>
+    {% endif %}
+  </p>
+  <div class="clearfix"></div>
+</div>

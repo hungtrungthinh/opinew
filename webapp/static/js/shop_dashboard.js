@@ -30,24 +30,16 @@ function hookAnswerForm() {
 
 
 var shop_id = document.location.pathname.split('/')[2];
-var pages = ["orders", "reviews", "questions"];
 var callbacks = [null, null, hookAnswerForm];
 
 function getPage(page, callback) {
   $.ajax("/dashboard/" + shop_id + "/" + page, {
     success: function (r) {
       $('#' + page).html(r);
-      loadAsync();
       if (callback)
         callback();
     }
   });
-}
-
-for (var i = 0; i < pages.length; i++) {
-  var page = pages[i];
-  var callback = callbacks[i];
-  getPage(page, callback);
 }
 
 $('#shop-form').bind('submit', function (e) {

@@ -1,31 +1,31 @@
 {% import "_macros.html" as macros %}
 <!DOCTYPE html>
-<html>
+<html id="opinew-plugin-html">
 <head lang="en">
-    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global-plugin-base.css') }}"/>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}"/>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.emojiarea.css') }}">
-    <title>Opinew</title>
-    <meta charset="UTF-8">
-    <style>
-        .navbar-collapse.collapse {
-            display: block !important;
-        }
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global-plugin-base.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery.emojiarea.css') }}">
+  <title>Opinew</title>
+  <meta charset="UTF-8">
+  <style>
+    .navbar-collapse.collapse {
+      display: block !important;
+    }
 
-        .navbar-nav > li, .navbar-nav {
-            float: left !important;
-        }
+    .navbar-nav > li, .navbar-nav {
+      float: left !important;
+    }
 
-        .navbar-nav.navbar-right:last-child {
-            margin-right: -15px !important;
-        }
+    .navbar-nav.navbar-right:last-child {
+      margin-right: -15px !important;
+    }
 
-        .navbar-right {
-            float: right !important;
-        }
-    </style>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    .navbar-right {
+      float: right !important;
+    }
+  </style>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
 {% include "plugin/modal_review.html" %}
@@ -33,65 +33,59 @@
   {% include "plugin/modal_signup.html" %}
 {% endif %}
 {% include "plugin/navigation.html" %}
+{% include "modal-lightbox.html" %}
 <div class="container" style="margin-top: -26px;">
-    <div class="row">
-        <div class="col-xs-12 col-md-10 col-md-offset-1">
-          {% if not reviews and not featured_reviews %}
-              <h3>Bought it? Leave a review and help others!</h3>
-          {% else %}
-            {% set hide_buy_button = True %}
-            {% if own_review %}
-                <h4>Your review</h4>
-              {% set review = own_review %}
-              {% include "review/review.html" %}
-                <hr>
-            {% endif %}
-            {% if featured_reviews %}
-                <h4>Featured reviews</h4>
-              {% for review in featured_reviews %}
-                {% include "review/review.html" %}
-              {% endfor %}
-                <hr>
-            {% endif %}
-            {% if reviews %}
-              {% for review in reviews %}
-                {% include "review/review.html" %}
-              {% endfor %}
-            {% endif %}
-              <br>
-              <a class="btn btn-default btn-block"
-                 href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=product.id) }}"
-                 target="_blank">
-                  <h4>See all {{ product.name }} reviews on Opinew</h4>
-              </a>
-              <br>
-          {% endif %}
-{#        TODO#}
-{#        {% include "plugin/messages.html" %}#}
-        </div>
+  <div class="row">
+    <div class="col-xs-12 col-md-10 col-md-offset-1">
+      {% if not product_objs.objs_list %}
+        <h3>Leave a review and help others!</h3>
+      {% else %}
+        {% if product_objs.average_stars %}
+          <div class="row" style="display:flex;justify-content:center;align-items:center;"  itemscope itemtype="http://schema.org/Thing">
+            <h3 itemprop="name">{{ product.name }}</h3>
+            {% include "product/star_summary.html" %}
+          </div>
+        {% endif %}
+        {% set hide_buy_button = True %}
+        {% for review in product_objs.objs_list %}
+          {% include "review/review.html" %}
+        {% endfor %}
+        <br>
+        <a class="btn btn-default btn-block"
+           href="{{ g.config.OPINEW_API_SERVER }}{{ url_for('client.get_product', product_id=product.id) }}"
+           target="_blank">
+          <h4>See all {{ product.name }} reviews on Opinew</h4>
+        </a>
+        <br>
+      {% endif %}
     </div>
+  </div>
 </div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script src="{{ url_for('static', filename='js/jquery.emojiarea.min.js') }}"></script>
 <script>
-    var csrftoken = $('meta[name=csrf-token]').attr('content');
+  var csrftoken = $('meta[name=csrf-token]').attr('content');
 
-    $.ajaxSetup({
-        beforeSend: function (xhr, settings) {
-            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken)
-            }
-        }
-    });
+  $.ajaxSetup({
+    beforeSend: function (xhr, settings) {
+      if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+        xhr.setRequestHeader("X-CSRFToken", csrftoken)
+      }
+    }
+  });
+</script>
+<script>
+  var FUNNEL_STREAM_ID = "{{ funnel_stream_id }}";
 </script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script src="{{ url_for('static', filename='js/post_review.js') }}"></script>
+<script src="{{ url_for('static', filename='js/funnel.js') }}"></script>
 {#<script src="{{ url_for('static', filename='js/messages.js') }}"></script>#}
 <script src='https://www.google.com/recaptcha/api.js'></script>
 {# Include Google analytics if in production mode #}
 {% if g.mode == 'production' %}
-  {% include "ga.html" %}
+  {% include "snippets/ga.html" %}
 {% endif %}
 </body>
 </html>

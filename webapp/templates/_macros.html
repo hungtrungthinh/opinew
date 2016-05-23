@@ -9,3 +9,9 @@
     {% endfor %}
   {% endif %}
 {% endmacro %}
+
+{% macro render_nav_btn(name, link) %}
+<li {% if request.path == link %}class="active"{% endif %}>
+                    <a href="{{ link }}">{{ name }}</a>
+                </li>
+{% endmacro %}

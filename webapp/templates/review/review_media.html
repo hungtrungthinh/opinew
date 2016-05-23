@@ -1,0 +1,16 @@
+<div class="review-media">
+  {% if review.youtube_video %}
+    <div class="review-youtube-container">
+      <iframe class="review-youtube" src="{{ review.youtube_video }}" frameborder="0" allowfullscreen></iframe>
+    </div>
+  {% endif %}
+  {% if review.image_url %}
+    <div class="review-image-container">
+      <a href="#" data-toggle="modal" data-target="#modal-lightbox" data-image-url="{{ review.image_url }}">
+        <img class="review-image"
+            src="{{ review.image_url|resize('600x320') if review.image_url and g.config.RESIZE_URL in review.image_url else review.image_url }}"
+            alt="{{ review.product.name }} image review by {{ review.user.name }}"/>
+      </a>
+    </div>
+  {% endif %}
+</div>

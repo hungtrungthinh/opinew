@@ -1,19 +1,53 @@
-<div class="row">
-    <ol>
-        <li>Click on <b>Online store</b> in your admin panel</li>
-        <img class="img-instruction" src="/static/img/shopify_install/01.png"
-             alt="Click on Online store< in your admin panel"/>
-        <li>Click on <b>Themes</b></li>
-        <img class="img-instruction" src="/static/img/shopify_install/02.png"
-             alt="Click on Themes"/>
-        <li>On the top right corner click on <b>the three dots</b> (next to the blue Customize theme button)
-            and select <b>Edit HTML/CSS</b>.
-            <img class="img-instruction" src="/static/img/shopify_install/03.png"
+{% extends "layout.html" %}
+
+{% block content %}
+  <div class="container">
+    <div class="row">
+      <h1>Plugin setup</h1>
+    <p class="lead">Congratulations in installing <b>Opinew product reviews</b>. Now there are 3 pieces of copy-paste
+    you need to do to be completely set. Here we will walk you through the process step by step but if you run into
+    any trouble, don't hesitate to <a href="mailto:team@opinew.com">contact us</a>.</p>
+      <h2> 1. Click on <b>Online store</b> in your <a href="http://{{ shop.domain }}/admin/" target="_blank">admin panel</a></h2>
+      <img class="img-instruction" src="{{ url_for('static', filename='img/shopify_install/01.png') }}"
+           alt="Click on Online store< in your admin panel"/>
+
+      <h2> 2. Click on <b>Themes</b></h2>
+      <img class="img-instruction" src="{{ url_for('static', filename='img/shopify_install/02.png') }}"
+           alt="Click on Themes"/>
+
+      <h2> 3. On the top right corner click on <b>the three dots</b> (next to the blue Customize theme button)
+        and select <b>Edit HTML/CSS</b></h2>
+        <img class="img-instruction" src="{{ url_for('static', filename='img/shopify_install/03.png') }}"
              alt="On the top right corner click on the three dots (next to the blue Customize theme button)
             and select Edit HTML/CSS"/>
-        </li>
-        <li>Under Templates folder click <b>product.liquid</b></li>
-        <img class="img-instruction" src="/static/img/shopify_install/04.png"
-             alt="Under Templates folder click product.liquid"/>
-    </ol>
-</div>
+
+
+      <h2> 4. Under <b>Layout</b> folder click <b>theme.liquid</b></h2>
+      <img class="img-instruction" src="{{ url_for('static', filename='img/shopify_install/035.png') }}"
+           alt="Under Layout folder click theme.liquid"/>
+      <h2> 5. Copy the following code below the last line on your <b>theme.liquid</b>:</h2>
+      <textarea disabled style="margin: 0; width: 800px; height: 150px;">{% include "user_setup/shopify_code_widget.html" %}</textarea>
+
+      <h2> 6. Under <b>Templates</b> folder click <b>product.liquid</b></h2>
+      <img class="img-instruction" src="{{ url_for('static', filename='img/shopify_install/04.png') }}"
+           alt="Under Templates folder click product.liquid"/>
+    <h2> 7. Copy the following code below the last line on your <b>theme.liquid</b>:</h2>
+      <textarea disabled
+                style="margin: 0; width: 800px; height: 150px;">{% include "user_setup/shopify_code_product.html" %}</textarea>
+
+      <h2> 8. Finally, under <b>Snippets</b> folder click on <b>product-loop.liquid</b></h2>
+      <img class="img-instruction" src="{{ url_for('static', filename='img/shopify_install/05.png') }}"
+           alt="Under Snippets folder click product-loop.liquid"/>
+    <h2> 9. Copy the following code:</h2>
+      <textarea disabled
+                style="margin: 0; width: 800px; height: 150px;">{% include "user_setup/shopify_code_stars.html" %}</textarea>
+      <br>
+      {% if product_page_url %}
+        <a href="{{ product_page_url }}"><h2>10. Click here to verify the plugin works</h2></a>
+      {% else %}
+        <h2>10. Go to any product page to verify the plugin works and <a href="{{ url_for('client.shopify_manual_verification') }}">click here</a>.</h2>
+      {% endif %}
+        <h2></h2>
+    </div>
+  </div>
+{% endblock %}

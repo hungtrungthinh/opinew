@@ -1,0 +1,12 @@
+<ul id="dashboard-navigation" class="nav nav-pills nav-stacked" role="tablist">
+  {% for tab in dashboard_tabs %}
+    {% if loop.first %}{% set active_tab=1 %}{% else %}{% set active_tab=0 %}{% endif %}
+    {% include "dashboard/dashboard_tab.html" %}
+  {% endfor %}
+  {# TODO: DEPRECATED - REMOVE#}
+    <li role="presentation" {% if active_tab %}class="active"{% endif %}>
+    <a href="#orders" aria-controls="orders" role="tab" data-toggle="tab">
+      <span class="glyphicon glyphicon-shopping-cart"></span> Orders
+    </a>
+  </li>
+</ul>

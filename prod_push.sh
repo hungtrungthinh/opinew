@@ -6,11 +6,14 @@ update_requirements() {
 
 tar_self() {
     echo  "*** LOCAL: Creating tar of source ***"
-    tar -czf opinew_ecommerce_api.tar.gz *   --exclude ".git" \
+    tar cf opinew_ecommerce_api.tar *   --exclude ".git" \
                                --exclude ".idea" \
                                --exclude "venv" \
                                --exclude "*.pyc" \
-                               --exclude "*.pgsql"
+                               --exclude "*.pgsql" \
+                               --exclude "media"
+    tar fr opinew_ecommerce_api.tar webapp/media
+    gzip opinew_ecommerce_api.tar
 }
 
 send_tar_prod() {
@@ -39,9 +42,11 @@ pushprod() {
                                       ln -s ../opinew_venv ./venv &&
                                       source venv/bin/activate &&
                                       pip install -r requirements.txt &&
+                                      ln -s ../opinew_media ./media &&
                                       find ./media -type f -exec chmod 664 {} \; &&
                                       find ./webapp/static -type f -exec chmod 664 {} \; &&
                                       sudo chown -R www-data ./media &&
+                                      sudo chown -R www-data ./webapp/static &&
                                       (screen -S celery -X quit && screen -S celery -d -m ./run_celery.sh) ||
                                             screen -S celery -d -m ./run_celery.sh &&
                                       (screen -S beat -X quit && screen -S beat -d -m ./run_celery_beat.sh) ||
@@ -60,7 +65,7 @@ send_update() {
     fi
     ip_address=$1
     source venv/bin/activate
-    ./run_tests.py
+#    ./run_tests.py
     if [ $? -eq 1 ]; then
         >&2 echo "ERROR: Tests failed. ABORTING!!!"
         return 1
@@ -75,4 +80,4 @@ send_update() {
     fi
 }
 
-send_update opinew_api.com
+send_update opinew.com

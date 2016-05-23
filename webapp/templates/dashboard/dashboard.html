@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block content %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-3 dashboard-navigation-tabs">
+        {% include "dashboard/dashboard_navigation.html" %}
+      </div>
+      <div class="col-md-9 dashboard-container">
+        {% include "dashboard/dashboard_container.html" %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block script %}
+  <script>
+    // Javascript to enable link to tab
+    function locationHashChanged() {
+      $('.nav-pills a[href=#' + url.split('#')[1] + ']').tab('show');
+      window.scrollTo(0, 0);
+    }
+
+    var url = document.location.toString();
+    if (url.match('#')) {
+      locationHashChanged()
+    }
+
+    // Change hash for page-reload
+    $('.nav-pills a').on('shown.bs.tab', function (e) {
+      window.location.hash = e.target.hash;
+    });
+
+    // activate tab switching bootstrap
+    $('#dashboard-navigation a').click(function (e) {
+      $(this).tab('show');
+      window.scrollTo(0, 0);
+    });
+
+    // manually show tab
+    function showTab(tabhash) {
+      $('#dashboard-navigation a[href=' + tabhash + ']').tab('show');
+      window.scrollTo(0, 0);
+    }
+    {#  TODO: DEPRECATED - REMOVE  #}
+
+   $.ajax("/dashboard/" + {{ shop.id }} + "/orders", {
+    success: function (r) {
+      $('#dashboard-orders').html(r);
+      if (callback)
+        callback();
+    }
+  });
+  </script>
+  <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
+  <span id="STRIPE_PUBLISHABLE_API_KEY" data-key="{{ g.config.STRIPE_PUBLISHABLE_API_KEY }}"></span>
+  <script src="{{ url_for('static', filename='js/shop_dashboard.js') }}"></script>
+{% endblock %}

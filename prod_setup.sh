@@ -8,7 +8,7 @@ useradd -G sudo -s /bin/bash ${USER_NAME}
 passwd ${USER_NAME}
 mkdir -p ${HOME_DIR} && cp -r ./ ${HOME_DIR}
 chown -R ${USER_NAME}:${USER_NAME} ${HOME_DIR}
-sudo su opinew_server
+sudo su ${USER_NAME}
 cd
 
 PACKAGES="git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev screen libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libxml2 libxml2-dev libxslt1-dev python-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk"
@@ -40,7 +40,7 @@ cd ${HOME_DIR}/.ssh
 curl -L ${ID_RSA_DW} > id_rsa
 curl -L ${ID_RSA_PUB_DW} > id_rsa.pub
 chmod 600 id_rsa
-eval `ssh-agent`
+eval $(ssh-agent)
 ssh-add ~/.ssh/id_rsa
 
 echo "Set up required directories"
@@ -94,52 +94,26 @@ server {
         server_name opinew.com;
         charset utf-8;
 
+        client_max_body_size 5M;
+
         access_log  /var/log/nginx/access.log;
         error_log  /var/log/nginx/error.log;
 
+        if (\$host = 'www.opinew.com' ) {
+          rewrite  ^/(.*)$  https://opinew.com/\$1  permanent;
+        }
+
         location / {
                 include uwsgi_params;
-                uwsgi_pass unix:${SOCKET_FILE};
+                uwsgi_pass unix:/home/opinew_server/sockets/opinew.sock;
         }
 
         location /static {
-                alias ${PROJECT_DIR}/webapp/static;
-        }
-
-        location /media {
-                alias ${PROJECT_DIR}/media;
+                alias /home/opinew_server/opinew_ecommerce_api/webapp/static;
         }
 }
 EOF"
 
-# !!!!!!!!!!!!!!!!!!
-# http only
-# !!!!!!!!!!!!!!!!!!
-# echo "Configure nginx"
-#sudo bash -c "cat << 'EOF' > /etc/nginx/sites-available/opinew
-#server {
-#        listen 80;
-#        server_tokens off;
-#        server_name localhost;
-#        charset utf-8;
-#
-#        access_log  /var/log/nginx/access.log;
-#        error_log  /var/log/nginx/error.log;
-#
-#        location / {
-#                include uwsgi_params;
-#                uwsgi_pass unix:${SOCKET_FILE};
-#        }
-#
-#        location /static {
-#                alias ${PROJECT_DIR}/webapp/static;
-#        }
-#
-#        location /media {
-#                alias ${PROJECT_DIR}/media;
-#        }
-#}
-#EOF"
 sudo rm /etc/nginx/sites-enabled/default
 sudo ln -s /etc/nginx/sites-available/opinew /etc/nginx/sites-enabled/opinew
 
@@ -153,6 +127,8 @@ chdir = ${PROJECT_DIR}
 module = webapp.production
 callable = app
 plugins = python
+lazy = true
+lazy-apps = true
 EOF"
 sudo ln -s /etc/uwsgi/apps-available/opinew.ini /etc/uwsgi/apps-enabled/opinew.ini
 

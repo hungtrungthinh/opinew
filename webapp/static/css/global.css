@@ -1,73 +1,11 @@
-html, body {
-  height: 100%;
-  background-size: cover;
-}
-
-.icon-bar {
-  background-color: #fff;
-}
-
-.navbar-trans {
-  background-color: #2c54a8;
-  color: #fff;
-}
-
-.navbar-trans li > a:hover, .navbar-trans li > a:focus, .navbar-trans li.active {
-  background-color: #38afef;
-}
-
-.navbar-trans a {
-  color: #fefefe;
-}
-
-.navbar-trans .form-control:focus {
-  border-color: #eee;
-  outline: 0;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(100, 100, 100, 0.6);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(100, 100, 100, 0.6);
-}
-
 section {
   padding-top: 70px;
   padding-bottom: 50px;
   min-height: calc(100% - 1px);
 }
 
-.v-center {
-  padding-bottom: 5%;
-  font-size: 70px;
-}
-
-a.list-group-item.active, [class*='-info'] {
-  background-color: #1c9298;
-  color: #fff;
-}
-
-#welcome, #examples {
-  background-color: #eee;
-  color: #444;
-}
-
-#features, #about_us {
-  background-color: #e5e5ef;
-  color: #686868;
-
-}
-
-#pricing {
-  background-color: #fff;
-  color: #444;
-}
-
-body {
-  background-color: #F0F0F0;
-}
-
-#content-wrapper {
-  min-height: 600px;
-}
-
 /* Opinew colors */
+
 .opinew-cherry {
   background-color: #fb412d;
 }
@@ -88,18 +26,328 @@ body {
   background-color: #1c9298;
 }
 
-/* /Opinew colors */
+/* /END Opinew colors */
+
+/* Overriding default styles to match branding */
+
+html, body {
+  height: 100%;
+  background-size: cover;
+}
+
+body {
+  background-color: #f0f0f0;
+}
+
+a {
+  color: #1c9298;
+}
+
+.btn {
+  border-radius: 0;
+}
+
+.btn-primary {
+  background-color: #1c9298;
+  border-color: #198388;
+}
+
+.btn-primary:hover {
+  background-color: #167479 !important;
+  border-color: #13666a;
+}
+
+.btn-success {
+  background-color: #22be44;
+  border-color: #1eab3d;
+}
+
+.btn-success:hover {
+  background-color: #1b9836;
+  border-color: #17852f;
+}
+
+.btn-info {
+  background-color: #2c54a8;
+  border-color: #274b97;
+}
+
+.btn-info:hover {
+  background-color: #234386;
+  border-color: #1e3a75;
+}
+
+/* Alerts */
+.alert-error, .alert-danger {
+  background-color: #fb412d;
+  border-color: #e13a28;
+  color: #eee;
+}
+
+.alert-warning {
+  background-color: #fb8c2d;
+  border-color: #e17e28;
+  color: #eee;
+}
+
+.alert-primary {
+  background-color: #1c9298;
+  border-color: #198388;
+  color: #eee;
+}
+
+.alert-success {
+  background-color: #22be44;
+  border-color: #1eab3d;
+  color: #eee;
+}
+
+.alert-info {
+  background-color: #2c54a8;
+  border-color: #274b97;
+  color: #eee;
+}
+
+.alert,
+.nav-pills > li > a,
+.well {
+  border-radius: 2px;
+}
+
+.nav-pills > li > a {
+  color: #333;
+}
+
+.nav-pills > li.active > a {
+  background-color: #1c9298;
+  border-color: #198388;
+  color: #eee;
+}
+
+.nav-pills > li.active > a:hover,
+.nav-pills > li.active > a:focus {
+  background-color: #167479 !important;
+  border-color: #13666a;
+  color: #eee;
+}
+
+/* /END Overriding default styles to match branding */
+
+/* Flashed messages overriding */
+
+.flash-container {
+  position: absolute;
+  top: 50px;
+  z-index: 10;
+  width: 100%;
+}
+
+.alert-flash {
+  width: 60%;
+  margin: 10px auto;
+}
+
+/* /END Flashed messages overriding */
+
+/* Reviews styles */
+
+.review-container {
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  background-color: #fefefe;
+  margin: 0 0 16px 0;
+  border-radius: 2px;
+  overflow: auto;
+}
+
+.review-body,
+.review-media {
+  overflow: hidden;
+}
+
+.review-header,
+.review-badges,
+.review-body,
+.review-interactions {
+  margin: 8px;
+}
+
+.author-image {
+  max-height: 42px;
+  max-width: 42px;
+  float: left;
+  margin: 0 16px 0 0;
+}
+
+.review-author-name {
+  font-weight: bold;
+}
+
+.review-body {
+  padding: 0 0 0 60px;
+  font-size: 1.2em;
+  position: relative;
+}
+
+.review-body:before {
+  display: block;
+  padding-left: 16px;
+  content: "\201C";
+  font-size: 80px;
+  position: absolute;
+  left: -20px;
+  top: -20px;
+  color: #7a7a7a;
+}
+
+.review-image-container {
+  position: relative;
+  overflow: hidden;
+  max-height: 320px;
+  background-color: #222;
+}
+
+.review-image {
+  display: block;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  height: auto;
+  margin: auto;
+}
+
+.review-youtube-container {
+  position: relative;
+  padding-bottom: 320px;
+  padding-top: 25px;
+  height: 0;
+}
+
+.review-youtube {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.review-time-posted {
+  font-size: 0.8em;
+}
+
+.rating-review-body .star-active:before {
+  color: rgba(251, 140, 45, 0.6);
+}
+
+.review-date {
+  margin-bottom: 10px;
+}
+
+.reviews-container {
+  padding-left: 1px;
+  padding-right: 1px;
+}
+
+.review-add-button {
+  height: 3em;
+  width: 60px;
+  font-size: 1.5em;
+}
+
+.review-comments-container,
+.answers-container {
+  overflow: auto;
+  background-color: #f6f6f6;
+}
+
+#submit-review-form {
+  font-size: 2em;
+  height: 2em;
+}
+
+.comment-container {
+  overflow: auto;
+}
+
+.comments-show-more-container {
+
+}
+
+.question-body {
+  font-size: 2em;
+}
+
+.ask-form {
+  margin: 16px;
+}
+
+.ask-form-body {
+  height: 2em;
+  font-size: 2em;
+}
+
+.ask-btn {
+  height: 4em;
+}
+
+/* /END Review Styles */
+
+/* dashboard styles */
+
+.dashboard-navigation-tabs {
+  min-height: 600px;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  background-color: #fefefe;
+  margin: 0 0 16px 0;
+  border-radius: 2px;
+  padding: 0;
+}
+
+.dashboard-container {
+  min-height: 600px;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  background-color: #fafaff;
+  margin: 0 0 16px 0;
+  border-radius: 2px;
+}
+
+.incoming-message {
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.14);
+  background-color: #fefefe;
+  margin: 0 0 16px 0;
+  border-radius: 2px;
+  overflow: auto;
+}
+
+.incoming-message-title {
+  margin: 8px;
+  color: black;
+}
+
+.message-action-image {
+  height: 40px;
+  width: 40px;
+  display: inline-block;
+  background-color: #2c54a8;
+  border-radius: 50%;
+  margin: 8px;
+}
+
+.message-action-icon {
+  margin: 8px;
+  color: white;
+  font-size: 18px;
+}
+
+/* /END dashboard styles */
 
 .spacer {
-  height: 20px;
+  height: 60px;
 }
 
 .colors-bar {
   line-height: 0;
-  margin: -5px 0 0 0;
-  padding: 0;
-  position: relative;
-  z-index: 2;
+  font-size: 0;
 }
 
 .color-bar-element {
@@ -115,33 +363,6 @@ body {
 
 .glyphicon-5x {
   font-size: 5em;
-}
-
-.review-container {
-  -webkit-box-shadow: 0px 1px 2px 0px rgba(87, 87, 87, 0.49);
-  -moz-box-shadow: 0px 1px 2px 0px rgba(87, 87, 87, 0.49);
-  box-shadow: 0px 1px 2px 0px rgba(87, 87, 87, 0.49);
-  background-color: #ffffff;
-  padding: 5px;
-  margin: 5px;
-}
-
-.review-profile-pic {
-  float: left;
-  max-height: 40px;
-  max-width: 40px;
-  margin-right: 5px;
-}
-
-.review-author-name {
-  font-size: 1em;
-  font-weight: bold;
-  margin: 0 0 0 10px;
-}
-
-.review-time-posted {
-  font-size: 0.8em;
-  margin: 0 0 0 50px;
 }
 
 footer {
@@ -219,8 +440,13 @@ footer .nav > li > a:hover {
   color: #fb8c2d;
 }
 
-.navbar {
-  background-color: initial;
+.star-half:after {
+  content: '\2605';
+  color: #fb8c2d;
+  position: absolute;
+  margin-left: -38px;
+  width: 19px;
+  overflow: hidden;
 }
 
 .nav-shop-owner-role-label {
@@ -229,40 +455,17 @@ footer .nav > li > a:hover {
   position: relative;
 }
 
-blockquote {
-  border-left: None;
-  font-family: Georgia, serif;
-  font-size: 18px;
-  font-style: italic;
-  margin: 0.25em 0;
-  padding: 0.35em 40px;
-  line-height: 1.45;
-  position: relative;
-  color: #383838;
-}
-
-blockquote:before {
-  display: block;
-  padding-left: 10px;
-  content: "\201C";
-  font-size: 80px;
-  position: absolute;
-  left: -20px;
-  top: -20px;
-  color: #7a7a7a;
-}
-
-blockquote p {
-  display: inline;
-}
-
-.review-date {
-  margin-bottom: 10px;
-}
-
 .rating {
   margin: 0 auto;
   width: 300px
+}
+
+@media all and (max-width: 350px) {
+  .rating {
+    font-size: 10px;
+    width: 200px;
+    position: relative;
+  }
 }
 
 /* :not(:checked) is a filter, so that browsers that don’t support :checked don’t
@@ -330,44 +533,18 @@ blockquote p {
   transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
 }
 
-.btn {
-  border-radius: 0;
-}
-
-.btn-write-review {
-  color: white;
-  position: relative;
-  right: 0;
-}
-
-.btn-write-review:hover {
-  color: white;
-  background-color: #14676c !important;
-}
-
 .per-month-price-plan {
   color: #b6b6b6;
   font-size: 12px;
 }
 
 .nav-register-btn {
-  color: white;
+  color: white !important;
 }
 
 .nav-register-btn:hover {
   color: white;
   background-color: #74d474 !important;
-}
-
-.btn-buy {
-  color: #ffffff;
-  background-color: hsla(221, 68%, 62%, 1);
-  border-color: hsla(221, 58%, 60%, 1);
-}
-
-.reviews-container {
-  padding-left: 1px;
-  padding-right: 1px;
 }
 
 .strikethrough {
@@ -419,19 +596,8 @@ blockquote p {
   padding: 0 15px 0 15px;
 }
 
-.review-add-button {
-  height: 3em;
-  width: 60px;
-  font-size: 1.5em;
-}
-
 #giphy-container {
   margin: 20px 0 0 20px;
-}
-
-#submit-review-form {
-  font-size: 2em;
-  height: 2em;
 }
 
 .emoji-menu {
@@ -535,7 +701,8 @@ blockquote p {
 }
 
 .img-instruction {
-  width: 100%;
+  width: auto;
+  max-height: 500px;
   margin: 20px 0 20px 0;
 }
 
@@ -569,6 +736,41 @@ blockquote p {
   padding: 20px;
 }
 
+.marketing-feature-expl {
+  font-size: 1.1em;
+}
 
+.badge-verified {
+  color: #444;
+  background-color: rgba(92, 184, 92, 0.6);
+  border-radius: 0;
+}
 
+.btn-interaction {
+  border: 0;
+}
 
+.pricing-plan-btn {
+  color: white;
+  background-color: #337ab7;
+}
+
+.marketing-logo {
+  display: block;
+  margin: 0 auto;
+}
+
+.marketing-img-shopify {
+  height: 50px;
+  display: inline;
+}
+
+.product-image {
+  max-height: 120px;
+}
+
+/* Make sure that the content is at least 500px - avoids footer going to top on no content */
+
+.min-content-height {
+  min-height: 600px;
+}

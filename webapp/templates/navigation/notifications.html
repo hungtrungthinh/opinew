@@ -1,0 +1,31 @@
+<li role="presentation" class="dropdown"
+    style="margin-top: 10px; margin-left: 10px;  margin-right: 10px">
+  <span href="#" class="dropdown-toggle mobile-menu-profile-pic" data-toggle="dropdown"
+        role="button"
+        aria-expanded="false">
+      <span class="glyphicon glyphicon-globe" style="font-size: 30px"></span>
+    {% if current_user.unread_notifications() %}
+        <span class="label label-danger"
+              style="margin: 18px 0 0 -13px; z-index: 0; position: relative; float: right;">
+          {{ current_user.unread_notifications() }}
+        </span>
+    {% endif %}
+  </span>
+    <ul class="dropdown-menu pull-right" style="width: {% if g.mobile %}200{% else %}400{% endif %}px;">
+        <div style="max-height: 300px; overflow-y: scroll">
+          {% if not current_user.notifications %}
+              <li style="padding:10px;">
+                  No notifications yet...
+              </li>
+          {% else %}
+            {% for notification in current_user.get_notifications(0, g.constants.NOTIFICATIONS_INITIAL) %}
+                <a href="{{ url_for('client.read_notification', id=notification.id, next=notification.url) }}">
+                    <li style="padding:10px; {% if not notification.is_read %} background-color: #eef;{% endif %}">
+                      {{ notification.content|safe }}
+                    </li>
+                </a>
+            {% endfor %}
+          {% endif %}
+        </div>
+    </ul>
+</li>

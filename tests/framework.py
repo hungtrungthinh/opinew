@@ -1,16 +1,24 @@
 import os
-import requests
 from unittest import TestCase
+import threading
+import testing_constants
+import requests
+from flask import Flask, request, jsonify
+import datetime
+import httplib
+
 import webapp
 from webapp import db, common, mail
-from webapp.models import User, Role
+from webapp.models import User, Role, Shop
 from config import Constants, basedir
 import sensitive
 from repopulate import import_tables
-import threading
-from flask import Flask, request, jsonify
+from jinja2 import filters
+
+from util.importers import import_shopify, import_yotpo
 
 app = webapp.create_app('testing')
+
 
 class TestFlaskApplication(TestCase):
     @classmethod
@@ -67,6 +75,8 @@ class TestFlaskApplication(TestCase):
         cls.vserver = VirtualServerManager()
         cls.vserver.start()
 
+        common.verify_initialization()
+
     def setUp(self):
         self.admin_user = User.query.filter_by(id=1).first()
         self.reviewer_user = User.query.filter_by(id=2).first()
@@ -97,6 +107,34 @@ class TestFlaskApplication(TestCase):
 
     def logout(self):
         return self.desktop_client.get('/logout', follow_redirects=True)
+
+    def e(self, string):
+        """
+        HTML escape a string
+        :return: jinja escaped HTML
+        """
+        return filters.FILTERS['e'](string)
+
+    def assertStringInResponse(self, string, response):
+        """
+        Asserts a string is in the response
+        :param s: the string to check
+        :param r: the response
+        :return:
+        """
+        self.assertTrue(self.e(string) in response.data.decode('utf-8'))
+
+    def locationExpected(self, expected, response, code=httplib.FOUND):
+        """
+        Checking if the location returned after a redirect is as expected
+        :param expected:
+        :param response:
+        :return:
+        """
+        self.assertEquals(response.status_code, code)
+        if expected[-1] == '/':
+            expected = expected[:-1]
+        self.assertEquals(expected, response.location)
 
     @classmethod
     def refresh_db(cls):
@@ -141,20 +179,75 @@ class TestModel(TestCase):
         db.session.remove()
         db.drop_all()
 
+
+class TestImporters(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = app
+
+        cls.app.app_context().push()
+        cls.refresh_db()
+
+
+    def setUp(self):
+        self.mgr = (mail.record_messages())
+        self.exit = type(self.mgr).__exit__
+        value = type(self.mgr).__enter__(self.mgr)
+        self.safety_outbox = value
+
+    def tearDown(self):
+        self.assertEquals(len(self.safety_outbox), 0)
+        self.exit(self.mgr, None, None, None)
+
+    @classmethod
+    def refresh_db(cls):
+        db.session.remove()
+        db.drop_all()
+        db.create_all()
+        db.engine.dialect.supports_sane_multi_rowcount = False
+        cls.basedir = os.path.abspath(os.path.dirname(__file__))
+
+        shop_owner_role = Role(name=Constants.SHOP_OWNER_ROLE, description="Shop owner")
+        cls.shop_owner = User(email=testing_constants.NEW_USER_EMAIL,
+                              name=testing_constants.NEW_USER_NAME,
+                              password=testing_constants.NEW_USER_PWD,
+                              roles=[shop_owner_role], is_shop_owner=True,
+                              confirmed_at = datetime.datetime.utcnow()
+                              )
+        cls.shopify_shop = Shop(name=testing_constants.SHOPIFY_SHOP_NAME, owner=cls.shop_owner)
+        cls.yotpo_shop = Shop(name=testing_constants.YOTPO_SHOP_NAME, owner=cls.shop_owner)
+        db.session.add(cls.shop_owner)
+        db.session.add(cls.shopify_shop)
+        db.session.add(cls.yotpo_shop)
+        db.session.commit()
+        cls.shopify_importer = import_shopify.ShopifyImpoter(shop_id=cls.shopify_shop.id)
+        cls.yotpo_importer = import_yotpo.YotpoImpoter(shop_id=cls.yotpo_shop.id)
+
+    @classmethod
+    def tearDownClass(cls):
+        db.session.remove()
+        db.drop_all()
+
 class VirtualServerManager(object):
     def __init__(self):
         self.vserver_thread = None
 
     def start(self):
         # Start a virtual server on port 5678
-        from webapp.vshopify import vshopify
-        from webapp.vstripe import vstripe
-        from webapp.vrecaptcha import vrecaptcha
+        from tests.virtual_webapp.vshopify import vshopify
+        from tests.virtual_webapp.vstripe import vstripe
+        from tests.virtual_webapp.vrecaptcha import vrecaptcha
+        from tests.virtual_webapp.vgiphy import vgiphy
 
         vserver_app = Flask(__name__)
         vserver_app.register_blueprint(vshopify, url_prefix='/vshopify')
         vserver_app.register_blueprint(vstripe, url_prefix='/vstripe')
         vserver_app.register_blueprint(vrecaptcha, url_prefix='/vrecaptcha')
+        vserver_app.register_blueprint(vgiphy, url_prefix='/vgiphy')
+
+        import logging
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.ERROR)
 
         def shutdown_server():
             func = request.environ.get('werkzeug.server.shutdown')
@@ -177,7 +270,6 @@ class VirtualServerManager(object):
     def stop(self):
         requests.post(Constants.VIRTUAL_SERVER + '/shutdown')
         self.vserver_thread.join()
-
 
 
 def expect_mail(func):

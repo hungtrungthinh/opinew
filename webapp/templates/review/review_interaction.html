@@ -1,0 +1,15 @@
+<div class="review-interactions">
+  {% include "review/interactions/share.html" %}
+  <div class="pull-right">
+    {% if current_user.is_authenticated() %}
+      {% if review.product.shop.owner == current_user %}
+        {% include "review/interactions/feature.html" %}
+      {% endif %}
+      {% include "review/interactions/report.html" %}
+      {% include "review/interactions/like.html" %}
+      {% if not hide_buy_button %}
+        {% include "review/interactions/buy.html" %}
+      {% endif %}
+    {% endif %}
+  </div>
+</div>

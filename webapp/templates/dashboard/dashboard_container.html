@@ -1,0 +1,11 @@
+<div class="tab-content">
+  {% for tab in dashboard_tabs %}
+    <div role="tabpanel" class="tab-pane {% if loop.first %}active{% endif %}" id="{{ tab.name }}">
+      {% include "dashboard/" + tab.name + ".html" %}
+    </div>
+  {% endfor %}
+{# TODO: DEPRECATED - REMOVE#}
+  <div role="tabpanel" class="tab-pane" id="orders">
+    <div id="dashboard-orders"></div>
+  </div>
+</div>

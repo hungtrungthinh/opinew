@@ -2,14 +2,31 @@
 import os
 import sensitive
 from celery.schedules import crontab
+from flask.ext.babel import gettext
+from assets import strings
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Constants(object):
-    META_DEFAULT_TITLE = "Opinew"
-    META_DEFAULT_DESCRIPTION = "Opinew is the photo review platform for the new generation"
+    PRODUCT_NAME = gettext('Opinew')
+    META_CANONICAL_URL = "https://opinew.com/"
+    META_DEFAULT_TITLE = gettext("Opinew - The Best Photo and Video Reviews for Your Online Business")
+    META_DEFAULT_DESCRIPTION = gettext("Increase your sales through smart and beautiful photo reviews with a simple plugin that works everywhere. Start your 30-day free trial today!")
+    META_DEFAULT_IMAGE = "https://opinew.com/static/img/opinew_square.png"
     META_DEFAULT_PRERENDER = "/reviews"
+
+    COLOR_OPINEW_CHERRY = '#fb412d'
+    COLOR_OPINEW_ORANGE = '#fb8c2d'
+    COLOR_OPINEW_KIWI = '#22be44'
+    COLOR_OPINEW_AQUA = '#1c9298'
+    COLOR_OPINEW_BLUEBERRY = '#2c54a8'
+
+    ALERT_ERROR_LABEL = 'danger'
+    ALERT_WARNING_LABEL = 'warning'
+    ALERT_INFO_LABEL = 'info'
+    ALERT_SUCCESS_LABEL = 'success'
+    ALERT_PRIMARY_LABEL = 'primary'
 
     DEFAULT_SHOP_NAME = 'Online shop'
     DEFAULT_REVIEW_SUBJECT = "%s, tell others about your purchase from %s"
@@ -17,7 +34,7 @@ class Constants(object):
 
     DEFAULT_REVIEW_EMAIL_TEMPLATE = 'email/review_order.html'
     DEFAULT_NEW_REVIEWER_EMAIL_TEMPLATE = 'email/new_reviewer_user.html'
-    DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE = 'email/review_order.html'
+    DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE = 'email/new_shop_owner_user.html'
 
     DEFAULT_NEW_REVIEWER_SUBJECT = "Welcome to Opinew"
     DEFAULT_NEW_SHOP_OWNER_SUBJECT = "Welcome to Opinew"
@@ -40,10 +57,24 @@ class Constants(object):
     YOUTUBE_WATCH_LINK = 'https://www.youtube.com/watch?v='
     YOUTUBE_SHORT_LINK = 'https://youtu.be/'
     YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/{youtube_video_id}'
+    DEFAULT_LINK_SHORT_SIZE = 42
+    DEFAULT_ANONYMOUS_USER_NAME = "Anonymous"
+
+    HTML_TO_INLINE_FILENAMES = ["review_order.html",
+                                "shop_marketing.html",
+                                "shop_marketing_opinew_simple.html",
+                                "new_reviewer_user.html",
+                                "new_shop_owner_user.html",
+                                "review_us.html",
+                                "card_details.html"]
+
+    OPINEW_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
     TRIAL_PERIOD_DAYS = 30
 
     EXPECTED_WEBHOOKS = 6
+
+    REVIEW_REQUEST_TOKEN_LENGTH = 26
 
     ORDER_STATUS_PURCHASED = 'PURCHASED'
     ORDER_STATUS_SHIPPED = 'SHIPPED'
@@ -51,7 +82,6 @@ class Constants(object):
     ORDER_STATUS_REVIEWED = 'REVIEWED'
 
     ORDER_STATUS_FAILED = 'FAILED'
-    ORDER_STATUS_STALLED = 'STALLED'
     ORDER_STATUS_LEGACY = 'LEGACY'
     ORDER_STATUS_REVIEW_CANCELED = 'REVIEW_CANCELED'
 
@@ -60,33 +90,117 @@ class Constants(object):
     ORDER_ACTION_CANCEL_REVIEW = 'CANCEL_REVIEW'
 
     DIFF_SHIPMENT_NOTIFY = 14
-    DIFF_PURCHASE_STALL = 14
+    DEFAULT_EXPORT_DESTINATION = os.path.join(basedir, 'util', 'review_exports')
 
     DESKTOP_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36'
     MOBILE_USER_AGENT = 'Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_2_1 like Mac OS X; en-us) AppleWebKit/533.17.9 (KHTML, like Gecko) Version/5.0.2 Mobile/8C148 Safari/6533.18.5'
 
     MAX_BODY_LENGTH = 300
 
+    TASK_STATUS_SUCCESS = 'SUCCESS'
+    TASK_STATUS_REVOKED = 'REVOKED'
+
     VIRTUAL_SERVER_PORT = 5678
     VIRTUAL_SERVER = 'http://localhost:%s' % VIRTUAL_SERVER_PORT
+
+    MAGENTO_PRODUCT_STATUS_AVAILABLE = '1'
+    MAGENTO_PRODUCT_STATUS_NOT_AVAILABLE = '2'
+
+    MAGENTO_STATUS_PROCESSING = 'processing'
+    MAGENTO_STATUS_PENDING_PAYMENT = 'pending_payment'
+    MAGENTO_STATUS_CSV_PENDING_HOSTED_PAYMENT = 'csv_pending_hosted_payment'
+    MAGENTO_STATUS_CSV_PAID = 'csv_paid'
+    MAGENTO_STATUS_COMPLETE = 'complete'
+    MAGENTO_STATUS_CSV_FAILED_HOSTED_PAYMENT = 'csv_failed_hosted_payment'
+
+    PLAN_NAME_BASIC = 'basic'
+    PLAN_NAME_SIMPLE = 'simple'
+    PLAN_NAME_SHOPIFY_SIMPLE = 'shopify_simple'
+    PLAN_NAME_SHOPIFY_BASIC = 'shopify_basic'
+
+    FUNNEL_STREAM_ACTIONS = ['glimpse', 'fully_seen', 'mouse_hover', 'mouse_click', 'mouse_scroll']
+
+    DEFAULT_BODY_STARS = "I gave {star_rating} stars."
+
+    REVIEW_TYPE = 'Review'
+    QUESTION_TYPE = 'Question'
+
+    REVIEW_RANK_DAYS_WEIGHT = 0.1
+
+    REVIEW_RANK_USER_LIKES_WEIGHT = 0.1
+    REVIEW_RANK_USER_REVIEWS_WEIGHT = 0.05
+    REVIEW_RANK_LIKES_WEIGHT = 1
+    REVIEW_RANK_SHARES_WEIGHT = 2
+    REVIEW_RANK_COMMENTS_WEIGHT = 2
+    REVIEW_RANK_REPORTS_WEIGHT = 5
+    REVIEW_RANK_HAS_IMAGE_WEIGHT = 3
+    REVIEW_RANK_HAS_VIDEO_WEIGHT = 5
+    REVIEW_RANK_IS_VERIFIED_WEIGHT = 10
+
+    QUESTION_RANK_DAYS_WEIGHT = 0.01
+    SHOPIFY_MAX_PRODUCTS_PER_PAGE = 250
+    SHOPIFY_MAX_ORDERS_PER_PAGE = 250
+
+    DASHBOARD_ORDERS_LIMIT = 50
+
+    DEFAULT_LOCALE = 'en'
+
+    DASHBOARD_TABS = [
+        {
+            'name': strings.DASHBOARD_INCOMING_TAB_NAME,
+            'icon': 'inbox'
+        },
+        {
+            'name': strings.DASHBOARD_SCHEDULED_TAB_NAME,
+            'icon': 'time'
+        },
+        {
+            'name': strings.DASHBOARD_REVIEWS_TAB_NAME,
+            'icon': 'comment'
+        },
+        {
+            'name': strings.DASHBOARD_ANALYTICS_TAB_NAME,
+            'icon': 'dashboard'
+        },
+        {
+            'name': strings.DASHBOARD_ACCOUNT_TAB_NAME,
+            'icon': 'briefcase'
+        },
+        {
+            'name': strings.DASHBOARD_SETTINGS_TAB_NAME,
+            'icon': 'wrench'
+        }
+    ]
+
+    NEXT_ACTION_ID_SETUP_YOUR_SHOP = 'SHOP_SETUP'
+    NEXT_ACTION_SETUP_YOUR_SHOP_ICON = 'copy'
+    NEXT_ACTION_SETUP_YOUR_SHOP_ICON_BG_COLOR = COLOR_OPINEW_KIWI
+
+    NEXT_ACTION_ID_SETUP_BILLING = 'SETUP_BILLING'
+    NEXT_ACTION_SETUP_BILLING_ICON = 'copy'
+    NEXT_ACTION_SETUP_BILLING_ICON_BG_COLOR = COLOR_OPINEW_KIWI
+
+    NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD = 'CHANGE_PASSWORD'
+    NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON = 'pencil'
+    NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR = COLOR_OPINEW_AQUA
 
 
 class Config(object):
     ADMINS = [("Daniel Tsvetkov", 'danieltcv@gmail.com'),
               ("Tomasz Sadowski", 'tomsz.sadowski@gmail.com')]
 
-    # Double assignment because of selery
-    EMAIL_HOST = MAIL_SERVER = "smtpout.europe.secureserver.net"
+    # Double assignment because of celery
+    EMAIL_HOST = MAIL_SERVER = "smtp-relay.gmail.com"
     SERVER_EMAIL = 'celery-error@opinew.com'  # celery
-    MAIL_DEFAULT_SENDER = 'team@opinew.com'
-    EMAIL_PORT = MAIL_PORT = 465
-    EMAIL_USE_SSL = MAIL_USE_SSL = True
-    EMAIL_HOST_USER = MAIL_USERNAME = "team@opinew.com"
+    MAIL_DEFAULT_SENDER = ('Opinew Reviews', 'team@opinew.com')
+    EMAIL_PORT = MAIL_PORT = 587
+    EMAIL_USE_TLS = MAIL_USE_TLS = True
+    EMAIL_HOST_USER = MAIL_USERNAME = "daniel@opinew.com"
     EMAIL_HOST_PASSWORD = MAIL_PASSWORD = sensitive.EMAIL_PASSWORD
+    SECURITY_EMAIL_SENDER = 'team@opinew.com'
 
-    OPINEW_API_SERVER = 'https://opinew.com'
+    OPINEW_API_SERVER = 'https://www.opinew.com'
     SECRET_KEY = sensitive.SECRET_KEY
-    PROPAGATE_EXCEPTIONS = True
 
     UPLOADED_USERIMAGES_DEST = os.path.join(basedir, 'media', 'user')
     UPLOADED_USERIMAGES_URL = '/media/user/'
@@ -97,19 +211,26 @@ class Config(object):
     UPLOADED_SHOPIMAGES_DEST = os.path.join(basedir, 'media', 'shop')
     UPLOADED_SHOPIMAGES_URL = '/media/shop/'
 
+    RESIZE_URL = '/media'
+    RESIZE_ROOT = os.path.join(basedir, 'media',)
+    RESIZE_CACHE = os.path.join(basedir, 'media','cache')
+
     SHOPIFY_APP_API_KEY = sensitive.SHOPIFY_APP_API_KEY
     SHOPIFY_APP_SECRET = sensitive.SHOPIFY_APP_SECRET
     SHOPIFY_APP_SCOPES = 'read_products,read_orders,read_fulfillments'
 
     SECURITY_PASSWORD_HASH = 'bcrypt'
     SECURITY_PASSWORD_SALT = sensitive.SECURITY_PASSWORD_SALT
-    SECURITY_SEND_REGISTER_EMAIL = False
+    SECURITY_SEND_REGISTER_EMAIL = True
+    SEND_REGISTER_EMAIL = True
     SECURITY_CONFIRMABLE = True
+    SECURITY_CONFIRM_SALT = sensitive.CONFIRM_SALT
+    SECURITY_LOGIN_WITHOUT_CONFIRMATION = True
+    SECURITY_POST_CONFIRM_VIEW = '/login'
     SECURITY_TRACKABLE = True
     SECURITY_REGISTERABLE = True
     SECURITY_RECOVERABLE = True
     SECURITY_CHANGEABLE = True
-    SECURITY_POST_REGISTER_VIEW = '/confirm'
     SECURITY_POST_CHANGE_VIEW = '/post-change'
 
     CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
@@ -134,6 +255,8 @@ class Config(object):
     RECAPTCHA_URL = "https://www.google.com/recaptcha/api/siteverify"
     RECAPTCHA_SECRET = sensitive.RECAPTCHA_SECRET
 
+    GIPHY_URL = "http://api.giphy.com/v1/gifs"
+
     CELERYBEAT_SCHEDULE = {
         # Every day at 00:00
         'update_orders': {
@@ -142,6 +265,9 @@ class Config(object):
             'args': (),
         },
     }
+
+    BABEL_DEFAULT_LOCALE = Constants.DEFAULT_LOCALE
+    BABEL_DEFAULT_TIMEZONE = 'UTC'
 
 
 class ConfigTest(Config):
@@ -158,10 +284,13 @@ class ConfigTest(Config):
 
     SHOPIFY_PREFIX = 'http://localhost:5678/%s'
     RECAPTCHA_URL = SHOPIFY_PREFIX % "vrecaptcha/recaptcha/api/siteverify"
+    GIRPHY_URL = SHOPIFY_PREFIX % "vgiphy/v1/gifs"
 
     CELERY_ALWAYS_EAGER = True
     CELERY_RESULT_BACKEND = 'cache'
     CELERY_CACHE_BACKEND = 'memory'
+
+    RESIZE_NOOP = True
 
 
 class ConfigDev(Config):
@@ -170,16 +299,18 @@ class ConfigDev(Config):
     DEBUG = True
     OPINEW_API_SERVER = 'http://localhost:5000'
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
-
+    HOST = '0.0.0.0'
+    RESIZE_URL = 'http://localhost:5000/media'
 
 class ConfigProd(Config):
     MODE = Constants.MODE_PRODUCTION
-    SERVER_NAME = 'opinew.com'
     SESSION_COOKIE_HTTPONLY = False
     SESSION_COOKIE_SECURE = True
     SQLALCHEMY_DATABASE_URI = 'postgresql://opinew_user:%s@localhost:5432/opinew' % sensitive.ADMIN_PASSWORD
-    STRIPE_PUBLISHABLE_API_KEY = 'pk_test_YFZO6qldIQDkOcOQz88TudE3'  # TODO: 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'
+    STRIPE_PUBLISHABLE_API_KEY = 'pk_live_m5uUEwvggTYcIdrpqYSHZoab'  # test key: 'pk_test_YFZO6qldIQDkOcOQz88TudE3'
     STRIPE_API_KEY = sensitive.STRIPE_API_KEY
+    SERVER_NAME = 'www.opinew.com'
+    RESIZE_URL = 'https://www.opinew.com/media'
 
 
 config_factory = {

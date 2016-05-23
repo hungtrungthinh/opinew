@@ -1,0 +1,17 @@
+<h2>
+  <a href="{{ product.url }}">{{ product.name }}</a><br>
+  <small>{{ g.s.PRODUCT_FROM }} <a href="{{ product.shop.domain }}">{{ product.shop.name }}</a></small>
+</h2>
+<div>
+  {% if product.short_description %}
+    {% if product.image_url %}
+      <div class="media-left media-top">
+        <img class="media-object img-thumbnail product-image" src="{{ product.image_url }}"
+             alt="{{ product.name }} image">
+      </div>
+    {% endif %}
+    <div class="media-body">
+      <h4 class="media-heading">{{ product.short_description }}</h4>
+    </div>
+  {% endif %}
+</div>

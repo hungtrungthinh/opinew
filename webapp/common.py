@@ -5,21 +5,40 @@ import string
 import hmac
 import hashlib
 import datetime
+import traceback
 from functools import wraps
-from flask import jsonify, abort, request, url_for, current_app
+from flask import jsonify, abort, request, url_for, current_app, render_template
 from flask.ext.login import current_user
 from werkzeug.exceptions import HTTPException
 from webapp.exceptions import ParamException, ApiException, DbException
 from config import Constants, Config
 from sqlalchemy.exc import InvalidRequestError
 
+def verify_initialization():
+    from webapp import models
+    # Check that the free plan exists in the database
+    basic_plan = models.Plan.query.filter_by(name=Constants.PLAN_NAME_BASIC).first()
+    simple_plan = models.Plan.query.filter_by(name=Constants.PLAN_NAME_SIMPLE).first()
+    assert basic_plan is not None
+    assert simple_plan is not None
+
 
 # Make json error handlers
 def make_json_error(ex):
+    from webapp.flaskopinewext import error_string
+    # don't send email on 404
+    if hasattr(ex, 'code') and ex.code == 404 and request.base_url not in ['https://opinew.com', 'https://opinew.com/']:
+        response = jsonify(error=str(ex))
+        response.status_code = 404
+        return response
+    current_app.logger.error(error_string(ex))
+    status_code = ex.code if isinstance(ex, HTTPException) else 500
+    # return pretty rendered templates messages to a client request
+    if request.blueprint == 'client':
+        if status_code == 500:
+            return render_template('errors/500.html'), 500
     response = jsonify(error=str(ex))
-    response.status_code = (ex.code
-                            if isinstance(ex, HTTPException)
-                            else 500)
+    response.status_code = status_code
     return response
 
 
@@ -75,16 +94,6 @@ def catch_exceptions(f):
         except (ApiException, ParamException, DbException, InvalidRequestError) as e:
             status_code = e.status_code if hasattr(e, 'status_code') else 400
             return jsonify({"error": e.message}), status_code
-
-    return wrapper
-
-
-def role_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if not current_user.is_authenticated() or not current_user.role == Constants.SHOP_OWNER_ROLE:
-            abort(401)
-        return f(*args, **kwargs)
 
     return wrapper
 

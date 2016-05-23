@@ -1,4 +1,4 @@
-* {
+body * {
   margin: 0;
   padding: 0;
   font-size: 100%;
@@ -14,7 +14,7 @@ body,
 .body-wrap {
   width: 100% !important;
   height: 100%;
-  background: #efefef;
+  background: #EEE;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: none; }
 
@@ -34,11 +34,16 @@ a {
 .button {
   display: inline-block;
   color: white;
-  background: #1c9298;
-  border: solid #1c9298;
+  background: #337AB7;
+  border: solid #337AB7;
   border-width: 10px 20px 8px;
   font-weight: bold;
   border-radius: 4px; }
+
+
+.feature-img {
+  padding-bottom: 30px;
+}
 
 h1, h2, h3, h4, h5, h6 {
   margin-bottom: 20px;
@@ -48,10 +53,10 @@ h1 {
   font-size: 2em; }
 
 h2 {
-  font-size: 1.5em; }
+  font-size: 1.7em; }
 
 h3 {
-  font-size: 1.17em; }
+  font-size: 1.5em; }
 
 h4 {
   font-size: 1.12em; }
@@ -60,7 +65,7 @@ h5 {
   font-size: 16px; }
 
 p, ul, ol {
-  font-size: 1.1em;
+  font-size: 1.4em;
   font-weight: normal;
   margin-bottom: 20px; }
 
@@ -68,8 +73,9 @@ p, ul, ol {
   display: block !important;
   clear: both !important;
   margin: 0 auto !important;
-  max-width: 580px !important; }
+  max-width: 640px !important; }
   .container table {
+    background-color: white;
     width: 100% !important;
     border-collapse: collapse; }
   .container .masthead {
@@ -82,7 +88,7 @@ p, ul, ol {
       text-transform: uppercase; }
   .container .content {
     background: white;
-    padding: 30px 35px; }
+    padding: 15px; }
     .container .content.footer {
       background: none; }
       .container .content.footer p {
@@ -103,3 +109,24 @@ p, ul, ol {
             height: 0; 
             width: 0;
           }
+
+.padding-top-bot {
+  padding:20px 0px 20px 0px;
+}
+
+@media screen and (max-width: 640px) {
+		*[class=wrapto100pc]{width:100% !important; height:auto!important;}
+		*[class=nomob]{display:none!important;}
+		*[class=head] {display:table-header-group!important; width:100%!important;}
+        *[class=foot] {display:table-footer-group!important; width:100%!important;}
+		*[class=block] { display:block!important; width:100%!important;}
+		*[class=split] {float:left!important; width:100%!important;}
+		*[class=row]{display:table-row!important; width:100%!important;}
+        *[class=content]{padding:0px !important;}
+		}
+@media screen and (min-width: 640px) {
+  *[class=content]{padding:20px !important;}
+}
+.opening {
+  padding-top:30px;
+}
