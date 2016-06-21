@@ -24,8 +24,11 @@ Make a review and we'll help you spread the word!😄 &zwnj;&nbsp;&zwnj;&nbsp;&z
                         <img src="https://opinew.com/tracking_pixel?id={{ tracking_pixel_id }}" width="0" height="0" />
                         <h2>Hi {{ name if name else '' }},</h2>
 
-                        <p>What do you think about the products you recently bought from <b>{{ shop_name if shop_name else g.constants.DEFAULT_SHOP_NAME }}</b>?
-                    Your review will be very helpful because there are people out there thinking about buying the same things.
+                        <p>Would you like to share a review of the things you recently bought at
+                            <b>{{ shop_name if shop_name else g.constants.DEFAULT_SHOP_NAME }}</b>?
+                            Your review will be very helpful because there are people out there looking at the same things you bought,
+                            wondering if they should spend their money.
+                            Your review help them make that decision.
                  <br /><br />Just click on the things you'd like to review:</p>
 
                         <table>
@@ -43,8 +46,8 @@ Make a review and we'll help you spread the word!😄 &zwnj;&nbsp;&zwnj;&nbsp;&z
                         {% endfor %}
                         </table>
 
-                        <p>Afterwards you'll be able to see how many people have seen and liked your reviews! Just log into your Opinew at <a href="https://www.opinew.com">www.opinew.com</a><br /><br />
-                			Thanks for participating,<br />
+                        <p>
+                			Thanks and have a great day,<br />
                         	<b>Team Opinew</b>
                         </p>
 
