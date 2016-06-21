@@ -1,37 +1,53 @@
 ## Mission Statement
-“Increase the trust in the online shopping experience”
+Increase the trust in the online shopping experience.
 
 ## What do we do?
 Opinew was created to provide small and medium enterprises with affordable online review management system. The current solutions could be very expensive for small companies or miss critical features like responding to a customer review or allowing rich multimedia like photos or videos to be included in the review. Given the explosion of video and picture content in apps like Instagram, Pinterest and Youtube this lack of keeping up with the trends gives less opportunities for business owners to interact with their genuine customers. A not optimal solution is an inhouse review system but managing online reviews for a lot of products is a very complicated 
 
-## Intro & Tag line
+## 3-minute pitch
+### Intro & Tag line
 Today 90% of people who shop online read reviews so it is important for shop owners to manage those reviews properly and this is what Opinew does - we manage online reviews.
 
-## Problem
+### Problem
 When you are a shop owner, managing reviews can be very time consuming. Asking customers for reviews, responding, promoting reviews on social media, fighting spam. You can spend more than 8 hours a week on that. When you think about it - that’s one person’s entire working day! 
 
-## Solution
+### Solution
 Our goal is to take all of the burden from shop owners and make everything automatic. From asking customers to leave reviews to selecting helpful reviews and detecting fakes. To do those tasks we use cutting-edge Artificial Intelligence systems we developed.
 
 But apart from automation we go visual. For businesses like clothing and jewellery, visual reviews are crucial and that’s why we enable customers to post photos and videos of the products they bought. 
 
 So our powerful Artificial Intelligence that makes the process automatic and visual reviews are the things that differentiate us from yotpo who are our main competitor. We offer a better and smarter product and we do it at an affordable price.
 
-## Business Model
+### Business Model
 We sell Opinew to Online shops on a subscription basis for £20 per month. We want to develop more expensive plans with more advanced features as we progress.
 
-## Traction
+### Traction
 In February we made Opinew available on Shopify which is a system on which you build online shops. So we released on their app store to validate the product and to test our email marketing campaign. It was successful. Over 100 shops installed, 40 of them are still using the application.
 
-## Market size
+### Market size
 Our current target is 200,000 shops worldwide which are built on Shopify. We chose Shopify because it was the quickest one to develop and test our business, but we want to develop for Magento and WooCommerce which will open us to additional 2 million shops.
 
-## Team 
+### Team 
 We are able to do all that because we understand technology and science behind reviews. We are a team of two developers with experience of working at Google and we have support from leading researchers at the University of Glasgow.
 
-## Future plan/Roadmap
+### Future plan/Roadmap
 Right now Our PLAN IS TO MAKE THE COMPANY PROFITABLE ENOUGH in the next 3 months TO SUPPORT AT LEAST 2 PEOPLE. To achieve that we want to run an email marketing campaign on 9000 leads we gathered, together with a series of blog posts to bring shop owners to our site. On the tech side we want to finish the beta and develop the magento version of Opinew.
 We have been working really lean for the past 6 months doing everything ourselves but we need to start filling the gaps in the team.
+
+## 1 minute pitch
+If you are selling anything online you know how much reviews matter for your customers. But you also know what kind of pain they are.
+
+Kicking spam and trolls away, sending emails, begging for a 5-star review and then haters just leave you 1 star with no explanation.
+
+Opinew has a solution for you. We provide you with the state of the art review system that goes beyond just text and stars. We use our powerful algorithms to do all the heavy lifting for you  -  message your customers at the right time, filter and rank the reviews. And best of all - it’s dead easy to setup
+
+We can target more than 400 thousand shops worldwide following a tiered model with prices starting at just 29 pounds a month.
+
+We are a team of two developers with experience of working at Google and now after five months of development we already help our first shop owners managing their reviews more effectively with Opinew.
+
+Try our product for 30 days free today with no strings attached, especially if you have ecommerce shop at shopify.
+
+Opinew.com - beautiful and smart reviews.
 
 ## Transparency
 Existing solutions lack transparency over the methods by which they authenticate reviews. Hiding reviews is potentially unlawful.
@@ -65,9 +81,9 @@ Have spent the last 2 years looking into opinions and reviews, reading research 
 ## Who are your competitors?
 Companies that provide review management for small to medium ecommerce websites. To name a few of them - Yotpo, Feefo, Kudobuzz or Orankl are on our watchlist.
 
-!["img/competition.png"]("Competition")
+![Competition from crunchbase](img/competition.png)
 
-https://www.crunchbase.com/organization/opinew
+[Crunchbase](https://www.crunchbase.com/organization/opinew]
 
 ## How are you different than your competitors?
 Artificial Intelligence algorithms for predicting review helpfulness and fake review detection.

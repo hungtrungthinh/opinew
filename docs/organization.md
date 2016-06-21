@@ -1,7 +1,9 @@
 # The organization
 ## What is the organizational chart? Who is responsible for what?
 
-President
+![organization chart](img/org_chart.png)
+
+### President
 Reports to shareholders
 Responsibilities:
 Ensures company is providing value
@@ -9,7 +11,8 @@ Secure capital
 Hiring people and making sure they fit into company’s values
 
 Assigned: Tomasz Sadowski
-VP Sales & Marketing
+
+### VP Sales & Marketing
 Reports to President.
 Responsibilities:
 Finding customers and opportunities
@@ -17,7 +20,8 @@ Going to meetings
 Finding leads, tools to do marketing better
 
 Assigned: Tomasz Sadowski
-Sales Manager
+
+### Sales Manager
 Reports to VP Marketing
 Responsibilities:
 Designing the sales process
@@ -25,7 +29,8 @@ Contacting leads and taking them through the sales process
 cold calling
 
 Assigned: Daniel Tsvetkov
-Marketing Manager
+
+### Marketing Manager
 Reports to VP Marketing
 Responsibilities:
 Communicating company’s identity, values and mission through branding
@@ -34,35 +39,40 @@ Writing Articles about reviews
 Design email marketing strategy and work on writing emails
 
 Assigned: Daniel Tsvetkov
-VP Finance
+
+### VP Finance
 Reports to President
 Responsibilities:
 Forecasting
 Monitoring and managing money in and money out
 
 Assigned: Daniel Tsvetkov
-VP Product
+
+### VP Product
 Reports to President
 Responsibilities:
 Defining requirements
 Planning for product improvements
 
 Assigned: Tomasz Sadowski
-Customer Support Manager
+
+### Customer Support Manager
 Reports to VP Product
 Responsibilities:
 Resolving customer’s issues
 Backlogging customer’s requests
 
 Assigned: Tomasz Sadowski
-Technology Manager
+
+### Technology Manager
 Reports to VP Product
 Responsibilities:
 Choosing the underlying technology
 Implementing and testing the product
 
 Assigned: Daniel Tsvetkov
-Research and Development
+
+### Research and Development
 Reports to Technology Manager
 Responsibilities:
 Researching new technologies and methods to push the boundaries of the product’s awesomeness
