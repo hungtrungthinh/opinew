@@ -113,6 +113,14 @@ A recent survey by Bright Local conducted on a group 2500 participants and found
 There are existing solutions that ecommerce shops install. Additionally, being at espark has made us see that new companies  desperately need reviews to validate against their own competitors. We believe our innovative machine learning algorithm will provide higher quality as well as high quantity reviews.
 
 ## What is the market size?
+![Features](img/datanyze_platforms.png)
+We can target immediatly ~50k shops in English speaking Shopify which is ~30% of the global Shopify market.
+Largest ROI: Developing a plugin for WooCommerse, we can target additional ~200k.
+Second largest ROI: We already have partial support for magento. Developing a plugin there gives additional 70k.
+English: Additionally, we can target ~450k English speaking shops in the 10 largest platforms
+The global shop market on platforms is around ~1.5M Shops 
+In Bulgaria we can target around 2k and in Poland around 7k shops, however shopify is not well there - potential referal?
+
 Worldwide e-commerce market of over 5 million online shops is worth £1.4 trillion (£2.5 trillion in 2019). Our current target is 200,000 shops in the English speaking world which are built on Shopify, Magento and WooCommerce e-commerce platforms. These three platforms cover 40% of the entire e-commerce market.
 Shopify - 200 thousand
 Magento - 335 thousand

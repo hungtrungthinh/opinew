@@ -1,3 +1,5 @@
+![Features](img/features.png)
+
 ## Review itself
 * Follow the idea of Facebook Messenger/Apple iMessage new announcement and Google’s Alo/Duo messaging app.
 * Old school Text review
@@ -146,7 +148,7 @@ Pinterest
 Store can generate a Review Request.
 Store can verify reviews ("verified by store" badge)
 Custom features drag&drop - start with a simple text field. Add photo, GIF, emojis. Add custom star fields on product types. Add custom text fields.
-review.is_problem and review.resolved -> add if review < 4 stars; Allow the shop to choose whether to publicize the review on their plugin. Mark as resolved by the reviewer. On <4 stars auto reply to reviewer after x seconds "we are sorry that you experienced an issue, let me contact our team and see what we can do to resolve it!"
+review.is_problem and review.resolved -> add if review less than 4 stars; Allow the shop to choose whether to publicize the review on their plugin. Mark as resolved by the reviewer. On 4 stars auto reply to reviewer after x seconds "we are sorry that you experienced an issue, let me contact our team and see what we can do to resolve it!"
 
 ## Shop Dashboard
 First thing to see is the analytics
@@ -199,7 +201,7 @@ Once “problem resolved” button is clicked, the effect is final and cannot be
 On the 7th day the “problem not resolved” button is activated
 If there was interaction between buyer and shopper(at least 1 shop msg and at least 1 buyer response) AND the buyer did not click on any of the buttons after 7 days THEN after 3 days from the 7 day mark, mark problem as resolved (final, cannot be reversed)
 
-Improvements
+### Improvements
 Inspired by this: http://www.coryklein.com/2016/06/20/scammers-replacing-iphones-with-clay.html HN thread https://news.ycombinator.com/item?id=11939420
 1. On Order creation, Opinew creates a unique QR code for the shop owner to print and put inside of the packaging. The QR code has also a typeable URL and a specific Question about the product quality.
 2. The shop owner creates a video of the product being put in the box together with the QR code. The video is uploaded to Opinew servers and secured. (this is inspired through HN com ments on the article)
@@ -232,7 +234,7 @@ Prompting to add pictures, video or answer a specific question about the product
 ### Sending email reminders
 Email -- Important Business related feature
 That’s what we need, read:
-https://medium.com/@andreirebrov/email-marketing-from-tech-perspective-d0b5707b3533#.86cmeqatu <<<< UBER USEFUL. MUST READ
+https://medium.com/@andreirebrov/email-marketing-from-tech-perspective-d0b5707b3533#.86cmeqatu
 
 ### When send emails:
 Reminders for entering the card details
@@ -343,6 +345,13 @@ http://socialmediatoday.com/node/508468
 http://blog.woorank.com/2013/02/blogging-for-seo-seo-for-your-blog/
 http://www.socialmediaexaminer.com/7-tips-to-increase-your-blog-comments/
 
+## Rich Snippets
+* Google rich snippets: 
+https://developers.Google.com/structured-data
+https://developers.google.com/structured-data/rich-snippets/products
+https://developers.google.com/structured-data/rich-snippets/reviews
+* Microsites for SEO
+
 ## Android apps
 For the business owner - get notifications on reviews, questions, chat etc depending on role - shop owner or shop assistant.
 For the reviewer - easily make a review, product hunt, get discounts and vouchers 
@@ -354,3 +363,192 @@ So that bigger shops can implement it and use the infra
 Read reviews in store - about the shop, about the product
 Provide a service to help retailers place BLE beacons to attract customers.
 Allow for nearby notifications, physical web etc https://developers.google.com/beacons/get-started 
+
+## Yotpo Feature requests
+88 - Plugin for Virtuemart (Joomla)
+We are currently researching the possibility of creating a plugin for Virtuemart. Currently there is no ETA on when we will launch such a plugin.
+72 - Support for Rich Snippets in Big Commerce
+It'd be great to have all these stars in our reviews be displayed in Google search results.
+65 - Yotpo is slowing page load - Require CSS optimization
+According to Google, Yotpo really slows your website page load. 
+This is really problematic as loading speed is now an important ranking factor for search engines.
+
+Yotpo need to optimise their CSS:
+
+@Minify CSS for the following resources to reduce their size by 11.9KiB (56% reduction). 
+Minifying http://staticw2.yotpo.com/…mC0JRt4lsnZr/widget.css?widget_version=1 could save 11.9KiB (56% reduction) after compression.@
+48 - Enable Picture Reviews
+At the moment, I receive pictures of my customers wearing my products and I would like to be able to show these pictures to potential buyers. 
+A picture taken by a user creates trust and increases sales. 
+Can you add a feature that allows a reviewer to upload pictures?
+44 - Multiple product reviews in 1 email
+Instead of sending out an email for each product ordered, it would be much more simple and less confusing for the customers 
+if they could review each product (or the 3 most expensive items from their ordrer) in the same email. 
+42 - Send review requests manually.
+Customers sometimes delete their review request emails, or maybe they just can't find it. It'd be great to be able to click on 
+an order/email and have the review sent again.
+If I convince a customer to fill out a review by talking with them on the phone, I currently have no way of giving it to them.
+33 - vk.com (Vkontakte) integration
+Largest and most popular social site on exUSSR region. Clone of FaceBook — over 80 000 000 peoples. 
+Please make integration with it — login, share etc. http://vk.com/dev
+
+32 - Rich spinets for EVERY platforms come on! - also if is not asking for much, 
+adding specific questions for the reviewer to rate.
+We should be getting the benefits of rich spinets for every platforms not just the "few". 
+Also it would be awesome to be able to add your own questions for the clients to rate your products base on WHAT you sale.
+28 - The previous "Verified Buyer" seals looked more professional and made for a 
+better conversion rate.
+The previous "Verified Buyer" seals made the reviews look more believable and made for a better conversion rate. The idea is to make these reviews look legitimately as possible, and seals always help.
+Also, there should be an option to make signing into a social account to leave a review a requirement and not an option. Having the reviewers photo by their review will without a doubt increase conversion rates. 
+Without a photo by the review, it can look like the shop owner added the reviews.
+While this may lower the amount of reviews that are left, it will increase the quality of the reviews which is far better in the long run.
+
+28 - Be able to enter in a list of coupon codes for yotpo to dole out only once per code.
+This way, people could generate a list of codes in their shopping cart engine, and post it to yotpo. Allowing for us to specify that each code can only be used once while not having to manually change it every single time.
+23 - Edit e-mail design
+I really need a better way that e-mail messages are displayed in Outlook. It is almost the worst, most horrible design I have ever seen... Lots of images do not appear, nothing is lined out correctly, there are a dozen font types being used, nothing looks consistent. 
+It would help to set the font to Arial, with just one size (maybe 12px) so even Outlook displays it badly, you can still read it.
+17 - Reorder the Review form BELOW the reviews
+In the Reviews Tab, the Post Review form appears ABOVE the reviews. I would like to see the option to rearrange the form to show BELOW the reviews.
+This way, visitors see the reviews first, and if they decide to write a review, they see the form when they get to the bottom of the list.
+Thanks for considering this as an option/feature request. 
+16 - Support OpenCart 2
+It has been more than 7 months since Opencart V2 released but Yotpo has not done anything to make it compatible with OpenCart 2. I will wait another month and if nothing comes up, will cancel my membership.
+16 - Wix integration
+15 - MultiStore and Rich Snippets module in Opencart
+15 - Multi Language / Multi Lingual
+14 - Star Rating in Search Results for BigCommerce
+We are well into the platinum category for reviews, and our customers are constantly asking us why we they can't see the star ratings in the search results in BigCommerce. It would be ideal if the star ratings showed anywhere a product was 
+displayed, instead of having to add the code manually everywhere. The search results don't have an option where you can add the code, so maybe replacing the built in star ratings code in BigCommerce might be a suitable fix.
+
+14 - Magento Extension - Show Reviews on Page not in JS Widget & Optimisation
+13 - Add Option to Send Review Email on Order Completion
+Currently the Yotpo system sends review email requests on x days after the customer purchase date, not the completion date. (WooCommerce)
+Q. How can Yotpo control the length of time between an 
+order being purchased and completed on the customer side and always say the mail will be sent at the same time?
+In our situation we make jewellery, in most cases this has a variable 
+amount of time for the order to be made, typically 9-21 days.
+We set the order to complete when the order has been made, this time-frame varies per customer/order, the completed status ensures the customer gets the postage tracking & invoice etc.
+With the existing Yotpo system using the mail after purchase, we cannot control when the customer will receive the review email as the time between the customer placing the order and receiving their jewellery is not always the same, often times this results in customers getting the review email before their final product. Clearly this isn't very effective for us.
+Is there any chance you can provide the option for both settings i.e mail after purchase and mail after order completed?
+This will provide a lot more flexibility and importantly more reviews.
+Thanks in advance.
+12 - The ability to have the statistics on Star Rating
+8 - Product reviewed by customer already - do not send email
+8 - Staff Review
+Option to add staff review at the top of the page to help guide customers, would be especially to provide fit information for customers buying shoes and clothing.
+8 - Schedule posts to Facebook
+Instead of instantly pushing reviews to Facebook we should be able to schedule reviews so that the post arrives into social media at our customers peak interest times. For my business customer are 
+most active at 6pm until 9pm so I would like to schedule 6pm and 8pm so it's in a prominent position and recent on their feed list as opposed to being listed at random times. I'm in a timezone 12 hours
+ from my customers so doing it manually is a nightmare. This may have huge impact on conversions!
+8 - Multiple rating fields
+I'm owning a store who products needs multiple ratings like Design, performance , build quality and an overall rating (automatically calculated)
+8 - Allow for a customer to post a photo to a review.
+Make it easy for someone to post a review and quickly upload photos (via desktop or mobile) related to the review.
+7 - Use Gravatar/Facebook/GMail for user review pictures
+99% of User images are blank, but there are many sources to pull an image from. Adding a face to a review would help.
+7 - When a product doesn't have any reviews, instead show store reviews or reviews of all products
+"This product doesn't have any reviews" is not helpful. Instead, when a product doesn't yet have any reviews, show either store reviews or reviews of all other products.
+6 - Add custom (optional) fields for customers, such as height, size, body type for apparel ecommerce
+I have an apparel ecommerce store, and I'd like to be able to ask customers for their height, size, body type and possibly measurements, so that other customers can read reviews on a product from someone with a similar body. I'd at least like 
+to have 1 or 2 of these. Rent the Runway (a well-known apparel ecommerce/rental company) does this and it's SO helpful when trying to choose your size. 
+Just having the option of some fields for the store owner to customize could work across any industry I would imagine.
+6 - Post images and On-Page SEO
+I will be very happy if you add two new features: 
+The first one is: Possibilities to post/upload images in comment form 
+The second one is: On-Page SEO and rich snippets, but not as now SEO on MiniSite.
+6 - Where people who leave a review show where they're from.
+I have international customers that I would like to show potential customers that I can ship to their location.
+6 - agregate data for multiple Product IDs (in case of product variants)
+SquareSpace Ecommerce assigns unique product IDs to each variant of a product. So a single product page can have 2 or more product IDs, one for each variant (like size or color).
+It would be nice if the embed widget could show the aggregate data and reviews for multiple product IDs combined.
+6 - Share review incentive using coupon codes should be shown on "Thank you for posting a review page"
+Currently you have to add text to the "Mail after purchase" email template explaining that if you share a review on social media you will receive a coupon code. This makes the "mail after purchase" email a little messy.
+The coupon incentive for sharing a review would be better displayed on the "Thank you for posting a review" page either directly below or above the social share icons as I think this would dramatically increase the likelihood of a 
+customer sharing a review, and after-all, that is what we want!
+5 - Badges
+Customer Badge Engagement Program ( I love Yotpo! but the current program is really not very good)
+I can explain it all here but...first you need to look at what TravelAdvisor is doing with badges so we don't reinvent the wheel here. Sign up for an account and start reviewing restaurants, etc.
+I would like to see the badge system for customer badges (not total site review badges) work like this...
+-A customer submits a review
+-They get a customized email thanking them and telling them how many more reviews till their next badge
+-If customer has more purchases than reviews an email sends to remind customer they are only 4 reviews away from their XX Badge with incentive "XX Badge holder get exclusive special coupons and offers".
+The badge images need to be individually customizable per each Yotpo environment/branding. Kinda funny, cute whatever.
+I realize currently YOTPO members are all lumped together globally. This new badge system would need to differentiate reviews for the current site they are visiting vs total global Yotpo Reviews.
+A host of reward coupon codes could be loaded into YOTPO to send to customers that are deserving based on rules. AKA what badge level, etc.
+It's worth doing and you'll see what I mean after a week or two with Trip Advisor. They base their email frequency on your involvement and stoke a fire where there is one. If you don't participate much it will leave you alone.
+This is really...not an idea, it's already pretty much standard practice and common sense customer engagement. Not sure why this got overlooked somehow with Yotpo but it's time to implement it before somebody comes out with Yotpo 2 with
+engaging badge system and rips you guys off bad.
+I come from a line of innovators and inventors...patents/designs/ideas aren't worth much...unless you do it the best way first.
+Please contact me if I've missed some details, etc. All of this really is just waiting for you on Trip Advisor. Love your software, hope this gets to the right person there.
+4 - Mail after purchase - option to set a filter by product or category
+Option NOT to send mail after purchase to certain products or categories - for instance subscriptions or items on sale. 
+This to avoid in some cases to give further discount to products that are already discounted. We offer a 10% discount code to customers that do a review. We do not want them to be able to use this code on items on sale or 
+subscriptions that are already at a lower price.
+4- product photos sent by the customer after purchase
+I think the customer should be able to send pictures of the product after receiving it. Upon delivery it takes a picture and attached to the email confirmation after delivery and receive a discount coupon for your next purchase
+
+## 10x Reviews Ideas
+* User profiles
+* View reviews on platform's website
+* Embeddable widget
+* Post star review
+* Post text review
+* Post photo review
+* Post video review
+* Post Link from Youtube -> Embedded video
+* Verified review by post-purchase email
+* Reviews by store owner / staff / merchant
+* Reviews with memes / GIFs
+* Reviews with Emojis / Stickers
+* Product categories
+* Automatic post-purchase email
+* Comment on reviews
+* The customer journey
+* How many people has this review helped
+* Helpful badges
+* Review approval by shop owner
+* Spam filtering
+* Galeries plugin
+* Google Rich Snippets / SEO optimization
+* Reviews from Facebook page
+* Reviews from Twtiter stream by # or @
+* Reviews from Instagram by tag
+* Send monthly analytics report to shop. (No of reviews, which are products with best reviews etc.)
+* Share the reviews on social networks
+* Free version available?
+* Send review requests manually
+* Multiple product reviews in one email
+* Multiple rating fields depending on product category
+* Reviews from within email
+* Coupon codes
+* Mobile app for shops
+* Mobile app for reviewers
+* Widget localization
+* Widget customization
+* Email template customization
+* Reviews sentiment analysis
+* Questions and Answers
+* Mark review helpful/unhelpful
+* Has shopify app?
+* Has magento app?
+* Has squarespace app?
+* Has woocommerce app / wordpress plugin?
+* Reviewer info - e.g. height, weight etc for clothes
+* Post reviews about any product - product database
+* Import product reviews from old website
+* Reviews before a product is lunched - exclusive beta testers
+* Customer service rating (separate) - Timeliness of Delivery, Quality of Packaging, Overall Service, Would you buy again, Would you refer others
+* Collection of all your reviews - means of completeness of areas of expertise
+
+
+
+
+
+
+
+
+
+
+
+
