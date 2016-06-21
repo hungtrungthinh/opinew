@@ -35,9 +35,11 @@ class Constants(object):
     DEFAULT_REVIEW_EMAIL_TEMPLATE = 'email/review_order.html'
     DEFAULT_NEW_REVIEWER_EMAIL_TEMPLATE = 'email/new_reviewer_user.html'
     DEFAULT_NEW_SHOP_OWNER_EMAIL_TEMPLATE = 'email/new_shop_owner_user.html'
+    DEFAULT_NEW_USER_EMAIL_TEMPLATE = 'email/new_user.html'
 
     DEFAULT_NEW_REVIEWER_SUBJECT = "Welcome to Opinew"
     DEFAULT_NEW_SHOP_OWNER_SUBJECT = "Welcome to Opinew"
+    DEFAULT_NEW_USER_SUBJECT = "Welcome to Opinew"
 
     MODE_DEVELOPMENT = 'development'
     MODE_PRODUCTION = 'production'
@@ -183,6 +185,9 @@ class Constants(object):
     NEXT_ACTION_ID_CHANGE_YOUR_PASSWORD = 'CHANGE_PASSWORD'
     NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON = 'pencil'
     NEXT_ACTION_CHANGE_YOUR_PASSWORD_ICON_BG_COLOR = COLOR_OPINEW_AQUA
+
+    SHOPIFY_PLATFORM_NAME = 'shopify'
+    SHOPIFY_DEFAULT_PLAN_NAME = 'shopify_basic'
 
 
 class Config(object):
