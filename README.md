@@ -22,6 +22,7 @@ Create python virtual environment, install required packages and populate the da
     
     sudo -u postgres psql -c "CREATE USER opinew_user WITH PASSWORD '"'Opinu@m4d4f4k4\!'"';"
     sudo -u postgres psql -c "CREATE DATABASE opinew WITH ENCODING 'UTF8'"
+    sudo -u postgres psql -c "CREATE DATABASE opinew_test WITH ENCODING 'UTF8'"
 
 1. Initialize database
 

@@ -145,7 +145,7 @@ def create_app(option):
             g.mode = app.config.get('MODE')
             g.response_context = []
             g.s = strings
-            g.payment = payment.OpinewStripeFacade()
+            g.payment = payment.StripeAPI()
             g.db = database.OpinewSQLAlchemyFacade()
 
         @app.after_request
