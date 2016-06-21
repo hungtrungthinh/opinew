@@ -8,3 +8,4 @@ webapp/static/.webassets-cache
 .~lock.*#
 opinew_rackspace
 .vagrant
+opinew_aws.pem

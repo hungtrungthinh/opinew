@@ -22,7 +22,7 @@ send_tar_prod() {
         return 1
     fi
     echo  "*** LOCAL: Send to production server ***"
-    sshpass -p 'Opinu@m4d4f4k4!' scp opinew_ecommerce_api.tar.gz opinew_server@$ip_address:/home/opinew_server/
+    scp -i opinew_aws.pem opinew_ecommerce_api.tar.gz opinew_server@$ip_address:/home/opinew_server/
 }
 
 pushprod() {
@@ -32,10 +32,10 @@ pushprod() {
     fi
     ip_address=$1
     echo  "*** LOCAL: Handing control to server ***"
-    sshpass -p 'Opinu@m4d4f4k4!' ssh -t opinew_server@$ip_address "mkdir -p ~/opinew_new &&
+    ssh -i opinew_aws.pem -t opinew_server@$ip_address "mkdir -p ~/opinew_new &&
                                       echo  \"*** Untar to opinew_new ***\" &&
                                       tar xfz opinew_ecommerce_api.tar.gz -C ~/opinew_new &&
-                                      rm -rf ~/opinew_ecommerce_api &&
+                                      sudo rm -rf ~/opinew_ecommerce_api &&
                                       mv ~/opinew_new ~/opinew_ecommerce_api &&
                                       rm -f opinew_ecommerce_api.tar.gz &&
                                       cd opinew_ecommerce_api &&

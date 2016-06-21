@@ -128,7 +128,7 @@ To push to production server `opinew.com`:
 
 1. Connect to opinew.com via ssh
 
-    ssh opinew_server@opinew.com
+    ssh -i opinew_aws.pem opinew_server@opinew.com
 
 1. Dump the db
 
@@ -136,13 +136,12 @@ To push to production server `opinew.com`:
 
 1. Back on local, copy
 
-    scp opinew_server@opinew.com:/home/opinew_server/dbexport.pgsql ./
+    scp -i opinew_aws.pem opinew_server@opinew.com:/home/opinew_server/dbexport.pgsql ./
 
 1. Recreate db - Disconnect from all db instances, login as postgres user and recreate opinew
     
-    sudo su - postgres
-    dropdb opinew
-    createdb opinew
+    sudo -u postgres psql -c "DROP DATABASE opinew "
+    sudo -u postgres psql -c "CREATE DATABASE opinew WITH ENCODING 'UTF8'"
 
 1. Import locally 
 
