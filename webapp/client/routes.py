@@ -1,151 +1,44 @@
+"""
+This module defines the routes that are accessed by a client browser. It is responsible for:
+* Getting and verifying the http (GET/POST) parameters
+* Delegating tasks to controllers based on http parameters
+* Getting and setting client data - e.g. cookies for user login etc
+* Return a response (in html or json) or redirect to another route
+"""
 from __future__ import division
 import datetime
 import os
-import httplib
-import json
-from functools import wraps
+
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort, jsonify, send_file, Response, session
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
-from providers.shopify_api import OpinewShopifyFacade
+
 from webapp import db
 from webapp.client import client
 from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
     Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
     ReviewFeature, UrlReferer, Comment, Answer
 from webapp.common import param_required, catch_exceptions, get_post_payload
-from webapp.exceptions import ParamException, DbException, ExceptionMessages, RequirementException
+from webapp.exceptions import ParamException, DbException, ExceptionMessages
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm
 from config import Constants, basedir
 from providers import giphy
 from webapp.strategies import rank_objects_for_product, get_scheduled_tasks, get_incoming_messages, get_reviews, \
     get_analytics
-from messages import SuccessMessages
-from werkzeug.routing import BuildError
-from werkzeug.datastructures import ImmutableMultiDict
-
-
-def verify_requirements(*redirect_url_for):
-    """
-    Wraps a response object by verifying that all required conditions pass
-    :param f:
-    :return:
-    """
-    def outer_wrapper(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            # Create a response context - is it asyncrounous call (e.g. from ajax)
-            payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data or '{}')
-            is_async = payload.get('async')
-
-            # get as many default redirects as possible
-            default_redirects = []
-            for redirect_url in redirect_url_for:
-                try:
-                    default_redirects.append(url_for(redirect_url))
-                except BuildError:
-                    # well, this url_for was invalid, don't break everything, move on
-                    pass
-
-            # decide which exceptions to catch
-            if current_app.debug:
-                exception_list = (RequirementException, )
-            else:
-                exception_list = (Exception, )
-            try:
-                return f(*args, **kwargs)
-            except exception_list as e:
-                error_message = e.message or ExceptionMessages.UNKNOWN_ERROR
-                error_code = e.error_code if hasattr(e, 'error_code') else httplib.BAD_REQUEST
-                error_category = e.error_category if hasattr(e, 'error_category') else Constants.ALERT_ERROR_LABEL
-
-                # If it an async request - then return jsonified response
-                if is_async:
-                    return jsonify({"error": error_message}), error_code
-                flash(error_message, category=error_category)
-
-                # try to avoid 1 level deep infinite loop redirect
-                referer_redirect = request.referrer if not request.referrer == request.path else None
-                ctx_redirect = None
-                for default_redirect in default_redirects:
-                    ctx_redirect = default_redirect if not default_redirect == request.path else None
-                    if ctx_redirect:
-                        break
-                return redirect(referer_redirect or
-                                ctx_redirect or
-                                url_for('client.index'))
-        return wrapper
-    return outer_wrapper
-
-
-def always_async(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        request_args = dict(request.args)
-        request_args['async'] = 1
-        request.args = ImmutableMultiDict(request_args)
-        return f(*args, **kwargs)
-    return wrapper
-
-
-def verify_required_condition(condition, error_msg, error_code=httplib.BAD_REQUEST, error_category=Constants.ALERT_ERROR_LABEL):
-    """
-    Makes sure that the required condition is truthy. Otherwise raises a response error which is either
-    jsonified response (if the resource has been required async) or flashing.
-    :param condition: the condition
-    :param error_msg: the error message to display
-    :param error_code: the error code to return
-    :return:
-    """
-    if not condition:
-        raise RequirementException(message=error_msg, error_code=error_code, error_category=error_category)
-
-
-def get_required_parameter(payload, param_name):
-    """
-    Verifies and returns a parameter from a payload
-    :param payload: the payload to check
-    :param param_name: the parameter name
-    :return:
-    """
-    obj = payload.get(param_name)
-    verify_required_condition(condition=obj is not None,
-                              error_msg=ExceptionMessages.MISSING_PARAM.format(param=param_name),
-                              error_code=httplib.BAD_REQUEST)
-    return obj
-
-
-def get_required_model_instance_by_id(model, instance_id):
-    """
-    Verifies and returns a model instance that is identified by id
-    :param model: the Model to check
-    :param instance_id: the instance id
-    :return: a model instance by id
-    """
-    obj = model.query.filter_by(id=instance_id).first()
-    verify_required_condition(condition=obj is not None,
-                           error_msg=ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance=model.__name__,
-                                                                                  id=instance_id),
-                           error_code=httplib.BAD_REQUEST)
-    return obj
-
-
-def generate_success_response_from_obj(obj, obj_name):
-    payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data)
-    is_async = payload.get('async')
-    if is_async:
-        return jsonify(obj), httplib.CREATED
-    flash(SuccessMessages.SUCCESS_CREATING_OBJECT.format(object_name=obj_name))
-    return redirect(request.referrer)
-
-
-def generate_success_response_from_model(model, obj_name):
-    return generate_success_response_from_obj(model.serialize(), obj_name)
+import webapp.controllers as controllers
+from webapp.common import verify_required_condition, verify_requirements, always_async, get_required_parameter, get_required_model_instance_by_id, generate_success_response_from_model, generate_success_response_from_obj
 
 
 @client.route('/')
 def index():
+    """
+    Front page of our website - redirect according to user role:
+    * Unregistered user - show marketing page
+    * Admin - redirect to admin panel
+    * Shop Owner - redirect to shop dashboard page
+    * Reviewer - redirect to user profile
+    """
     if current_user.is_authenticated():
         if current_user.temp_password:
             return redirect('/change')
@@ -158,59 +51,21 @@ def index():
     return render_template('index.html')
 
 
-@client.route('/terms')
-def terms_of_use():
-    return render_template('legal/terms_of_use.html', page_title="Terms of Use - ")
-
-
-@client.route('/privacy')
-def privacy_policy():
-    return render_template('legal/privacy_policy.html', page_title="Privacy Policy - ")
-
-
 @client.route('/platforms/', defaults={'platform_name': ''})
 @client.route('/platforms/<platform_name>/shops/install')
 @always_async
 @verify_requirements('client.index')
 def platform_shop_install(platform_name):
     """
+    Route platforms to point to so that we can bootstrap the installation.
     First step of the oauth process - generate address
     for permission grant from user
-    :return:
     """
     if platform_name == Constants.SHOPIFY_PLATFORM_NAME:
-        return generate_oath_callback_url_for_shopify_app()
+        shop_domain = get_required_parameter(request.args, 'shop')
+        url = controllers.Shopify.generate_oath_callback_url_for_shopify_app(shop_domain)
+        return redirect(url)
     return redirect('/register')
-
-
-def generate_oath_callback_url_for_shopify_app():
-    """
-    Generate URL to redirect back to after a user has given permissions on the shopify store
-    :return:
-    """
-    shop_domain = get_required_parameter(request.args, 'shop')
-    shop = g.db.Shop.get_by_domain(shop_domain)
-    if shop:
-        opinew_shopify = OpinewShopifyFacade(shop=shop)
-        if opinew_shopify.shop_has_valid_token():
-            return redirect(url_for('client.shop_dashboard_id', shop_id=shop.id))
-
-    shop_name = OpinewShopifyFacade.get_shop_name_by_domain(shop_domain)
-
-    client_id = current_app.config.get('SHOPIFY_APP_API_KEY')
-    scopes = current_app.config.get('SHOPIFY_APP_SCOPES')
-
-    nonce = shop_name
-
-    redirect_uri = '%s/platforms/shopify/shops/create' % g.config.get('OPINEW_API_SERVER')
-
-    url = 'https://{shop}/admin/oauth/authorize' \
-          '?client_id={api_key}' \
-          '&scope={scopes}' \
-          '&redirect_uri={redirect_uri}' \
-          '&state={nonce}'.format(
-            shop=shop_domain, api_key=client_id, scopes=scopes, redirect_uri=redirect_uri, nonce=nonce)
-    return redirect(url)
 
 
 @client.route('/platforms/', defaults={'platform_name': ''})
@@ -224,24 +79,18 @@ def platform_shop_create(platform_name):
     :return:
     """
     if platform_name == Constants.SHOPIFY_PLATFORM_NAME:
-        return create_shopify_shop()
+        nonce_request = get_required_parameter(request.args, 'state')
+        hmac_request = get_required_parameter(request.args, 'hmac')
+        shop_domain = get_required_parameter(request.args, 'shop')
+        code = get_required_parameter(request.args, 'code')
+
+        # Create shop
+        shop = controllers.Shopify.create_shopify_shop(nonce_request, hmac_request, shop_domain, code)
+        # Login shop owner
+        login_user(shop.owner)
+
+        return redirect(url_for('client.setup_plugin', shop_id=shop.id))
     return redirect('/register')
-
-
-def create_shopify_shop():
-    nonce_request = get_required_parameter(request.args, 'state')
-    hmac_request = get_required_parameter(request.args, 'hmac')
-    shop_domain = get_required_parameter(request.args, 'shop')
-    code = get_required_parameter(request.args, 'code')
-
-    shop = OpinewShopifyFacade.create_shop(shop_domain=shop_domain, hmac_request=hmac_request,
-                                      code=code, nonce_request=nonce_request)
-
-    # Login shop_user
-    shop_owner = g.db.User.get_by_id(shop.owner_id)
-    login_user(shop_owner)
-    return redirect(url_for('client.setup_plugin', shop_id=shop.id))
-
 
 # Signals
 from flask.ext.security import user_registered
@@ -260,9 +109,7 @@ def register():
         return redirect(request.referrer or url_for('client.index'))
     register_user_form = ExtendedRegisterForm()
     if register_user_form.validate_on_submit():
-        user = g.db.User.create(**request.form.to_dict())
-        g.db.add(user)
-        g.db.push()
+        controllers.User.create(**request.form.to_dict())
         return redirect(url_for('client.index'))
     return render_template('security/register_user.html', register_user_form=register_user_form)
 
@@ -1330,3 +1177,12 @@ def simple_plugin():
 def shopify_manual_verification():
     # TODO: update next_action
     return redirect(url_for('client.shop_dashboard'))
+
+@client.route('/terms')
+def terms_of_use():
+    return render_template('legal/terms_of_use.html', page_title="Terms of Use - ")
+
+
+@client.route('/privacy')
+def privacy_policy():
+    return render_template('legal/privacy_policy.html', page_title="Privacy Policy - ")

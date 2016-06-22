@@ -57,7 +57,7 @@ class TestShopifyShopCreation(TestFlaskApplication):
 
     def test_create_shopify_shop(self):
         from async import tasks
-        from providers.shopify_api import ShopifyAPI
+        from providers.platforms import ShopifyAPI
 
         shop = Shop.query.filter_by(id=3).first()
         self.assertEquals(len(shop.products), 0)

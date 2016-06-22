@@ -5,7 +5,7 @@ from webapp import create_app, models, db
 from providers import magento_api
 from celery_async import make_celery
 from config import Constants
-from providers.shopify_api import OpinewShopifyFacade
+from providers.platforms import OpinewShopifyFacade
 from providers import database
 
 app = current_app or create_app('db_prod')

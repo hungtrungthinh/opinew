@@ -187,3 +187,130 @@ def inject_ua(ua_str, kwargs):
     else:
         kwargs['headers'] = {'user-agent': ua_str}
     return kwargs
+
+import httplib
+import json
+from functools import wraps
+from werkzeug.routing import BuildError
+from werkzeug.datastructures import ImmutableMultiDict
+from flask import request, current_app, url_for, jsonify, flash, redirect
+from messages import SuccessMessages
+from webapp.exceptions import RequirementException, ExceptionMessages
+from config import Constants
+
+def verify_requirements(*redirect_url_for):
+    """
+    Wraps a response object by verifying that all required conditions pass
+    :param f:
+    :return:
+    """
+    def outer_wrapper(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            # Create a response context - is it asyncrounous call (e.g. from ajax)
+            payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data or '{}')
+            is_async = payload.get('async')
+
+            # get as many default redirects as possible
+            default_redirects = []
+            for redirect_url in redirect_url_for:
+                try:
+                    default_redirects.append(url_for(redirect_url))
+                except BuildError:
+                    # well, this url_for was invalid, don't break everything, move on
+                    pass
+
+            # decide which exceptions to catch
+            if current_app.debug:
+                exception_list = (RequirementException, )
+            else:
+                exception_list = (Exception, )
+            try:
+                return f(*args, **kwargs)
+            except exception_list as e:
+                error_message = e.message or ExceptionMessages.UNKNOWN_ERROR
+                error_code = e.error_code if hasattr(e, 'error_code') else httplib.BAD_REQUEST
+                error_category = e.error_category if hasattr(e, 'error_category') else Constants.ALERT_ERROR_LABEL
+
+                # If it an async request - then return jsonified response
+                if is_async:
+                    return jsonify({"error": error_message}), error_code
+                flash(error_message, category=error_category)
+
+                # try to avoid 1 level deep infinite loop redirect
+                referer_redirect = request.referrer if not request.referrer == request.path else None
+                ctx_redirect = None
+                for default_redirect in default_redirects:
+                    ctx_redirect = default_redirect if not default_redirect == request.path else None
+                    if ctx_redirect:
+                        break
+                return redirect(referer_redirect or
+                                ctx_redirect or
+                                url_for('client.index'))
+        return wrapper
+    return outer_wrapper
+
+
+def always_async(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        request_args = dict(request.args)
+        request_args['async'] = 1
+        request.args = ImmutableMultiDict(request_args)
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def verify_required_condition(condition, error_msg, error_code=httplib.BAD_REQUEST, error_category=Constants.ALERT_ERROR_LABEL):
+    """
+    Makes sure that the required condition is truthy. Otherwise raises a response error which is either
+    jsonified response (if the resource has been required async) or flashing.
+    :param condition: the condition
+    :param error_msg: the error message to display
+    :param error_code: the error code to return
+    :return:
+    """
+    if not condition:
+        raise RequirementException(message=error_msg, error_code=error_code, error_category=error_category)
+
+
+def get_required_parameter(payload, param_name):
+    """
+    Verifies and returns a parameter from a payload
+    :param payload: the payload to check
+    :param param_name: the parameter name
+    :return:
+    """
+    obj = payload.get(param_name)
+    verify_required_condition(condition=obj is not None,
+                              error_msg=ExceptionMessages.MISSING_PARAM.format(param=param_name),
+                              error_code=httplib.BAD_REQUEST)
+    return obj
+
+
+def get_required_model_instance_by_id(model, instance_id):
+    """
+    Verifies and returns a model instance that is identified by id
+    :param model: the Model to check
+    :param instance_id: the instance id
+    :return: a model instance by id
+    """
+    obj = model.query.filter_by(id=instance_id).first()
+    verify_required_condition(condition=obj is not None,
+                           error_msg=ExceptionMessages.INSTANCE_NOT_EXISTS.format(instance=model.__name__,
+                                                                                  id=instance_id),
+                           error_code=httplib.BAD_REQUEST)
+    return obj
+
+
+def generate_success_response_from_obj(obj, obj_name):
+    payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data)
+    is_async = payload.get('async')
+    if is_async:
+        return jsonify(obj), httplib.CREATED
+    flash(SuccessMessages.SUCCESS_CREATING_OBJECT.format(object_name=obj_name))
+    return redirect(request.referrer)
+
+
+def generate_success_response_from_model(model, obj_name):
+    return generate_success_response_from_obj(model.serialize(), obj_name)

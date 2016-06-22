@@ -4,35 +4,20 @@ Contains the Opinew ecommerce API and front end rendering of the HTML plugin and
 
 ## Development Set Up
 
-Create python virtual environment, install required packages and populate the database with some initial data for dev purposes.
+### How do I setup my environment?
+You development machine needs to have:
+* [Vagrant](https://www.vagrantup.com/downloads.html)
+* [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+* [PyCharm](https://www.jetbrains.com/pycharm/) |
+[Atom](https://atom.io/) | [Vim](http://www.vim.org/) | [butterflies](https://xkcd.com/378/)
+* [Chrome](https://www.google.com/chrome/) | [Firefox](https://www.mozilla.org/en-GB/firefox/new/)
 
-1. Install the following packages (ubuntu 12.04 and 14.04):
+Then to setup the machine, get into the workdir of the code and execute:
 
-    sudo apt-get update
-    sudo apt-get install git python-pip python-virtualenv python-dev nginx uwsgi uwsgi-plugin-python curl libffi-dev rabbitmq-server postgresql postgresql-contrib python-psycopg2 libpq-dev amqp-tools libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk
+    vagrant up
 
-
-1. Set up a virtual environment
-
-    virtualenv venv
-    venv/bin/activate
-    pip install -r requirements.txt
-    
-1. Set up postgres database
-    
-    sudo -u postgres psql -c "CREATE USER opinew_user WITH PASSWORD '"'Opinu@m4d4f4k4\!'"';"
-    sudo -u postgres psql -c "CREATE DATABASE opinew WITH ENCODING 'UTF8'"
-    sudo -u postgres psql -c "CREATE DATABASE opinew_test WITH ENCODING 'UTF8'"
-
-1. Initialize database
-
-    ./run_development.py db init
-
-## Development Set Up (Vagrant)
-1. Install Vagrant
-1.1. Download from `https://www.vagrantup.com/downloads.html`
-1.1. Install with `dpkg -i vagrant-*.deb 
-1.1. Run `vagrant init`
+This should automatically start, provision dev environment. You can edit files
+in the web application and it will automatically refresh the development server.
 
 1. Setting up PyCharm:
 1.1. Change the python interpreter to be inside of Vagrant:
@@ -54,7 +39,7 @@ Create python virtual environment, install required packages and populate the da
     Working Directory: /var/www/opinew.com/
     Path mappings: <your_local_working_dir>=/var/www/opinew.com  
     
-## Changes
+### Changes
 
 If you change the database, first let alembic write a migration:
 

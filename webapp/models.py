@@ -1,3 +1,6 @@
+"""
+This module is responsible for defining the database models through a SQLAlchemy schema.
+"""
 from __future__ import division
 import datetime
 import re
@@ -13,7 +16,6 @@ from flask_resize import resize
 
 from webapp import db, admin, gravatar
 from webapp.exceptions import DbException
-from providers import stripe_payment
 from config import Constants
 from webapp.common import generate_temp_password, random_pwd
 from assets import strings
@@ -345,28 +347,6 @@ class Subscription(db.Model, Repopulatable):
     trialed_for = db.Column(db.Integer, default=0)
 
     stripe_subscription_id = db.Column(db.String)
-
-    def create(self):
-        self.timestamp = datetime.datetime.utcnow()
-        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        self.stripe_subscription_id = stripe_opinew_adapter.create_subscription(self.plan.stripe_plan_id, self.customer.stripe_customer_id)
-        return self
-
-
-    def update(self, plan):
-        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        self.stripe_subscription_id = stripe_opinew_adapter.update_subscription(self.customer.stripe_customer_id, self.stripe_subscription_id,plan)
-        self.plan = plan
-        return self
-    
-    def cancel(self):
-        stripe_opinew_adapter = stripe_payment.StripeOpinewAdapter()
-        stripe_opinew_adapter.cancel_subscription(self.customer.stripe_customer_id,self.stripe_subscription_id)
-        now = datetime.datetime.utcnow()
-        self.trialed_for = (now - self.timestamp).days
-        self.plan = None
-        self.timestamp = None
-        self.stripe_subscription_id = None
 
     def __repr__(self):
         return '<Subscription of %r by %r>' % (self.plan, self.customer)
@@ -1136,6 +1116,13 @@ class Shop(db.Model, Repopulatable):
         shop = Shop.query.filter_by(id=shop_id).first()
         if not shop:
             raise DbException(message='Shop %s not registered with Opinew.' % shop_id, status_code=400)
+        return shop
+
+    @classmethod
+    def get_by_domain(cls, shop_domain):
+        shop = Shop.query.filter_by(domain=shop_domain).first()
+        if not shop:
+            raise DbException(message='Shop %s not registered with Opinew.' % shop_domain, status_code=400)
         return shop
 
     @classmethod

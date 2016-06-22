@@ -5,7 +5,6 @@ from config import Constants
 
 
 class StripeAPI():
-
     #TODO 2 functions below were moved to StripeOpinewAdapter but we still have to check if they were used somewhere before nd refctor there to point to StripeOpinewAdapter
     def create_token(self, number, cvc, exp_month, exp_year):
         return self.stripe_proxy.Token.create(
@@ -25,16 +24,13 @@ class StripeAPI():
             customer=customer_id  # Previously stored, then retrieved
         )
 
-
-
-class StripeOpinewAdapter(object):
-    def __init__(self):
-        # Set your secret key: remember to change this to your live secret key in production
-        # See your keys here https://dashboard.stripe.com/account/apikeys
-        self.stripe_proxy = stripe
-        if current_app.config.get('TESTING'):
-            self.stripe_proxy.api_base = Constants.VIRTUAL_SERVER + '/vstripe'
-        self.stripe_proxy.api_key = current_app.config.get('STRIPE_API_KEY')
+    # def __init__(self):
+    #     # Set your secret key: remember to change this to your live secret key in production
+    #     # See your keys here https://dashboard.stripe.com/account/apikeys
+    #     self.stripe_proxy = stripe
+    #     if current_app.config.get('TESTING'):
+    #         self.stripe_proxy.api_base = Constants.VIRTUAL_SERVER + '/vstripe'
+    #     self.stripe_proxy.api_key = current_app.config.get('STRIPE_API_KEY')
 
     def create_customer(self, opinew_customer_email):
         # Create a Stripe Customer

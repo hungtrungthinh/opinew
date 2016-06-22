@@ -3,7 +3,7 @@ from flask import jsonify, request
 from webapp import db, models, exceptions, csrf
 from webapp.api import api
 from webapp.common import get_post_payload, catch_exceptions, verify_webhook, build_created_response
-from providers import shopify_api
+from providers import platforms
 
 
 @api.route('/platform/shopify/products/create', methods=['POST'])
@@ -104,7 +104,7 @@ def platform_shopify_create_order():
     shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
-    shopify_api.create_order(shop, payload)
+    platforms.create_order(shop, payload)
     return jsonify({}), 201
 
 
@@ -120,7 +120,7 @@ def platform_shopify_fulfill_order():
     shop = models.Shop.query.filter_by(domain=shopify_shop_domain).first()
     if not shop:
         raise exceptions.DbException('no such shop %s' % shopify_shop_domain)
-    shopify_api.fulfill_order(shop, payload)
+    platforms.fulfill_order(shop, payload)
     return jsonify({}), 200
 
 

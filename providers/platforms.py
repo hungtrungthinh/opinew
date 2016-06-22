@@ -27,9 +27,32 @@ class ShopifyAPI(object):
             else:
                 self.url_prefix = 'https://%s' % self.shop_domain
 
+
+    @classmethod
+    def get_shop_name_by_domain(cls, shop_domain):
+        if not len(shop_domain) > 14:
+            raise RequirementException(message=ExceptionMessages.SHOPIFY_INVALID_SHOP_DOMAIN,
+                                       error_code=httplib.BAD_REQUEST,
+                                       error_category=Constants.ALERT_ERROR_LABEL)
+        shop_domain_ends_in = shop_domain[-14:]
+        shop_name = shop_domain[:-14]
+        if not shop_domain_ends_in or not shop_domain_ends_in == '.myshopify.com':
+            raise RequirementException(message=ExceptionMessages.SHOPIFY_INVALID_SHOP_DOMAIN,
+                                       error_code=httplib.BAD_REQUEST,
+                                       error_category=Constants.ALERT_ERROR_LABEL)
+        return shop_name
+
+    def get_shop_name(self):
+        return self.get_shop_name_by_domain(self.shop.domain)
+
+    def shop_has_valid_token(self):
+        webhooks_count = self.check_webhooks_count()
+        # okay, the token is still valid!
+        return webhooks_count == Constants.EXPECTED_WEBHOOKS
+
     def initialize_api(self, shop_domain, nonce_request, hmac_request, code):
         self.shop_domain = shop_domain
-        self.shop_name = OpinewShopifyFacade.get_shop_name_by_domain(shop_domain)
+        self.shop_name = self.get_shop_name_by_domain(shop_domain)
         self.verify_nonce(nonce_request)
         self.verify_hmac(hmac_request)
         self.verify_shop_name()
@@ -43,8 +66,10 @@ class ShopifyAPI(object):
 
     def verify_hmac(self, hmac_request):
         req = dict(request.args)
-        del req['signature']
-        del req['hmac']
+        if 'signature' in req:
+            del req['signature']
+        if 'hmac' in req:
+            del req['hmac']
         unsorted = []
         for key, value in req.iteritems():
             key = str(key).replace('%', '%25').replace('&', '%26').replace('=', '%3D')
@@ -267,28 +292,6 @@ class OpinewShopifyFacade(object):
                     g.db.add(order)
         g.db.push()
 
-    @classmethod
-    def get_shop_name_by_domain(cls, shop_domain):
-        if not len(shop_domain) > 14:
-            raise RequirementException(message=ExceptionMessages.SHOPIFY_INVALID_SHOP_DOMAIN,
-                                       error_code=httplib.BAD_REQUEST,
-                                       error_category=Constants.ALERT_ERROR_LABEL)
-        shop_domain_ends_in = shop_domain[-14:]
-        shop_name = shop_domain[:-14]
-        if not shop_domain_ends_in or not shop_domain_ends_in == '.myshopify.com':
-            raise RequirementException(message=ExceptionMessages.SHOPIFY_INVALID_SHOP_DOMAIN,
-                                       error_code=httplib.BAD_REQUEST,
-                                       error_category=Constants.ALERT_ERROR_LABEL)
-        return shop_name
-
-    def get_shop_name(self):
-        return self.get_shop_name_by_domain(self.shop.domain)
-
-    def shop_has_valid_token(self):
-        webhooks_count = self.shopify_api.check_webhooks_count()
-        # okay, the token is still valid!
-        return webhooks_count == Constants.EXPECTED_WEBHOOKS
-
     def create_order(self, payload):
         platform_order_id = str(payload.get('id', ''))
         existing_order = models.Order.query.filter_by(platform_order_id=platform_order_id).first()
@@ -350,55 +353,3 @@ class OpinewShopifyFacade(object):
             if not order.status == Constants.ORDER_STATUS_SHIPPED:
                 order.ship(delivery_tracking_number, shipment_timestamp=st)
                 order.set_notifications()
-
-    @classmethod
-    def shopify_shop_to_user_adapter(cls, shopify_shop):
-        shop_owner_email = shopify_shop.get('email', '')
-        shop_owner_name = shopify_shop.get('shop_owner', '')
-        return g.db.User.get_or_create_shop_owner(email=shop_owner_email,
-                                                  name=shop_owner_name)
-
-    @classmethod
-    def create_shop(cls, shop_domain, hmac_request, code, nonce_request):
-        client_id = current_app.config.get('SHOPIFY_APP_API_KEY')
-        client_secret = current_app.config.get('SHOPIFY_APP_SECRET')
-
-        # Initialize the API
-        shopify_api = ShopifyAPI(client_id, client_secret)
-        shopify_api.initialize_api(shop_domain=shop_domain, nonce_request=nonce_request, hmac_request=hmac_request,
-                                   code=code)
-
-        # Get shop and products info from API
-        shopify_shop = shopify_api.get_shop()
-
-        # Create db records
-        # Create shop user, generate pass
-        shop_owner = cls.shopify_shop_to_user_adapter(shopify_shop)
-
-        # Create shop with owner = shop_user
-        shopify_platform = g.db.Platform.get_by_name(Constants.SHOPIFY_PLATFORM_NAME)
-        shop = g.db.Shop.create(domain=shop_domain,
-                                platform=shopify_platform,
-                                access_token=shopify_api.access_token,
-                                owner=shop_owner)
-
-        shop.name = cls.get_shop_name_by_domain(shop_domain)
-        shop_owner.shops.append(shop)
-        g.db.add(shop)
-
-        # Create customer and subscribe to default plan
-        shop_owner_customer = g.db.Customer.create(user=shop_owner)
-        shopify_default_plan = g.db.Plan.get_by_name(name=Constants.SHOPIFY_DEFAULT_PLAN_NAME)
-        subscription = g.db.Subscription.create(shop_owner_customer, shopify_default_plan, shop)
-        g.db.add(subscription)
-
-        g.db.push()
-
-        # asyncronously create all products, orders and webhooks
-        from async import tasks
-
-        args = dict(shop_id=shop.id)
-        task = models.Task.create(method=tasks.create_shopify_shop, args=args)
-        g.db.add(task)
-        g.db.push()
-        return shop
