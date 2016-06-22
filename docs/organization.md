@@ -1,4 +1,102 @@
 # The organization
+
+A good team consists of people who:
+* Get enough money to live life their way
+* Have the ability to travel, get new tech gadgets and experience the world
+* Have the freedom to spend free time - Breaks and vacations whenever they want
+* Learn and explore new things, train and apply old knowledge
+* Create something that can be of use to a lot of other people
+* Have a good time interacting with other smart people and work on exciting new ideas
+
+In the past 2 years we've been almost solely developing web applications. While everybody has an opinion as to what it should look like, you start noticing some pattern, best practices as well as burning yourself as well in the process. Here is my take on how a scalable, fast, secure web application should look like in 2016.
+
+Of course, reading is not doing. Software development is hard but it’s also extremely exciting. Making a business out of software development is even more exciting. There are so many things that have to learn and click together that we decided to write this to try to explain what we have been doing in the past couple of years.
+
+We like comparing software development to buildings and architects - sure, anybody can get a piece of paper and doodle a house (three year olds do it, probably three year olds will soon or will already write simple apps) but it takes experience and understanding to design and build a nice house or a skyscraper. There is planning required, implementing, testing that the floors don’t break and every few months new amazing types of bricks and hammers arrive that you want to try to use.
+
+We are going to share the main lesson that we started realizing is needed for a successful venture so that the instant gratificators out there (including future me) can get their dose: Create an environment that allows for quick, easy, scalable and free experimentation.
+
+## Foster experimentation
+Experimentation is at the heart of the scientific model. It’s the most successful and most natural model humanity knows of for learning new things and trying out ideas. A startup in an essence is a learning thing. An experimentation in the software world needs to be … because: …:
+* *Quick*: Things in IT are moving quickly, new things come along, people want to try them out. But that also means that people in the world need different things all the time with that changing environment. Therefore we need a quick way to try things out, fail quickly or succeed and learn from it
+* *Easy*: People won’t do it ff there are many obstacles in experimentation. And if people don’t do experimentation, the software will be stuck with whatever hypothesis we began early in the process and chances are, they will be wrong.
+* *Scalable*: Software grows in complexity that human brains are yet to understand how much exactly. Therefore, it is important that experimentation should be at the same level when it’s day 1 or year 10; when working alone or working with 10 teams of 8 people. Software is always easy when there is a blank canvas and if we don’t allow for scalable processes, soon it gets beyond the comprehension of anyone.
+Free (as in freedom): the real bottleneck in software development is people. If people feel oppressed, forced, catching deadlines, unsafe to ask questions, spawn ideas and feel judged - they will not experiment.
+
+The idea about experimentation is not new. Methodologies based on the [Manifesto for Agile Software Development](http://agilemanifesto.org/) like [Scrum](https://en.wikipedia.org/wiki/Scrum_(software_development)), [XP](https://en.wikipedia.org/wiki/Extreme_programming) and [Kanban](https://en.wikipedia.org/wiki/Kanban); ideas based on the [lean manufacturing model](https://en.wikipedia.org/wiki/Lean_manufacturing) all talk in some way or another about moving quickly, responding to change and listening to the input you are getting from your customers. Yet, did we follow it in the past 2 years? No. Why? Because I just wanted to code. Somedays we do want to just code. But when the drawing of my cute house becomes real, I realize that the architect in me has fallen asleep, the child has woken up and has created something nice and cute, but not physically possible.
+
+Sounds logical? You know the 5 to 9 things your brain can cope in a certain time - it's about short term memory, I know. But if you expand the picture into daily things that you need to care about in a small startup of 2-3 people, the amount of things that you need to care are too many. Let me give you an example with what a web app should be if we follow so called "best practices".
+
+In the book [The E-Myth Revisited](http://www.amazon.com/Myth-Revisited-Small-Businesses-About/dp/0887307280), the author talks about three people living inside one’s head - the Entrepreneur, the Technician and the Manager. And we have prepared three hats that I will be putting on as we move forward.
+
+He also talks about hard, soft and information systems that need to play together. A great book with many lessons and a bit of craziness, this book started changing the way I was thinking about my little company. Over the next three sections I am going to describe my view on how to implement these systems in the context of software development best practices. As you will see, tools and processes will repeat over and over again when we thinking about our main goal - allow for experimentation.
+
+## People and Culture(the soft system)
+As we mentioned in the opening paragraph, we believe that allowing for experimentation is above it all. If you think for a minute a bit cynically and consider people as nothing more than a flaky hardware (maybe something like a [printer](http://theoatmeal.com/comics/printers)) and consider that you have to build algorithms on top of that to help experimentation foster - what would they be?
+
+Well, Google made a great study that they call [Project Aristotele](https://rework.withgoogle.com/blog/five-keys-to-a-successful-google-team/) in which they analyzed what makes a great team. The key 5 characteristics they found people and teams need to perform.
+
+![Project Aristotele - top 5](img/project-aristotele.png)
+
+Google being Google done all of that through their own team study and lots of data. So now, that we have the hardware specs and we want to foster experimentation, let’s borrow some of the agile/lean stuff we talked about:
+
+To help with *psychological safety* and make teams feel safe to take risks and be vulnerable in front of each other, how about implement:
+
+* Pair programming - Share the responsibility of coding together, share the risk with a person and get to know each other’s styles of thinking and coding.
+
+* Code review - if pair programming is not an option or we feel tired that day, let’s do code reviews. Make sure that you are shooting down ideas not people, raise any questions, share the responsibility of putting code on master branch to the two people who have both authored and reviewed, not only authored code.
+
+To help with dependability:
+
+* Break down tasks until you think you can code that in less than (arbitrary number here) 100 line changes including additions, deletions and changes. We all know software development is unpredictable, but breaking it down with small commits
+Testing - make sure that people trust the code that is written
+Not everyday is a great day. People are just slightly more intelligent monkeys. Monkeys are emotional, irrational and have the agenda for keeping the body alive and well. A great model, taken from the book “The chimp paradox” explains that basically, you can think of your mind of a monkey and a human. The human’s agenda is to think of a higher purpose, to self improve, to be great. But we can’t be a human if we haven’t satisfied the monkey. Another view is the Maslow’s pyramid of needs:
+
+To help with *structure and clarity*:
+* Physical Kanban board - Keeps track of what is being worked on and how far are we from getting things done. [An excellent video](https://www.youtube.com/watch?v=CKWvmiY7f_g) by the project manager of XBox in Microsoft is getting an overview of how to use Kanban in software dev in the first 15 minutes and then uses Kanban to explain Kanban. In the Q&A session he also says that a Physical Kanban board is always better than virtual unless its a geographical disparity.
+* Issue tracker - spend the end of the day for about 5 minutes to sync the state of the physical Kanban board and the virtual issues on the issue tracker. The issue tracker is needed to keep track of larger issues coming in and getting data of severity, priority etc. The Kanban board and Issue tracker don’t have to be in perfect sync - the tools serve us, we don’t serve the tools!
+* Have a finish line and celebrate milestones - This is something I discovered in my own company. Issues and features kept piling on and I had no idea when will all that end. It’s highly de-motivating to run a marathon with unknown length. Set a goal and when we all reach it - take a break, celebrate.
+
+To help with the last two - *meaning of work* and *impact of work*:
+* Gather data of usage using loging and monitoring tools.
+Schedule time or a place to tell user stories - both fictive (to get functional tests passing) and real (from real customers).
+Get everyone (from dev to marketing) to talk to at least one real customer every month- why is the product we are building great? How does my work impact him directly? What issues are there? Desires? Pains?
+And finally, to help with our own top goal - experimentation:
+* Continuous integration - Deploy quickly and frequently. For that we have at least three more dependencies:
+* Version control in a branched distributed system like git
+* Automated testing in various levels
+* A deployment strategy - One command to deploy
+
+## Information systems
+This is the glue - the loop that ensures we are doing things right and our experiments run. What kind of best practices am I going to follow? We all know them - testing, version control, continuous delivery - and rarely use them. They will get done… one day - but not now. Why? Well, because I want to get something working now! But that comes at a cost. It’s a debt that you are imposing on yourself or your team. Somebody needs to pay that if it is to be a successful project. Sometimes credit is needed and it’s not impossible to pay it back - people pay their debts but why take a credit if we have a system that makes it easy not to get a credit? We invert the process.
+
+There are a few cute 12-step guides out there. Blog posts that stood the test of time like this one called [The Joel Test](http://www.joelonsoftware.com/articles/fog0000000043.html). Another one is the [12 core values of Extreme programming](http://c2.com/cgi/wiki?ExtremeProgrammingCorePractices). And another set of 12 steps is [12-factor app](http://12factor.net/). Nice stuff to read.
+
+Are these the only ones? Hell no. Are there other ways to build software than the one I’m proposing? Hell yes. As I’ve said, this is more a documentation of what I’ve done and rationalization rather than a “You must do this or you will not succeed”. Do whatever works for you, this are just best practices principles that I’ve found are quite nice to follow. From my point of view, they still point to the goal of experimentation. Just look at another one of the popular techniques these days, [The Lean Startup](https://www.amazon.co.uk/Lean-Startup-Innovation-Successful-Businesses/dp/0670921602) (another excellent book that I highly recommend):
+
+![lean model](img/lean.png)
+
+If that’s not the scientific model of experimentation? Okay, ready for my form of The Lean Startup?
+
+Here are some best practices that I’m going to follow in this tutorial:
+* Test Driven Development - Don’t wait to test until it’s too late. Let the tests drive the design. This is the Build-Code part. Because testing helps you uncover regressions, not only find bugs. There are functional tests, unit tests, integration tests, manual tests… We will use them all!
+* Data Driven Features - Get data about what features are useful or what users seem to want. This is the Measure-Data-Learn phase in the top graph. For that we need to be able to collect usage data, create feature/issue requests, create easy A/B/C/... testing
+* Feature Driven Deployments - Don’t wait until the application is huge to deploy. Keep it lean and deploy as we have anything to show. The shorter we keep the loop, the quicker we can iterate. We need repository, version control, end-to-end automation for deployment.
+
+![dev graph](img/dev-model.png)
+
+But I missed one part of the graph - the Idea. Where do we get that from?
+
+Developing the agile way make s you do things quickly which is not necessarily the best way. Quick does not account for change. And change is how software is developed. But hey, you are wasting my time - Let's get my website up and running, this hello world thing! And somehow the following principles start fading when we all know they are good:
+
+I will test it... someday.... Sure it's important, but coding is more important! Bringing value man!
+I will deploy it... when I have something to deploy...
+Version control.... let me just write these 10-15 files that do something, and I will do it, I promise
+
+Are they in the Agile manifesto - no, customer collaboration over tools and processes right? They value the things on the left so let's do these first!
+
+And when you do these first...Well for one doing something quickly and putting it out there throws all discipline out the window.
+
 ## What is the organizational chart? Who is responsible for what?
 
 ![organization chart](img/org_chart.png)

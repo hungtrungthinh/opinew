@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="f33cd470-dc36-4dce-b3fa-6e9b2f7e3ae7" name="staging" url="http://134.213.208.24">
+        <fileTransfer host="134.213.208.24" port="22" accessType="SFTP" password="dfdedff3dfecdfc1df98df98dfeedfc2df9ddfcbdfcddfe0" username="root">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

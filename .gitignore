@@ -1,11 +1,44 @@
-.idea
+# sensitive files
+opinew_aws.pem
+
+# ignore all virtual environments - mainly binaries here
 venv
+
+# ignore vagrant local directory
+.vagrant
+
+# ignore compiled pyc files
 *.pyc
+
+# ignore media files
 media/review/*
 media/cache/*
 webapp/static/.webassets-cache
+
+# backup files
 *.pgsql
+backup.tar
+
+# backup files by editors and temps
+*~
+*.swp
 .~lock.*#
-opinew_rackspace
-.vagrant
-opinew_aws.pem
+
+# ansible retries
+playbook.retry
+
+# PyCharm ignores - https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore
+# User-specific stuff:
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/vcs.xml
+.idea/jsLibraryMappings.xml
+
+# Sensitive or high-churn files:
+.idea/dataSources.ids
+.idea/dataSources.xml
+.idea/dataSources.local.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/uiDesigner.xml

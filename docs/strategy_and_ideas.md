@@ -1,3 +1,35 @@
+# Strategy
+The big idea is to make everybody happier. We can do this by (controversially) limiting choices. In an age with too much choice we are anxious to select "the right thing" that will make us happy and we spend too much energy thinking if we made the right choice. Find all the best things for you - be it a product, a person or a service - the ultimate personal recommender. Movies, books, restaurants, dating.
+
+See this video for [emotional technology of the future](https://www.youtube.com/watch?v=5u45-x0-zoY) (see the Spouce Finder idea, Socrates and Career finder)
+
+Base this on human simulation by gathering data about the person and simulating the rewards he would gain. The status quo (reddit etc) is democratic voting - but this sucks. In a group of a sheep and wolfs voting what to eat, guess who wins. This way a person can make better decisions and leave the decision fatigue on side.
+
+But we need to start from somewhere. 
+
+## The Millennium Law
+The Millennium Law's idea is that you can't become a millionaire before you become a hundred-thousandaire, and you can's become that before you become a ten-thousandaire etc. 
+
+It was originally devised about money but it is also true for other resources - users, team size etc. We don't have the technology for recommendations, nor the users, money or the data. 
+
+Three step plan:
+1. Start with product reviews - gather data of reviews about products and services that people can pay us for. Initial capital and users. Also stage where we should get a great team. Give 20% time to next stages.
+2. Once we have users, allow for any products to be posted - ala producthunt. Get percentage of sales from websites that get visitors from us (referrals or ads). Gather more users and data. Start beta testing with other recommenders - about music or movies.
+3. Connect all the products and people opinions to get recommendations about anything. Ask people to donate anonymized data for scientific research, machine learning etc.
+
+
+## Situational awareness as of 21 June 2016
+The situation is messy code and inconsistent requirements. We have some clients using the product but not paying because the system is broken. We also have people uninstalled the product for similar reasons.
+
+On the other hand we know the market and the done the research for two years now. We know it's a billions dollars market available for grabs, we know a lot about reviews, we've done a lot and we know there can be lots more to be done. We know a lot can be learnt in web dev, DevOps, machine learning, networking, mobile app, physical web.
+
+# Short term plan
+The critical problem is that we don't get money. This must be a priority. Always. Optimize at the bottleneck, otherwise it is meaningless. The bottleneck right now is technological. 
+
+Basically answer - are the shops getting enough perceived value to pay Opinew and are they aware of it? 
+
+Only then we can start gathering data for baseline tests, optimise the technology for quick, scalable deployment and testing, add more features, expand to more platforms or ask more shops to install via marketing campaigns, main website, SEO, lead generation, sales pipeline etc. Optimising before the bottleneck (market and sales) is meaningless - people will crowd to install only to find it is useless. After - they can't even install so it will be a waste of time since we don't know if the features will be needed.
+
 ![Features](img/features.png)
 
 ## Review itself
