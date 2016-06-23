@@ -7,27 +7,118 @@ This module defines the routes that are accessed by a client browser. It is resp
 """
 from __future__ import division
 import datetime
+import httplib
 import os
+import json
+from functools import wraps
 
+from werkzeug.routing import BuildError
+from werkzeug.datastructures import ImmutableMultiDict
 from flask import request, redirect, url_for, render_template, flash, g, send_from_directory, \
     current_app, make_response, abort, jsonify, send_file, Response, session
 from flask.ext.security import login_required, login_user, current_user, roles_required, logout_user
 from flask_security.utils import verify_password
 
-from webapp import db
 from webapp.client import client
-from webapp.models import Review, Shop, Platform, User, Product, Order, Notification, ReviewRequest, Plan, Question, \
-    Task, SentEmail, FunnelStream, Subscription, ProductUrl, UserLegacy, ReviewLike, ReviewReport, ReviewShare, \
-    ReviewFeature, UrlReferer, Comment, Answer
 from webapp.common import param_required, catch_exceptions, get_post_payload
-from webapp.exceptions import ParamException, DbException, ExceptionMessages
+from messages import SuccessMessages
+from webapp.exceptions import ParamException, DbException, ExceptionMessages, RequirementException
 from webapp.forms import LoginForm, ReviewForm, ReviewImageForm, ShopForm, ExtendedRegisterForm
 from config import Constants, basedir
-from providers import giphy
-from webapp.strategies import rank_objects_for_product, get_scheduled_tasks, get_incoming_messages, get_reviews, \
-    get_analytics
 import webapp.controllers as controllers
-from webapp.common import verify_required_condition, verify_requirements, always_async, get_required_parameter, get_required_model_instance_by_id, generate_success_response_from_model, generate_success_response_from_obj
+
+
+def verify_requirements(*redirect_url_for):
+    """
+    Wraps a response object by verifying that all required conditions pass
+    :param f:
+    :return:
+    """
+
+    def outer_wrapper(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            # Create a response context - is it asyncrounous call (e.g. from ajax)
+            payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data or '{}')
+            is_async = payload.get('async')
+
+            # get as many default redirects as possible
+            default_redirects = []
+            for redirect_url in redirect_url_for:
+                try:
+                    default_redirects.append(url_for(redirect_url))
+                except BuildError:
+                    # well, this url_for was invalid, don't break everything, move on
+                    pass
+
+            # decide which exceptions to catch
+            if current_app.debug:
+                exception_list = (RequirementException,)
+            else:
+                exception_list = (Exception,)
+            try:
+                return f(*args, **kwargs)
+            except exception_list as e:
+                error_message = e.message or ExceptionMessages.UNKNOWN_ERROR
+                error_code = e.error_code if hasattr(e, 'error_code') else httplib.BAD_REQUEST
+                error_category = e.error_category if hasattr(e, 'error_category') else Constants.ALERT_ERROR_LABEL
+
+                # If it an async request - then return jsonified response
+                if is_async:
+                    return jsonify({"error": error_message}), error_code
+                flash(error_message, category=error_category)
+
+                # try to avoid 1 level deep infinite loop redirect
+                referer_redirect = request.referrer if not request.referrer == request.path else None
+                ctx_redirect = None
+                for default_redirect in default_redirects:
+                    ctx_redirect = default_redirect if not default_redirect == request.path else None
+                    if ctx_redirect:
+                        break
+                return redirect(referer_redirect or
+                                ctx_redirect or
+                                url_for('client.index'))
+
+        return wrapper
+
+    return outer_wrapper
+
+
+def always_async(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        request_args = dict(request.args)
+        request_args['async'] = 1
+        request.args = ImmutableMultiDict(request_args)
+        return f(*args, **kwargs)
+
+    return wrapper
+
+def get_required_parameter(payload, param_name):
+    """
+    Verifies and returns a parameter from a payload
+    :param payload: the payload to check
+    :param param_name: the parameter name
+    :return:
+    """
+    obj = payload.get(param_name)
+    controllers.verify_required_condition(condition=obj is not None,
+                              error_msg=ExceptionMessages.MISSING_PARAM.format(param=param_name),
+                              error_code=httplib.BAD_REQUEST)
+    return obj
+
+
+def generate_success_response_from_obj(obj, obj_name):
+    payload = request.args if request.method in ['GET'] else request.form or json.loads(request.data)
+    is_async = payload.get('async')
+    if is_async:
+        return jsonify(obj), httplib.CREATED
+    flash(SuccessMessages.SUCCESS_CREATING_OBJECT.format(object_name=obj_name))
+    return redirect(request.referrer)
+
+
+def generate_success_response_from_model(model, obj_name):
+    return generate_success_response_from_obj(model.serialize(), obj_name)
 
 
 @client.route('/')
@@ -92,10 +183,11 @@ def platform_shop_create(platform_name):
         return redirect(url_for('client.setup_plugin', shop_id=shop.id))
     return redirect('/register')
 
+
 # Signals
 from flask.ext.security import user_registered
 
-user_registered.connect(User.post_registration_handler)
+user_registered.connect(controllers.User.post_registration_handler)
 
 
 @client.route('/register', methods=['GET', 'POST'])
@@ -117,7 +209,7 @@ def register():
 @client.route('/', defaults={'review_request_token': ''})
 @client.route('/<path:review_request_token>')
 def get_by_review_request_token(review_request_token):
-    review_request = ReviewRequest.query.filter_by(token=review_request_token).first()
+    review_request = controllers.ReviewRequest.get_by_token(token=review_request_token)
     user_email = None
     is_legacy = False
     # all below logic is to decide whether to display the Name, Email and Password fields
@@ -153,7 +245,7 @@ def reviews():
         page = int(page) if page.isdigit() else 1
         start = Constants.REVIEWS_PER_PAGE * (page - 1)
         end = start + Constants.REVIEWS_PER_PAGE
-        reviews = Review.get_latest(start, end)
+        reviews = controllers.Review.get_latest(start, end)
         return render_template('reviews.html',
                                page_title="Reviews - Opinew",
                                page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
@@ -162,7 +254,7 @@ def reviews():
     page = int(page) if page.isdigit() else 1
     start = Constants.REVIEWS_PER_PAGE * (page - 1)
     end = start + Constants.REVIEWS_PER_PAGE
-    reviews = Review.get_latest(start, end)
+    reviews = controllers.Review.get_latest(start, end)
     return render_template('reviews.html',
                            page_title="Reviews - Opinew",
                            page_description="Featured product reviews with images, videos, emojis, gifs and memes.",
@@ -188,14 +280,14 @@ def notifications():
 def user_profile(user_id):
     if 'mobile' in g and g.mobile:
         page = 1
-        user = User.get_by_id(user_id)
-        reviews = Review.get_by_user(user_id)
+        user = controllers.User.get_by_id(user_id)
+        reviews = controllers.Review.get_by_user(user_id)
         return render_template('mobile/user_profile.html',
                                page_title="User - Opinew",
                                reviews=reviews, page=page, user=user)
     page = 1
-    user = User.get_by_id(user_id)
-    reviews = Review.get_by_user(user_id)
+    user = controllers.User.get_by_id(user_id)
+    reviews = controllers.Review.get_by_user(user_id)
     return render_template('mobile/user_profile.html',
                            page_title="User - Opinew",
                            reviews=reviews, page=page, user=user)
@@ -209,7 +301,7 @@ def shop_dashboard():
     shops = current_user.shops
     if not shops:
         shop_form = ShopForm()
-        platforms = Platform.query.all()
+        platforms = controllers.Platform.query.all()
     if len(shops) == 1:
         return redirect(url_for('client.shop_dashboard_id', shop_id=shops[0].id, **request.args))
     return render_template('shop_admin/choose_shop.html', shops=shops, shop_form=shop_form, platforms=platforms)
@@ -255,8 +347,8 @@ def shop_dashboard():
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def shop_dashboard_id(shop_id):
-    shop = get_required_model_instance_by_id(Shop, shop_id)
-    verify_required_condition(condition=shop.owner_id == current_user.id,
+    shop = controllers.get_required_model_instance_by_id(Shop, shop_id)
+    controllers.verify_required_condition(condition=shop.owner_id == current_user.id,
                               error_msg=ExceptionMessages.NOT_YOUR_INSTANCE.format(instance='shop'))
     dashboard_tabs = Constants.DASHBOARD_TABS
     incoming_messages = get_incoming_messages(shop)
@@ -464,7 +556,7 @@ def get_plugin():
         else:
             return '', 404
         shop = product.shop
-        #if shop.owner and \
+        # if shop.owner and \
         #        shop.owner.customer and \
         #        shop.owner.customer[0]:
         #        shop.owner.confirmed_at and \
@@ -756,7 +848,7 @@ def render_email():
     from util.email_inliner import inline_email
     template_name = request.args.get('template_name')
     inline_email(template_name)
-    return render_template('email/'+template_name)
+    return render_template('email/' + template_name)
 
 
 @client.route('/fake-shopify-api', defaults={'shop': None})
@@ -769,13 +861,12 @@ def fake_shopify_api(shop):
 
 @client.route('/search-giphy')
 def search_giphy():
-    giphy_api_key = current_app.config.get('GIPHY_API_KEY')
     query = request.args.get('q')
     if not query:
-        return jsonify(giphy.get_trending(giphy_api_key))
+        return jsonify(controllers.Giphy.get_trending())
     limit = request.args.get('limit', Constants.REVIEWS_PER_PAGE)
     offset = request.args.get('offset', 0)
-    return jsonify(giphy.get_by_query(giphy_api_key, query, limit, offset))
+    return jsonify(controllers.Giphy.get_by_query(query, limit, offset))
 
 
 @client.route('/update-order', methods=['POST'])
@@ -959,6 +1050,7 @@ def unsubscribe():
     db.session.commit()
     return "%s has been successfully unsubscribed." % email
 
+
 #######################
 # OPINEW API DEFINITION
 #######################
@@ -999,7 +1091,7 @@ def get_real_or_anonymous_user():
 @client.route('/reviews/<int:review_id>/like', methods=['POST'])
 @verify_requirements('client.reviews')
 def route_review_like(review_id):
-    review = get_required_model_instance_by_id(Review, review_id)
+    review = controllers.get_required_model_instance_by_id(Review, review_id)
     user = get_real_or_anonymous_user()
     # verify that this user hasn't liked it before
     review_like = ReviewLike.query.filter_by(review_id=review_id, user_id=user.id).first()
@@ -1020,7 +1112,7 @@ def route_review_like(review_id):
 @client.route('/reviews/<int:review_id>/report', methods=['POST'])
 @verify_requirements('client.reviews')
 def route_review_report(review_id):
-    review = get_required_model_instance_by_id(Review, review_id)
+    review = controllers.get_required_model_instance_by_id(Review, review_id)
     user = get_real_or_anonymous_user()
     review_report = ReviewReport.query.filter_by(review_id=review_id, user_id=user.id).first()
     if not review_report:
@@ -1042,9 +1134,10 @@ def route_review_report(review_id):
 @roles_required(Constants.SHOP_OWNER_ROLE)
 @login_required
 def route_review_feature(review_id):
-    review = get_required_model_instance_by_id(Review, review_id)
-    verify_required_condition(condition=review.product and review.product.shop and review.product.shop in current_user.shops,
-                              error_msg=ExceptionMessages.CANT_FEATURE_THAT_REVIEW)
+    review = controllers.get_required_model_instance_by_id(Review, review_id)
+    verify_required_condition(
+        condition=review.product and review.product.shop and review.product.shop in current_user.shops,
+        error_msg=ExceptionMessages.CANT_FEATURE_THAT_REVIEW)
     review_feature = ReviewFeature.query.filter_by(review_id=review_id).first()
     if not review_feature:
         now = datetime.datetime.utcnow()
@@ -1064,7 +1157,7 @@ def route_review_feature(review_id):
 @verify_requirements('client.reviews')
 def route_review_share(review_id):
     # Verify required objects
-    review = get_required_model_instance_by_id(Review, review_id)
+    review = controllers.get_required_model_instance_by_id(Review, review_id)
 
     # Create Review Share
     now = datetime.datetime.utcnow()
@@ -1157,7 +1250,7 @@ def create_answer():
 
 @client.route('/simple')
 def simple_index():
-    review = Review.query.first()
+    review = controllers.Review.query.first()
     return render_template('simple_index.html', review=review)
 
 
@@ -1168,7 +1261,7 @@ def simple_add_review():
 
 @client.route('/simple-plugin')
 def simple_plugin():
-    reviews = Review.query.all()[:10]
+    reviews = controllers.Review.query.all()[:10]
     return render_template('simple_plugin.html', reviews=reviews)
 
 
@@ -1177,6 +1270,7 @@ def simple_plugin():
 def shopify_manual_verification():
     # TODO: update next_action
     return redirect(url_for('client.shop_dashboard'))
+
 
 @client.route('/terms')
 def terms_of_use():
