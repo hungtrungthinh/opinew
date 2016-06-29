@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/opinew_ecommerce_api.iml" filepath="$PROJECT_DIR$/.idea/opinew_ecommerce_api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/opinew.iml" filepath="$PROJECT_DIR$/.idea/opinew.iml" />
     </modules>
   </component>
 </project>

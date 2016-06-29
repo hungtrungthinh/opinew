@@ -90,12 +90,10 @@ def create_app(option):
     from common import create_jinja_filters, random_pwd, verify_initialization
 
     create_jinja_filters(app)
-    from webapp.api import api
     from webapp.client import client
     from webapp.media import media
 
     app.register_blueprint(client)
-    app.register_blueprint(api, url_prefix=Constants.API_V1_URL_PREFIX)
     app.register_blueprint(media, url_prefix=Constants.MEDIA_URL_PREFIX)
 
     compress.init_app(app)

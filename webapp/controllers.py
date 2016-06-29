@@ -788,9 +788,9 @@ class Review(object):
             raise DbException(message='Review doesn\'t exist', status_code=404)
         return review
 
-    @classmethod
+    @classmethod 
     def get_latest(cls, start, end):
-        reviews = cls.query.filter_by(deleted=False).order_by(Review.id.desc()).all()[start:end]
+        reviews = models.Review.query.filter_by(deleted=False).order_by(models.Review.id.desc()).all()[start:end]
         return reviews
 
     @classmethod

@@ -25,7 +25,7 @@ Vagrant.configure(2) do |config|
       source venv/bin/activate
       pip install -r requirements.txt
     fi
-    
+
     # Create db
     sudo -u postgres psql -c "CREATE USER opinew_user WITH PASSWORD '"'Opinu@m4d4f4k4!'"';"
     sudo -u postgres psql -c "CREATE DATABASE opinew WITH ENCODING 'UTF8'"
